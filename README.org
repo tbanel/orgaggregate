@@ -9,6 +9,7 @@ averages, and so on, out of material from the frist table.
 A very simple Example. We have a table of activities and quantities
 (whatever they are) over several days.
 
+#+BEGIN_EXAMPLE
 #+TBLNAME: original
 | Day       | Color | Level | Quantity |
 |-----------+-------+-------+----------|
@@ -26,6 +27,7 @@ A very simple Example. We have a table of activities and quantities
 | Friday    | Blue  |     7 |        5 |
 | Friday    | Blue  |     6 |        8 |
 | Friday    | Blue  |    11 |        9 |
+#+END_EXAMPLE
 
 We want to aggregate this table for each day (because several rows
 exist for each day). First we give a name to the table through the
@@ -37,6 +39,7 @@ block/ to receive the aggregation:
 
 Now typing =C-c C-c= in the dynamic block computes the aggregation:
 
+#+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table original :cols "Day mean(Level) sum(Quantity)"
 | Day       | mean(Level) | sum(Quantity) |
 |-----------+-------------+---------------|
@@ -46,6 +49,7 @@ Now typing =C-c C-c= in the dynamic block computes the aggregation:
 | Turdsday  |          43 |            83 |
 | Friday    |           8 |            22 |
 #+END
+#+END_EXAMPLE
 
 The source table is not change in any way.
 
@@ -91,15 +95,18 @@ aggregate (original$Quantity, list(Day=day_factor), sum )
 Maybe we are just interested in the sum of =Quantities=, regardless of
 =Days=. We just type:
 
+#+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table "original" :cols "sum(Quantity)"
 | sum(Quantity) |
 |---------------|
 |           218 |
 #+END
+#+END_EXAMPLE
 
 Or we may want to count the number of rows for each combination of
 =Day= and =Color=:
 
+#+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table "original" :cols "count() Day Color"
 | count() | Day       | Color |
 |---------+-----------+-------|
@@ -112,16 +119,19 @@ Or we may want to count the number of rows for each combination of
 |       3 | Turdsday  | Red   |
 |       3 | Friday    | Blue  |
 #+END
+#+END_EXAMPLE
 
 If we want to get measurments for =Colors= rather than =Days=, we
 type:
 
+#+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table "original" :cols "Color mean(Level) sum(Quantity)"
 | Color |   mean(Level) | sum(Quantity) |
 |-------+---------------+---------------|
 | Red   | 40.2857142857 |           144 |
 | Blue  | 15.5714285714 |            74 |
 #+END
+#+END_EXAMPLE
 
 * The :cols parameter
 
@@ -150,6 +160,7 @@ table with uniq combinations of those columns.
 Here is a source table containing 3 blocks separated by horizontal
 lines:
 
+#+BEGIN_EXAMPLE
 #+TBLNAME: originalhl
 | Color | Level | Quantity |
 |-------+-------+----------|
@@ -169,9 +180,11 @@ lines:
 | Blue  |     7 |        5 |
 | Blue  |     6 |        8 |
 | Blue  |    11 |        9 |
+#+END_EXAMPLE
 
 And here is the aggregation by those 3 blocks:
 
+#+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table originalhl :cols "hline mean(Level) sum(Quantity)"
 | hline | mean(Level) | sum(Quantity) |
 |-------+-------------+---------------|
@@ -179,9 +192,11 @@ And here is the aggregation by those 3 blocks:
 |     1 |        26.8 |           107 |
 |     2 |       18.25 |            52 |
 #+END:
+#+END_EXAMPLE
 
 If we want additionnal details with the =Color= column, we just name it:
 
+#+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table originalhl :cols "hline Color mean(Level) sum(Quantity)"
 | hline | Color |   mean(Level) | sum(Quantity) |
 |-------+-------+---------------+---------------|
@@ -192,6 +207,7 @@ If we want additionnal details with the =Color= column, we just name it:
 |     2 | Red   |            49 |            30 |
 |     2 | Blue  |             8 |            22 |
 #+END:
+#+END_EXAMPLE
 
 * Aggregation formulaes in :cols
 
@@ -294,6 +310,7 @@ Example:
 We have a source table which is unaware that it will be derived in an
 aggregated table:
 
+#+BEGIN_EXAMPLE
 #+TBLNAME: source1
 | Day       | Color | Level | Quantity |
 |-----------+-------+-------+----------|
@@ -311,10 +328,12 @@ aggregated table:
 | Friday    | Blue  |     7 |        5 |
 | Friday    | Blue  |     6 |        8 |
 | Friday    | Blue  |    11 |        9 |
+#+END_EXAMPLE
 
 We create somewhere else a /dynamic block/ which carries the
 specification of the aggregation:
 
+#+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table "source1" :cols "Day mean(Level) sum(Quantity)"
 | Day       | mean(Level) | sum(Quantity) |
 |-----------+-------------+---------------|
@@ -324,6 +343,7 @@ specification of the aggregation:
 | Turdsday  |          43 |            83 |
 | Friday    |           8 |            22 |
 #+END
+#+END_EXAMPLE
 
 Typing =C-c C-c= in the dynamic block recomputes it freshly.
 
@@ -331,6 +351,7 @@ In /push/ mode, the source table drives the creation of derived
 tables. We specify the wanted results in =#+ORGTBL: SEND= directives
 (as many as desired):
 
+#+BEGIN_EXAMPLE
 #+ORGTBL: SEND derived1 orgtbl-to-aggregated-table :cols "mean(Level) sum(Quantity)"
 #+ORGTBL: SEND derived2 orgtbl-to-aggregated-table :cols "Day mean(Level) sum(Quantity)"
 | Day       | Color | Level | Quantity |
@@ -349,24 +370,32 @@ tables. We specify the wanted results in =#+ORGTBL: SEND= directives
 | Friday    | Blue  |     7 |        5 |
 | Friday    | Blue  |     6 |        8 |
 | Friday    | Blue  |    11 |        9 |
+#+END_EXAMPLE
 
 We must create the receiving blocks somewhere else in the same file:
 
+#+BEGIN_EXAMPLE
 #+BEGIN RECEIVE ORGTBL derived1
 #+END RECEIVE ORGTBL derived1
+#+END_EXAMPLE
 
+#+BEGIN_EXAMPLE
 #+BEGIN RECEIVE ORGTBL derived2
 #+END RECEIVE ORGTBL derived2
+#+END_EXAMPLE
 
 Then we come back to the source table an type =C-c C-c= with the
 cursor on the 1st pipe of the table, to refresh the derived tables:
 
+#+BEGIN_EXAMPLE
 #+BEGIN RECEIVE ORGTBL derived1
 |   mean(Level) | sum(Quantity) |
 |---------------+---------------|
 | 27.9285714286 |           218 |
 #+END RECEIVE ORGTBL derived1
+#+END_EXAMPLE
 
+#+BEGIN_EXAMPLE
 #+BEGIN RECEIVE ORGTBL derived2
 | Day       | mean(Level) | sum(Quantity) |
 |-----------+-------------+---------------|
@@ -376,6 +405,7 @@ cursor on the 1st pipe of the table, to refresh the derived tables:
 | Turdsday  |          43 |            83 |
 | Friday    |           8 |            22 |
 #+END RECEIVE ORGTBL derived2
+#+END_EXAMPLE
 
 Pull & push modes use the same engine in the background.
 Thus, using either is just a matter of convenience.
@@ -387,6 +417,7 @@ Thus, symbolic computations are built-in. Example:
 
 This is the source table:
 
+#+BEGIN_EXAMPLE
 #+TBLNAME: symtable
 | Day       | Color |  Level | Quantity |
 |-----------+-------+--------+----------|
@@ -404,9 +435,11 @@ This is the source table:
 | Friday    | Blue  |      7 |      5+a |
 | Friday    | Blue  |      6 |        8 |
 | Friday    | Blue  |     11 |        9 |
+#+END_EXAMPLE
 
 And here is the aggregated, symbolic result:
 
+#+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table "symtable" :cols "Day mean(Level) sum(Quantity)"
 | Day       | mean(Level)           | sum(Quantity) |
 |-----------+-----------------------+---------------|
@@ -416,6 +449,7 @@ And here is the aggregated, symbolic result:
 | Turdsday  | x / 3 + 43.           | 4 a + 83      |
 | Friday    | 8                     | a + 22        |
 #+END
+#+END_EXAMPLE
 
 Symbolic calculations are correctly performed on =x= and =a=, which
 are symbolic (as opposed to numeric) expressions.
@@ -431,6 +465,7 @@ Those aggregations are =cov(,)=, =pcov(,)=, =corr(,)=.
 Example. We create a table where column =y= is a noisy version of
 column =x=:
 
+#+BEGIN_EXAMPLE
 #+TBLNAME: noisydata
 | bin   |  x |       y |
 |-------+----+---------|
@@ -447,13 +482,16 @@ column =x=:
 | large | 11 | 111.748 |
 | large | 12 | 121.084 |
 #+TBLFM: $3=$2*10+random(1000)/500;%.3f
+#+END_EXAMPLE
 
+#+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table noisydata :cols "bin corr(x,y) cov(x,y) pcov(x,y)"
 | bin   |      corr(x,y) |      cov(x,y) |     pcov(x,y) |
 |-------+----------------+---------------+---------------|
 | small | 0.999459736649 |        25.434 |       20.3472 |
 | large | 0.999542438688 | 46.4656666667 | 39.8277142857 |
 #+END
+#+END_EXAMPLE
 
 We see that the correlation between =x= and =y= is very close to =1=,
 meaning that both columns are correlated. Indeed they are, as the =y=
@@ -466,6 +504,7 @@ Some (limited) aggregation is possible on dates.
 
 Example. Here is a source table containing dates:
 
+#+BEGIN_EXAMPLE
 #+tblname: datetable
 | Date                    |
 |-------------------------|
@@ -477,11 +516,12 @@ Example. Here is a source table containing dates:
 | [2014-01-18 sam. 03:51] |
 | [2013-12-25 mer. 00:00] |
 | [2012-12-25 mar. 00:00] |
+#+END_EXAMPLE
 
+#+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table datetable :cols "min(Date) max(Date) mean(Date)"
 | min(Date)                  | max(Date)                  |    mean(Date) |
 |----------------------------+----------------------------+---------------|
 | <2011-09-24 sat. 13:54:00> | <2014-02-26 wed. 16:11:00> | 735074.937066 |
 #+END:
-
-* TODO Wizard 
+#+END_EXAMPLE

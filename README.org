@@ -1,5 +1,5 @@
 # -*- mode: org; -*-
-#+TITLE: org-aggregate.el -- aggregate values in a table
+#+TITLE: Aggregate Values in a Table
 #+OPTIONS: ^:{} author:Thierry Banel toc:nil
 
 Aggregating a table is creating a new table by computing sums,
@@ -34,8 +34,10 @@ exist for each day). First we give a name to the table through the
 =#+TBLNAME:= tag, just above the table. Then we create a /dynamic
 block/ to receive the aggregation:
 
+#+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table original :cols "Day mean(Level) sum(Quantity)"
 #+END
+#+END_EXAMPLE
 
 Now typing =C-c C-c= in the dynamic block computes the aggregation:
 
@@ -142,7 +144,7 @@ The names of the columns in the original table may be
 - the names as they appear in the header of the source table,
 - or $1, $2, $3 and so on (as in spreadsheet formulaes),
 - additionaly, the special column =hline= is used to group
-  parts of the source table separated by horizontal lines
+  parts of the source table separated by horizontal lines.
 
 * Grouping specifications in :cols
 
@@ -384,7 +386,7 @@ We must create the receiving blocks somewhere else in the same file:
 #+END RECEIVE ORGTBL derived2
 #+END_EXAMPLE
 
-Then we come back to the source table an type =C-c C-c= with the
+Then we come back to the source table and type =C-c C-c= with the
 cursor on the 1st pipe of the table, to refresh the derived tables:
 
 #+BEGIN_EXAMPLE

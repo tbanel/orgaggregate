@@ -220,70 +220,70 @@ We saw examples with =sum=, =mean=, =count= aggregations. There are
 many other aggregations. They are based on functions provided by Calc:
 
 - =count()=
-  in Calc: =`u #' (`calc-vector-count') [`vcount'])=
-  gives the number of elements being aggregated
+  + in Calc: =`u #' (`calc-vector-count') [`vcount'])=
+  + gives the number of elements being aggregated
 
 - =sum=
-  in Calc: =`u +' (`calc-vector-sum') [`vsum']=
-  computes the sum of elements being aggregated
+  + in Calc: =`u +' (`calc-vector-sum') [`vsum']=
+  + computes the sum of elements being aggregated
 
 - =max=
-  in Calc: =`u X' (`calc-vector-max') [`vmax']=
-  gives the largest of the elements being aggregated
+  + in Calc: =`u X' (`calc-vector-max') [`vmax']=
+  + gives the largest of the elements being aggregated
 
 - =min=
-  in Calc: =`u N' (`calc-vector-min') [`vmin']=
-  gives the smallest of the elements being aggregated
+  + in Calc: =`u N' (`calc-vector-min') [`vmin']=
+  + gives the smallest of the elements being aggregated
 
 - =mean=
-  in Calc: =`u M' (`calc-vector-mean') [`vmean']=
-  computes the average (arithmetic mean) of elements being aggregated
+  + in Calc: =`u M' (`calc-vector-mean') [`vmean']=
+  + computes the average (arithmetic mean) of elements being aggregated
 
 - =meane=
-  in Calc: =`I u M' (`calc-vector-mean-error') [`vmeane']=
-  computes the average (as mean) along with the estimated error of elements being aggregated
+  + in Calc: =`I u M' (`calc-vector-mean-error') [`vmeane']=
+  + computes the average (as mean) along with the estimated error of elements being aggregated
 
 - =median=
-  in Calc: =`H u M' (`calc-vector-median') [`vmedian']=
-  computes the median of elements being aggregated, by taken the middle element after sorting them
+  + in Calc: =`H u M' (`calc-vector-median') [`vmedian']=
+  + computes the median of elements being aggregated, by taken the middle element after sorting them
 
 - =hmean=
-  in Calc: =`H I u M' (`calc-vector-harmonic-mean') [`vhmean']=
-  computes the harmonic mean of elements being aggregated
+  + in Calc: =`H I u M' (`calc-vector-harmonic-mean') [`vhmean']=
+  + computes the harmonic mean of elements being aggregated
  
 - =gmean=
-  in Calc: =`u G' (`calc-vector-geometric-mean') [`vgmean']=
-  computes the geometric mean of elements being aggregated
+  + in Calc: =`u G' (`calc-vector-geometric-mean') [`vgmean']=
+  + computes the geometric mean of elements being aggregated
 
 - =sdev=
-  in Calc: =`u S' (`calc-vector-sdev') [`vsdev']=
-  computes the standard deviation of elements being aggregated
+  + in Calc: =`u S' (`calc-vector-sdev') [`vsdev']=
+  + computes the standard deviation of elements being aggregated
 
 - =psdev=
-  in Calc: =`I u S' (`calc-vector-pop-sdev') [`vpsdev']=
-  computes the population standard deviation (divide by N instead of N-1)
+  + in Calc: =`I u S' (`calc-vector-pop-sdev') [`vpsdev']=
+  + computes the population standard deviation (divide by N instead of N-1)
 
 - =pvar=
-  in Calc: =`H u S' (`calc-vector-variance') [`vvar']=
-  computes the variance of elements being aggregated
+  + in Calc: =`H u S' (`calc-vector-variance') [`vvar']=
+  + computes the variance of elements being aggregated
 
 - =pcov=
-  in Calc: =`I u C' (`calc-vector-pop-covariance') [`vpcov']=
-  computes the population covariance of elements being aggregated from two columns (divides by N)
+  + in Calc: =`I u C' (`calc-vector-pop-covariance') [`vpcov']=
+  + computes the population covariance of elements being aggregated from two columns (divides by N)
 
 - =cov=
-  in Calc: =`u C' (`calc-vector-covariance') [`vcov']=
-  computes the sample covariance of elements being aggregated from two columns (divides by N-1)
+  + in Calc: =`u C' (`calc-vector-covariance') [`vcov']=
+  + computes the sample covariance of elements being aggregated from two columns (divides by N-1)
 
 - =corr=
-  in Calc: =`H u C' (`calc-vector-correlation') [`vcorr']=
-  computes the linear correlation coefficient of elements being aggregated in two columns
+  + in Calc: =`H u C' (`calc-vector-correlation') [`vcorr']=
+  + computes the linear correlation coefficient of elements being aggregated in two columns
 
 - =prod=
-  computes the product of elements being aggregated
+  + computes the product of elements being aggregated
 
 - =list=
-  gives the list of elements being aggregated, without processing
+  + gives the list of elements being aggregated, without processing
 
 * The :cond filtering
 
@@ -293,13 +293,12 @@ expression evaluates to nil, the row is discarded.
 
 Examples of useful expressions includes:
 - =:cond (equal Color "Red")=
-  to keep only rows where Color is Red
+  + to keep only rows where Color is Red
 - =:cond (> (string-to-number Quantity) 19)=
-  to keep only rows for which Quantity is more than 19
-  note the call to =string-to-number=; without this call, Quantity
-  would be used as a string
+  + to keep only rows for which Quantity is more than 19
+  + note the call to =string-to-number=; without this call, =Quantity= would be used as a string
 - =:cond (> (* (string-to-number Level) 2.5) (string-to-number Quantity))=
-  to keep only rows for which =2.5*Level > Quantity=
+  + to keep only rows for which =2.5*Level > Quantity=
 
 * Pull & Push
 

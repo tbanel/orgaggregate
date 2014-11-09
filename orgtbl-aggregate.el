@@ -1,4 +1,4 @@
-;;; org-aggregate.el --- Create an aggregated Org table from another one
+;;; orgtbl-aggregate.el --- Create an aggregated Org table from another one
 
 ;; Copyright (C) 2013-2014  Thierry Banel
 
@@ -6,12 +6,12 @@
 ;; Version: 0.1
 ;; Keywords: org, table, aggregation, filtering
 
-;; org-aggregate is free software: you can redistribute it and/or modify
+;; orgtbl-aggregate is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; org-aggregate is distributed in the hope that it will be useful,
+;; orgtbl-aggregate is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -72,7 +72,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Here is a bunch of useful utilities,
-;; generic enough to be detached from the org-aggregate package.
+;; generic enough to be detached from the orgtbl-aggregate package.
 ;; For the time being, they are here.
 
 (defun orgtbl-list-local-tables ()
@@ -825,5 +825,5 @@ Note:
     (org-create-dblock params)
     (org-update-dblock)))
 
-(provide 'org-aggregate)
-;;; org-aggregate.el ends here
+(provide 'orgtbl-aggregate)
+;;; orgtbl-aggregate.el ends here

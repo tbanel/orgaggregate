@@ -29,10 +29,11 @@
 ;;   org-insert-dblock:propview
 ;;   org-insert-dblock:invoice
 ;;   org-insert-dblock:aggregate
-;;   org-dblock-write:transpose
+;;   org-insert-dblock:transpose
 ;;
-;; The toplevel wizzards is bound to C-c C-x i, predating org-insert-columns-dblock
-;; (org-insert-columns-dblock can be invoqued by answering "columnview"
+;; The toplevel wizzards extends the C-c C-x i keybinding.
+;; (The C-c C-x i binding was limited to org-insert-columns-dblock,
+;; which can be invoqued by answering "columnview"
 ;; at the toplevel wizzard prompt)
 
 ;;; Code:

@@ -4,6 +4,7 @@
 
 ;; Author: Thierry Banel tbanelwebmin at free dot fr
 ;; Version: 0.1
+;; Package-Requires: ((cl-lib "0.5"))
 ;; Keywords: org, table, aggregation, filtering
 
 ;; orgtbl-aggregate is free software: you can redistribute it and/or modify

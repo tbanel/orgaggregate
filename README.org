@@ -6,7 +6,7 @@ Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the frist table.
 
 * Examples
-A very simple Example. We have a table of activities and quantities
+A very simple example. We have a table of activities and quantities
 (whatever they are) over several days.
 
 #+BEGIN_EXAMPLE
@@ -91,6 +91,20 @@ day_factor <- factor(original$Day)
 aggregate (original$Level   , list(Day=day_factor), mean)
 aggregate (original$Quantity, list(Day=day_factor), sum )
 #+end_src
+
+* Key-binding & Wizard
+
+Type =C-c C-x i= to launch a wizard for creating new /dynamic blocks/.
+Then answer =aggregate= for the type of block, and follow the instructions.
+(There are several other /dynamic blocks/ that can be built this way:
+~columnview~, ~clocktable~, ~propview~, ~invoice~, ~transpose~, and any
+future block).
+
+This is given by the file =org-insert-dblock.el=, which extends
+the original =C-c C-x i= key-binding to any dynamic block.
+If for any reason you do not want to load this file, you can still
+create dynamic aggregate blocks by typing
+=M-x org-dblock-write:aggregate=.
 
 * Other examples
 

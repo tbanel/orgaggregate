@@ -129,6 +129,22 @@ An horizontal line is translated as the special symbol `hline'."
 	      (setq tbeg (point-at-bol))
 	      (org-table-to-lisp))))))))
 
+(defun orgtbl-get-header-distant-table (table)
+"Return the header of TABLE as a list.
+TABLE names a table in the same buffer.
+The function takes care of possibly missing headers,
+and in this case returns a list of $1, $2, $3... column names"
+  (setq table (orgtbl-get-distant-table table))
+  (while (eq 'hline (car table))
+    (setq table (cdr table)))
+  (if (memq 'hline table)
+      (car table)
+    (let ((i 0))
+      (mapcar (lambda (x)
+		(setq i (1+ i))
+		(format "$%s" i))
+	      (car table)))))
+
 (defun orgtbl-insert-elisp-table (table)
   "Insert TABLE, which is a lisp list of lists,
 into the current buffer, at the point location.
@@ -630,18 +646,17 @@ Note:
   (interactive)
   (let* ((table
 	  (org-icompleting-read "Table name: " (orgtbl-list-local-tables)))
-	 (header
-	  (car (orgtbl-get-distant-table table)))
+	 (header (orgtbl-get-header-distant-table table))
 	 (aggcols
 	  (read-string
 	   (format
-	    "columns (source columns are %s): "
+	    "columns %s: "
 	    header)
 	   nil 'orgtbl-aggregate-history-cols))
 	 (aggcond
 	  (read-string
 	   (format
-	    "condition (optional lisp function) (source columns %s): "
+	    "condition (optional lisp function operating on %s): "
 	    header)
 	   nil 'orgtbl-aggregate-history-cols))
 	 (params (list :name "aggregate" :table table :cols aggcols)))
@@ -807,8 +822,7 @@ Note:
   (interactive)
   (let* ((table
 	  (org-icompleting-read "Table name: " (orgtbl-list-local-tables)))
-         (header
-	  (car (orgtbl-get-distant-table table)))
+         (header (orgtbl-get-header-distant-table table))
 	 (aggcols
 	  (read-string
 	   (format

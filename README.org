@@ -540,3 +540,6 @@ Example. Here is a source table containing dates:
 | <2011-09-24 sat. 13:54:00> | <2014-02-26 wed. 16:11:00> | 735074.937066 |
 #+END:
 #+END_EXAMPLE
+* Changes
+- Wizard now correctly ask for columns with $1, $2... names
+  when table header is missing

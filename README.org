@@ -541,6 +541,23 @@ Example. Here is a source table containing dates:
 #+END:
 #+END_EXAMPLE
 
+* Empty and malformed input cells
+
+The input table may contain malformed mathematical text.  For instance,
+a cell containing =5+= is malformed, because an expression is missing
+after the =+= symbol.  In this case, the value will be replaced by
+=INPUT_ERROR= which will appear in the aggregated table, signaling the
+problem.
+
+An input cell may be empty.  In this case, it is silently replaced by
+zero.  In an output cell, if the computed result is zero, it not
+output, leaving a blank cell.  This allows for empty input cells to
+result in empty output cells.
+
+The empty cell handling may be changed in the futur.  For instance, we
+may want to compute an average aggregation ignoring empty cells (right
+now, empty cells contribute to the average by pulling it toward zero).
+
 * Additional formulas
 
 A formula can be computed on top of an aggregation.  With a previous

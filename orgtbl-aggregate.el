@@ -343,11 +343,12 @@ containing this single ROW."
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
   (or (org-time-string-to-calc expr)
+      (if (equal expr "") 0)
       (let ((x (math-read-exprs expr)))
-	(unless (consp x) (error "not consp ?"))
-	(if (eq (car x) 'error)
-	    (car (math-read-exprs "NA"))
-	  (car x)))))
+	  (unless (consp x) (error "not consp ?"))
+	  (if (eq (car x) 'error)
+	      (math-read-exprs "INPUT_ERROR")
+	    (car x)))))
 
 (defun orgtbl-to-aggregated-table-do-sums (group aggcols)
   "Iterate over the rows in the GROUP
@@ -435,7 +436,9 @@ The result is a row compliant with the AGGCOLS columns specifications."
 		    cov pcov corr)
 	      (let ((calc-date-format
 		     '((YYYY "-" MM "-" DD " " www ". " hh ":" mm ":" ss))))
-		(setq aggr (math-format-value aggr))))))
+		(setq aggr (math-format-value aggr)))))
+	   (if (equal "0" aggr)
+	       (setq aggr "")))	     
 	 aggr))
      aggcols)))
 

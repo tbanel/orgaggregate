@@ -1,3 +1,4 @@
+# -*- coding:utf-8; -*-
 #+TITLE: Unit Tests & Examples for Orgtbl Aggregate
 Copyright (C) 2013-2014  Thierry Banel
 
@@ -143,79 +144,80 @@ Pull = aggregated table knows how to compute itself,
 
 ** Source table
 Not changed in any way by the aggregate process.
+(Note: non-ascii characters are used as column names)
 
 #+TBLNAME: pulledtable
-| p | q |   x |    y | z | def |
-|---+---+-----+------+---+-----|
-| 1 | b |  12 |    8 | 9 |     |
-| 3 | b |  12 |    8 | 9 |     |
-| 1 | a |   3 |    2 | 4 |   1 |
-| 2 | a |   3 |    2 | 2 |     |
-| 3 | a |   3 |    2 | 1 |   1 |
-| 3 | a |   5 |    4 | 2 |   1 |
-| 1 | a | 5.1 |    2 | 8 |   1 |
-| 2 | b |   9 |    8 | 5 |     |
-| 3 | b |   9 |    8 | 1 |     |
-| 4 | a |   a |    a | 8 |     |
-| 5 | a |   a | 10*a | 4 |   1 |
-| 4 | b |   b |    b | 6 |   1 |
-| 5 | b | b+3 |  b*b | 8 |     |
+| pé | qû |  xà |   yÿ | zö | déf |
+|----+----+-----+------+----+-----|
+|  1 | b  |  12 |    8 |  9 |     |
+|  3 | b  |  12 |    8 |  9 |     |
+|  1 | a  |   3 |    2 |  4 |   1 |
+|  2 | a  |   3 |    2 |  2 |     |
+|  3 | a  |   3 |    2 |  1 |   1 |
+|  3 | a  |   5 |    4 |  2 |   1 |
+|  1 | a  | 5.1 |    2 |  8 |   1 |
+|  2 | b  |   9 |    8 |  5 |     |
+|  3 | b  |   9 |    8 |  1 |     |
+|  4 | a  |   a |    a |  8 |     |
+|  5 | a  |   a | 10*a |  4 |   1 |
+|  4 | b  |   b |    b |  6 |   1 |
+|  5 | b  | b+3 |  b*b |  8 |     |
 
 ** Resulting tables
 Type C-c C-c within each to refresh
 
-#+BEGIN: aggregate :table pulledtable :cols ("q" "mean(z)")
-| q |       mean(z) |
-|---+---------------|
-| b | 6.33333333333 |
-| a | 4.14285714286 |
+#+BEGIN: aggregate :table pulledtable :cols ("qû" "mean(zö)")
+| qû |      mean(zö) |
+|----+---------------|
+| b  | 6.33333333333 |
+| a  | 4.14285714286 |
 #+END
 
-#+BEGIN: aggregate :table pulledtable :cols "sum(x) q sum(y) mean(z) sum(x*x) min(z) max(z)"
-| sum(x)     | q | sum(y)       |       mean(z) | sum(x*x)          | min(z) | max(z) |
-|------------+---+--------------+---------------+-------------------+--------+--------|
-| 2 b + 45   | b | b^2 + b + 32 | 6.33333333333 | 6 b + 2 b^2 + 459 |      1 |      9 |
-| 2 a + 19.1 | a | 11 a + 12    | 4.14285714286 | 2 a^2 + 78.01     |      1 |      8 |
+#+BEGIN: aggregate :table pulledtable :cols "sum(xà) qû sum(yÿ) mean(zö) sum(xà*xà) min(zö) max(zö)"
+| sum(xà)    | qû | sum(yÿ)      |      mean(zö) | sum(xà*xà)        | min(zö) | max(zö) |
+|------------+----+--------------+---------------+-------------------+---------+---------|
+| 2 b + 45   | b  | b^2 + b + 32 | 6.33333333333 | 6 b + 2 b^2 + 459 |       1 |       9 |
+| 2 a + 19.1 | a  | 11 a + 12    | 4.14285714286 | 2 a^2 + 78.01     |       1 |       8 |
 #+END
 
-#+BEGIN: aggregate :table pulledtable :cols "p count() sum($4) mean(z) sum(z*z) list(x) min(y) max(y)"
-| p | count() |    sum($4) | mean(z) | sum(z*z) | list(x)            |         min(y) |         max(y) |
-|---+---------+------------+---------+----------+--------------------+----------------+----------------|
-| 1 |       3 |         12 |       7 |      161 | ("5.1" "3" "12")   |              2 |              8 |
-| 3 |       4 |         22 |    3.25 |       87 | ("9" "5" "3" "12") |              2 |              8 |
-| 2 |       2 |         10 |     3.5 |       29 | ("9" "3")          |              2 |              8 |
-| 4 |       2 |      b + a |       7 |      100 | ("b" "a")          |      min(b, a) |      max(b, a) |
-| 5 |       2 | b^2 + 10 a |       6 |       80 | ("b+3" "a")        | min(b^2, 10 a) | max(b^2, 10 a) |
+#+BEGIN: aggregate :table pulledtable :cols "pé count() sum($4) mean(zö) sum(zö*zö) list(xà) min(yÿ) max(yÿ)"
+| pé | count() |    sum($4) | mean(zö) | sum(zö*zö) | list(xà)           |        min(yÿ) |        max(yÿ) |
+|----+---------+------------+----------+------------+--------------------+----------------+----------------|
+|  1 |       3 |         12 |        7 |        161 | ("5.1" "3" "12")   |              2 |              8 |
+|  3 |       4 |         22 |     3.25 |         87 | ("9" "5" "3" "12") |              2 |              8 |
+|  2 |       2 |         10 |      3.5 |         29 | ("9" "3")          |              2 |              8 |
+|  4 |       2 |      b + a |        7 |        100 | ("b" "a")          |      min(b, a) |      max(b, a) |
+|  5 |       2 | b^2 + 10 a |        6 |         80 | ("b+3" "a")        | min(b^2, 10 a) | max(b^2, 10 a) |
 #+END
 
-#+BEGIN: aggregate :table pulledtable :cols "count() mean(x) mean(y) mean(z)"
-| count() | mean(x)                                   | mean(y)                                              |       mean(z) |
+#+BEGIN: aggregate :table pulledtable :cols "count() mean(xà) mean(yÿ) mean(zö)"
+| count() | mean(xà)                                  | mean(yÿ)                                             |      mean(zö) |
 |---------+-------------------------------------------+------------------------------------------------------+---------------|
 |      13 | 2:13 b + 0.153846153846 a + 4.93076923077 | b^2 / 13 + b / 13 + 0.846153846154 a + 3.38461538462 | 5.15384615385 |
 #+END
 
-#+BEGIN: aggregate :table pulledtable :cols "p count() mean(z) meane(z) gmean(z) hmean(z) median(z)"
-| p | count() | mean(z) | meane(z)               |      gmean(z) |      hmean(z) | median(z) |
-|---+---------+---------+------------------------+---------------+---------------+-----------|
-| 1 |       3 |       7 | 7 +/- 1.52752523165    | 6.60385449779 | 6.17142857143 |         8 |
-| 3 |       4 |    3.25 | 3.25 +/- 1.93110503771 | 2.05976714391 | 1.53191489362 |       1.5 |
-| 2 |       2 |     3.5 | 3.5 +/- 1.5            | 3.16227766017 | 2.85714285714 |       3.5 |
-| 4 |       2 |       7 | 7 +/- 1                | 6.92820323028 | 6.85714285714 |         7 |
-| 5 |       2 |       6 | 6 +/- 2                | 5.65685424949 | 5.33333333333 |         6 |
+#+BEGIN: aggregate :table pulledtable :cols "pé count() mean(zö) meane(zö) gmean(zö) hmean(zö) median(zö)"
+| pé | count() | mean(zö) | meane(zö)              |     gmean(zö) |     hmean(zö) | median(zö) |
+|----+---------+----------+------------------------+---------------+---------------+------------|
+|  1 |       3 |        7 | 7 +/- 1.52752523165    | 6.60385449779 | 6.17142857143 |          8 |
+|  3 |       4 |     3.25 | 3.25 +/- 1.93110503771 | 2.05976714391 | 1.53191489362 |        1.5 |
+|  2 |       2 |      3.5 | 3.5 +/- 1.5            | 3.16227766017 | 2.85714285714 |        3.5 |
+|  4 |       2 |        7 | 7 +/- 1                | 6.92820323028 | 6.85714285714 |          7 |
+|  5 |       2 |        6 | 6 +/- 2                | 5.65685424949 | 5.33333333333 |          6 |
 #+END
 
-#+BEGIN: aggregate :table pulledtable :cols "q count() prod(z) sdev(z) pvar(z) psdev(z)"
-| q | count() | prod(z) |       sdev(z) |       pvar(z) |      psdev(z) |
-|---+---------+---------+---------------+---------------+---------------|
-| b |       6 |   19440 | 3.07679486912 | 7.88888888889 | 2.80871659106 |
-| a |       7 |    4096 | 2.85356919364 | 6.97959183673 | 2.64189171556 |
+#+BEGIN: aggregate :table pulledtable :cols "qû count() prod(zö) sdev(zö) pvar(zö) psdev(zö)"
+| qû | count() | prod(zö) |      sdev(zö) |      pvar(zö) |     psdev(zö) |
+|----+---------+----------+---------------+---------------+---------------|
+| b  |       6 |    19440 | 3.07679486912 | 7.88888888889 | 2.80871659106 |
+| a  |       7 |     4096 | 2.85356919364 | 6.97959183673 | 2.64189171556 |
 #+END
 
-#+BEGIN: aggregate :table pulledtable :cols "q count() cov(z,x) pcov(z,z) corr(z,z)"
-| q | count() | cov(z,x)                         |     pcov(z,z) | corr(z,z) |
-|---+---------+----------------------------------+---------------+-----------|
-| b |       6 | 0.266666666666 b + 1.79999999996 | 7.88888888889 |        1. |
-| a |       7 | 0.619047619048 a - 1.22142857143 | 6.97959183673 |        1. |
+#+BEGIN: aggregate :table pulledtable :cols "qû count() cov(zö,xà) pcov(zö,zö) corr(zö,zö)"
+| qû | count() | cov(zö,xà)                       |   pcov(zö,zö) | corr(zö,zö) |
+|----+---------+----------------------------------+---------------+-------------|
+| b  |       6 | 0.266666666666 b + 1.79999999996 | 7.88888888889 |          1. |
+| a  |       7 | 0.619047619048 a - 1.22142857143 | 6.97959183673 |          1. |
 #+END
 
 * Test :cond PUSH
@@ -261,29 +263,29 @@ to filter-out resulting rows.
 
 Only consider rows for which column q have the value "b"
 
-#+BEGIN: aggregate :table pulledtable :cols "q count() mean(z)" :cond (equal q "b")
-| q | count() |       mean(z) |
-|---+---------+---------------|
-| b |       6 | 6.33333333333 |
+#+BEGIN: aggregate :table pulledtable :cols "qû count() mean(zö)" :cond (equal qû "b")
+| qû | count() |      mean(zö) |
+|----+---------+---------------|
+| b  |       6 | 6.33333333333 |
 #+END
 
 Only consider rows for which column p is greater than 3.
 Note the string-to-number call, because cells always contain strings.
 
-#+BEGIN: aggregate :table pulledtable :cols "q count() mean(z)" :cond (>= (string-to-number p) 3)
-| q | count() | mean(z) |
-|---+---------+---------|
-| b |       4 |       6 |
-| a |       4 |    3.75 |
+#+BEGIN: aggregate :table pulledtable :cols "qû count() mean(zö)" :cond (>= (string-to-number pé) 3)
+| qû | count() | mean(zö) |
+|----+---------+----------|
+| b  |       4 |        6 |
+| a  |       4 |     3.75 |
 #+END
 
 Only consider rows for which the def column is not blank.
 
-#+BEGIN: aggregate :table pulledtable :cols "q count() mean(z) def" :cond (not (equal def ""))
-| q | count() | mean(z) | def |
-|---+---------+---------+-----|
-| a |       5 |     3.8 |   1 |
-| b |       1 |       6 |   1 |
+#+BEGIN: aggregate :table pulledtable :cols "qû count() mean(zö) déf" :cond (not (equal déf ""))
+| qû | count() | mean(zö) | déf |
+|----+---------+----------+-----|
+| a  |       5 |      3.8 |   1 |
+| b  |       1 |        6 |   1 |
 #+END
 
 * Test correlation

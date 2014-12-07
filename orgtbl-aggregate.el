@@ -276,7 +276,7 @@ or 0 for the special 'hline column."
     (cond
      ((string-match "^count()$" column)
       'count)
-     ((string-match "^\\([a-z]+\\)(\\([a-zA-Z0-9_$]+\\))$" column)
+     ((string-match "^\\([[:word:]]+\\)(\\([[:word:]0-9_$]+\\))$" column)
       (setq id (intern (match-string 1 column)))
       (unless (memq id validid1)
 	(error
@@ -288,7 +288,7 @@ or 0 for the special 'hline column."
 	     table
 	     t)))
      ((string-match
-       "^\\([a-z]+\\)(\\([a-zA-Z0-9_$]+\\)[*,]\\([a-zA-Z0-9_$]+\\))$"
+       "^\\([[:word:]]+\\)(\\([[:word:]0-9_$]+\\)[*,]\\([[:word:]0-9_$]+\\))$"
        column)
       (setq id (intern (match-string 1 column)))
       (unless (memq id validid2)
@@ -300,7 +300,7 @@ or 0 for the special 'hline column."
 	(list id
 	      (orgtbl-to-aggregated-table-colname-to-int a table t)
 	      (orgtbl-to-aggregated-table-colname-to-int b table t))))
-     ((string-match "^\\([a-zA-Z0-9_$]+\\)$" column)
+     ((string-match "^\\([[:word:]0-9_$]+\\)$" column)
       (orgtbl-to-aggregated-table-colname-to-int
        (match-string 1 column)
        table

@@ -545,7 +545,7 @@ Example. Here is a source table containing dates:
 
 A formula can be computed on top of an aggregation.  With a previous
 example, adding a =:formula= parameter, we specify a new column =$4=
-which uses aggregated columns.  It is translated into a usual =TBLFM=
+which uses aggregated columns.  It is translated into a usual =#+TBLFM:=
 spreadsheet line.
 
 #+BEGIN_EXAMPLE
@@ -570,7 +570,8 @@ This happens in /pull mode/ only.
 - Michael Brand, =#+TBLFM= survival
 
 * Changes
-- Wizard now correctly ask for columns with $1, $2... names
+- Wizard now correctly ask for columns with =$1, $2...= names
   when table header is missing
 - Handle tables begining with hlines
 - Handle non-ascii column names
+- =:formula= parameter and =#+TBLFM= survival

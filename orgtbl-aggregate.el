@@ -217,6 +217,9 @@ to true if COLNAME looks like the name of a column in the table 1st row.
 "
   (if (symbolp colname)
       (setq colname (symbol-name colname)))
+  ;; skip first hlines if any
+  (while (not (listp (car table)))
+    (setq table (cdr table)))
   (cond ((equal colname "hline")
 	 0)
 	((string-match "^\\$\\([0-9]+\\)$" colname)
@@ -224,7 +227,7 @@ to true if COLNAME looks like the name of a column in the table 1st row.
 	   (if (<= n (length (car table)))
 	       n
 	     (if err
-		 (error "column %s outside table" colname)
+		 (user-error "Column %s outside table" colname)
 	       nil))))
 	(t
 	 (setq orgtbl-to-aggregated-table-has-header t)
@@ -240,7 +243,7 @@ to true if COLNAME looks like the name of a column in the table 1st row.
 	   (and
 	    (not j)
 	    err
-	    (error "column %s not found in table" colname))
+	    (user-error "Column %s not found in table" colname))
 	   j))))
 
 (defun orgtbl-to-aggregated-replace-colnames (table expression)

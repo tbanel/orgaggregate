@@ -152,11 +152,11 @@ type:
 * The :cols parameter
 
 The =:cols= parameter lists the columns of the resulting table. It
-contains in any order, grouping columns and aggregation formulaes.
+contains in any order, grouping columns and aggregation formulas.
 
 The names of the columns in the original table may be
 - the names as they appear in the header of the source table,
-- or $1, $2, $3 and so on (as in spreadsheet formulaes),
+- or $1, $2, $3 and so on (as in spreadsheet formulas),
 - additionaly, the special column =hline= is used to group
   parts of the source table separated by horizontal lines.
 
@@ -225,9 +225,9 @@ If we want additionnal details with the =Color= column, we just name it:
 #+END:
 #+END_EXAMPLE
 
-* Aggregation formulaes in :cols
+* Aggregation formulas in :cols
 
-Aggregation formulaes are applied for each of those groupings, on the
+Aggregation formulas are applied for each of those groupings, on the
 specified columns.
 
 We saw examples with =sum=, =mean=, =count= aggregations. There are
@@ -540,9 +540,34 @@ Example. Here is a source table containing dates:
 | <2011-09-24 sat. 13:54:00> | <2014-02-26 wed. 16:11:00> | 735074.937066 |
 #+END:
 #+END_EXAMPLE
+
+* Additional formulas
+
+A formula can be computed on top of an aggregation.  With a previous
+example, adding a =:formula= parameter, we specify a new column =$4=
+which uses aggregated columns.  It is translated into a usual =TBLFM=
+spreadsheet line.
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table original :cols "Day mean(Level) sum(Quantity)" :formula "$4=$2*$3"
+| Day       | mean(Level) | sum(Quantity) |      |
+|-----------+-------------+---------------+------|
+| Monday    |        27.5 |            14 | 385. |
+| Thuesday  |          43 |            45 | 1935 |
+| Wednesday |          18 |            54 |  972 |
+| Turdsday  |          43 |            83 | 3569 |
+| Friday    |           8 |            22 |  176 |
+#+TBLFM: $4=$2*$3
+#+END_EXAMPLE
+
+Moreover, if a =#+TBLFM:= was already there, it survives aggregation re-computations.
+
+This happens in /pull mode/ only.
+
 * Author, contributors
 - Thierry Banel, author
 - Eric Abrahamsen, non-ascii column names
+- Michael Brand, =#+TBLFM= survival
 
 * Changes
 - Wizard now correctly ask for columns with $1, $2... names

@@ -639,7 +639,22 @@ Note:
    (orgtbl-create-table-aggregated
     (orgtbl-get-distant-table (plist-get params :table))
     (plist-get params :cols)
-    (plist-get params :cond))))
+    (plist-get params :cond)))
+  (let ((formula (plist-get params :formula))
+	(content (plist-get params :content))
+	(recalc nil))
+    (cond ((stringp formula)
+	   (setq recalc t)
+	   (end-of-line)
+	   (insert "\n#+TBLFM: " formula))
+	  ((and content
+		(string-match "^\\([ \t]*#\\+tblfm:.*\\)" content))
+	   (setq recalc t)
+	   (end-of-line)
+	   (insert "\n" (match-string 1 content))))
+    (when recalc
+      (forward-line -1)
+      (org-table-recalculate 'all))))
 
 (defvar orgtbl-aggregate-history-cols ())
 
@@ -817,7 +832,22 @@ Note:
    (orgtbl-create-table-transposed
     (orgtbl-get-distant-table (plist-get params :table))
     (plist-get params :cols)
-    (plist-get params :cond))))
+    (plist-get params :cond)))
+  (let ((formula (plist-get params :formula))
+	(content (plist-get params :content))
+	(recalc nil))
+    (cond ((stringp formula)
+	   (setq recalc t)
+	   (end-of-line)
+	   (insert "\n#+TBLFM: " formula))
+	  ((and content
+		(string-match "^\\([ \t]*#\\+tblfm:.*\\)" content))
+	   (setq recalc t)
+	   (end-of-line)
+	   (insert "\n" (match-string 1 content))))
+    (when recalc
+      (forward-line -1)
+      (org-table-recalculate 'all))))
 
 ;;;###autoload
 (defun org-insert-dblock:transpose ()

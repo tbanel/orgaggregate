@@ -166,18 +166,24 @@ Not changed in any way by the aggregate process.
 ** Resulting tables
 Type C-c C-c within each to refresh
 
-#+BEGIN: aggregate :table pulledtable :cols ("qû" "mean(zö)")
-| qû |      mean(zö) |
-|----+---------------|
-| b  | 6.33333333333 |
-| a  | 4.14285714286 |
+Note the :formula parameter to add a new column after the aggregation has been computed
+
+#+BEGIN: aggregate :table pulledtable :cols ("qû" "mean(zö)") :formula "$3=$2*100"
+| qû |      mean(zö) |           |
+|----+---------------+-----------|
+| b  | 6.33333333333 | 633.33333 |
+| a  | 4.14285714286 | 414.28571 |
+#+TBLFM: $3=$2*100
 #+END
 
+Note the additional $8 column automatically computed after the aggregation
+
 #+BEGIN: aggregate :table pulledtable :cols "sum(xà) qû sum(yÿ) mean(zö) sum(xà*xà) min(zö) max(zö)"
-| sum(xà)    | qû | sum(yÿ)      |      mean(zö) | sum(xà*xà)        | min(zö) | max(zö) |
-|------------+----+--------------+---------------+-------------------+---------+---------|
-| 2 b + 45   | b  | b^2 + b + 32 | 6.33333333333 | 6 b + 2 b^2 + 459 |       1 |       9 |
-| 2 a + 19.1 | a  | 11 a + 12    | 4.14285714286 | 2 a^2 + 78.01     |       1 |       8 |
+| sum(xà)    | qû | sum(yÿ)      |      mean(zö) | sum(xà*xà)        | min(zö) | max(zö) |     |
+|------------+----+--------------+---------------+-------------------+---------+---------+-----|
+| 2 b + 45   | b  | b^2 + b + 32 | 6.33333333333 | 6 b + 2 b^2 + 459 |       1 |       9 |   5 |
+| 2 a + 19.1 | a  | 11 a + 12    | 4.14285714286 | 2 a^2 + 78.01     |       1 |       8 | 4.5 |
+#+TBLFM: $8=($6+$7)/2
 #+END
 
 #+BEGIN: aggregate :table pulledtable :cols "pé count() sum($4) mean(zö) sum(zö*zö) list(xà) min(yÿ) max(yÿ)"

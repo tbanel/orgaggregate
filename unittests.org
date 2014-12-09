@@ -480,3 +480,117 @@ Result is variabilized with x and a.
 | Friday    | 8                     | a + 22        |
 #+END
 
+* Test zero output
+
+The following test produces sums which happen to be zero, either
+because input is empty, or by chance (1-1 = 0).
+Zeros are translated to empty cells.
+This will change in the future.
+
+#+TBLNAME: resultzero
+| Item | Value |
+|------+-------|
+| a2   |     1 |
+| a2   |     1 |
+| a0   |    -1 |
+| a0   |     1 |
+| b2   |     2 |
+| b2   |       |
+| b0   |     0 |
+| b0   |       |
+| c    |       |
+| c    |       |
+
+#+BEGIN: aggregate :table resultzero :cols "Item sum(Value) mean(Value)"
+| Item | sum(Value) | mean(Value) |
+|------+------------+-------------|
+| a2   |          2 |           1 |
+| a0   |            |             |
+| b2   |          2 |           1 |
+| b0   |            |             |
+| c    |            |             |
+#+END
+
+* Test empty inputs
+
+#+tblname: emptyinput
+| T                |  Q |   R |
+|------------------+----+-----|
+| no-blank         |  1 |  10 |
+| no-blank         |  2 |  20 |
+| no-blank         |  3 |  30 |
+| 1-left-blank     |  4 |  40 |
+| 1-left-blank     |    |  50 |
+| 1-left-blank     |  6 |  60 |
+| 1-left-blank     |  7 |  70 |
+| all-blank        |    |     |
+| all-blank        |    |     |
+| all-blank        |    |     |
+| 2-left-blank     | 11 | 110 |
+| 2-left-blank     | 12 | 120 |
+| 2-left-blank     | 13 | 130 |
+| 2-left-blank     | 14 | 140 |
+| 1-dual-blank     | 15 | 150 |
+| 1-dual-blank     |    |     |
+| 1-dual-blank     | 17 | 170 |
+| single-non-blank | 18 | 180 |
+| single-non-blank |    |     |
+| single-non-blank |    |     |
+
+Right now empty input cells are replaced by zero.
+It would be better to just ignore them.
+It makes no difference for =sum(Q)=.
+But for =prod(Q)=, =max(Q)=, =mean(Q)=, the results change.
+The situation is even more complex for aggregations which use two columns
+like =corr(Q,R)=.
+Moreover, in some cases, a division by zero may arise.
+
+Expect the following aggregations to change.
+
+#+BEGIN: aggregate :table "emptyinput" :cols "T sum(Q) prod(Q) list(Q)"
+| T                | sum(Q) | prod(Q) | list(Q)               |
+|------------------+--------+---------+-----------------------|
+| no-blank         |      6 |       6 | ("3" "2" "1")         |
+| 1-left-blank     |     17 |         | ("7" "6" "" "4")      |
+| all-blank        |        |         | ("" "" "")            |
+| 2-left-blank     |     50 |   24024 | ("14" "13" "12" "11") |
+| 1-dual-blank     |     32 |         | ("17" "" "15")        |
+| single-non-blank |     18 |         | ("" "" "18")          |
+#+END:
+
+#+BEGIN: aggregate :table "emptyinput" :cols "T mean(Q) meane(Q) gmean(Q) hmean(Q)"
+| T                |       mean(Q) | meane(Q)                        |      gmean(Q) | hmean(Q)                         |
+|------------------+---------------+---------------------------------+---------------+----------------------------------|
+| no-blank         |             2 | 2 +/- 0.577350269189            | 1.81712059283 | 1.63636363636                    |
+| 1-left-blank     |          4.25 | 4.25 +/- 1.54784796842          |               | 4 / (inv(0) + 0.559523809524)    |
+| all-blank        |               |                                 |               | 1 / inv(0)                       |
+| 2-left-blank     |          12.5 | 12.5 +/- 0.645497224368         | 12.4497700445 | 12.399483871                     |
+| 1-dual-blank     | 10.6666666667 | 10.6666666667 +/- 5.36449231315 |               | 3 / (inv(0) + 0.125490196079)    |
+| single-non-blank |             6 | 6 +/- 6                         |               | 3 / (2 inv(0) + 0.0555555555556) |
+#+END:
+
+#+BEGIN: aggregate :table "emptyinput" :cols "T min(Q) max(Q)"
+| T                | min(Q) | max(Q) |
+|------------------+--------+--------|
+| no-blank         |      1 |      3 |
+| 1-left-blank     |        |      7 |
+| all-blank        |        |        |
+| 2-left-blank     |     11 |     14 |
+| 1-dual-blank     |        |     17 |
+| single-non-blank |        |     18 |
+#+END:
+
+#+BEGIN: aggregate :table "emptyinput" :cols "T pvar(Q) sdev(Q) psdev(Q)"
+| T                |        pvar(Q) |       sdev(Q) |       psdev(Q) |
+|------------------+----------------+---------------+----------------|
+| no-blank         | 0.666666666667 |             1 | 0.816496580928 |
+| 1-left-blank     |         7.1875 | 3.09569593683 |  2.68095132369 |
+| all-blank        |                |               |                |
+| 2-left-blank     |           1.25 | 1.29099444874 |  1.11803398875 |
+| 1-dual-blank     |  57.5555555556 | 9.29157324318 |   7.5865377845 |
+| single-non-blank |             72 | 10.3923048454 |  8.48528137424 |
+#+END:
+
+#+BEGIN: aggregate :table "emptyinput" :cols "T corr(Q,R) cov(Q,R) pcov(Q,R)"
+
+#+END:

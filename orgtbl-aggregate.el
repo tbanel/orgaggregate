@@ -3,8 +3,8 @@
 ;; Copyright (C) 2013-2014  Thierry Banel
 
 ;; Author: Thierry Banel tbanelwebmin at free dot fr
+;; Contributors: Michael Brand, Eric Abrahamsen
 ;; Version: 0.1
-;; Package-Requires: ((cl-lib "0.5"))
 ;; Keywords: org, table, aggregation, filtering
 
 ;; orgtbl-aggregate is free software: you can redistribute it and/or modify
@@ -343,12 +343,70 @@ containing this single ROW."
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
   (or (org-time-string-to-calc expr)
-      (if (equal expr "") 0)
+      (if (equal expr "") 'EMPTY)
       (let ((x (math-read-exprs expr)))
 	  (unless (consp x) (error "not consp ?"))
 	  (if (eq (car x) 'error)
 	      (math-read-exprs "INPUT_ERROR")
 	    (car x)))))
+
+(defun orgtbl-aggregate-apply-calc-1arg-function (fun data)
+  "Convert DATA, a lisp list of mathematical values, to a Calc
+vector.  In the process, empty values are removed (rather than
+interpreted as zero).  Then apply the Calc FUN the vectors.
+Empty value is returned when all input values are empty."
+  (let ((vec))
+    (mapc (lambda (x)
+	    (unless (eq x 'EMPTY)
+	      (push x vec)))
+	  data)
+    (push 'vec vec)
+    (case fun
+      (mean   (if (cdr  vec) (calcFunc-vmean   vec) ""))
+      (meane  (if (cddr vec) (calcFunc-vmeane  vec) ""))
+      (gmean  (if (cdr  vec) (calcFunc-vgmean  vec) ""))
+      (hmean  (if (cdr  vec) (calcFunc-vhmean  vec) ""))
+      (median (if (cdr  vec) (calcFunc-vmedian vec) ""))
+      (sum                   (calcFunc-vsum    vec))
+      (min                   (calcFunc-vmin    vec))
+      (max                   (calcFunc-vmax    vec))
+      (prod                  (calcFunc-vprod   vec))
+      (pvar   (if (cdr  vec) (calcFunc-vpvar   vec) ""))
+      (sdev   (if (cddr vec) (calcFunc-vsdev   vec) ""))
+      (psdev  (if (cdr  vec) (calcFunc-vpsdev  vec) "")))))
+
+(defun orgtbl-aggregate-apply-calc-2args-function (fun data)
+  "Convert DATA, a lisp list of mathematical values pairs, to two
+Calc vectors.  In the process, pairs of empty values are
+removed (rather than interpreted as zero).  If only one value in
+a pair is empty, it is replaced by zero.  The resulting Calc
+vectors have the same length.  Then apply the Calc FUN to those
+two vectors.  Empty value is returned when there is not enough
+non-empty input."
+  (let ((veca)
+	(vecb))
+    (mapc (lambda (pair)
+	    (if (and (eq (car pair) 'EMPTY)
+		     (eq (cdr pair) 'EMPTY))
+		nil
+	      (push (if (eq (car pair) 'EMPTY) 0 (car pair)) veca)
+	      (push (if (eq (cdr pair) 'EMPTY) 0 (cdr pair)) vecb)))
+	  data)
+    (push 'vec veca)
+    (push 'vec vecb)
+    (case fun
+      (corr
+       (if (cddr veca) ;; at least two non-empty value?
+	   (calcFunc-vcorr veca vecb)
+	 ""))
+      (cov
+       (if (cddr veca) ;; at least two non-empty value?
+	   (calcFunc-vcov veca vecb)
+	 ""))
+      (pcov
+       (if (cdr veca) ;; at least one non-empty value?
+	   (calcFunc-vpcov veca vecb)
+	 "")))))
 
 (defun orgtbl-to-aggregated-table-do-sums (group aggcols)
   "Iterate over the rows in the GROUP
@@ -401,31 +459,11 @@ The result is a row compliant with the AGGCOLS columns specifications."
 	       ((eq sc 'count) (number-to-string (length group)))
 	       ((consp sc)
 		(case (car sc)
-		 (mean   (calcFunc-vmean   (cons 'vec sum)))
-		 (meane  (calcFunc-vmeane  (cons 'vec sum)))
-		 (gmean  (calcFunc-vgmean  (cons 'vec sum)))
-		 (hmean  (calcFunc-vhmean  (cons 'vec sum)))
-		 (median (calcFunc-vmedian (cons 'vec sum)))
-		 (sum    (calcFunc-vsum    (cons 'vec sum)))
-		 (min    (calcFunc-vmin    (cons 'vec sum)))
-		 (max    (calcFunc-vmax    (cons 'vec sum)))
-		 (prod   (calcFunc-vprod   (cons 'vec sum)))
-		 (sdev   (calcFunc-vsdev   (cons 'vec sum)))
-		 (pvar   (calcFunc-vpvar   (cons 'vec sum)))
-		 (psdev  (calcFunc-vpsdev  (cons 'vec sum)))
-		 (cov   
-		  (calcFunc-vcov
-		   (cons 'vec (mapcar #'car sum))
-		   (cons 'vec (mapcar #'cdr sum))))
-		 (pcov
-		  (calcFunc-vpcov
-		   (cons 'vec (mapcar #'car sum))
-		   (cons 'vec (mapcar #'cdr sum))))
-		 (corr
-		  (calcFunc-vcorr
-		   (cons 'vec (mapcar #'car sum))
-		   (cons 'vec (mapcar #'cdr sum))))
-		 (list (format "%S" sum)))))))
+		  ((mean meane gmean hmean median sum min max prod sdev pvar psdev)
+		   (orgtbl-aggregate-apply-calc-1arg-function (car sc) sum))
+		  ((cov pcov corr)  
+		   (orgtbl-aggregate-apply-calc-2args-function (car sc) sum))
+		  (list (format "%S" (reverse sum))))))))
 	 (when (consp sc)
 	   (unless (eq (car sc) 'corr) ; sometimes infinite loop on vcorr
 	     (setq aggr (math-simplify (calcFunc-expand aggr))))
@@ -436,9 +474,7 @@ The result is a row compliant with the AGGCOLS columns specifications."
 		    cov pcov corr)
 	      (let ((calc-date-format
 		     '((YYYY "-" MM "-" DD " " www ". " hh ":" mm ":" ss))))
-		(setq aggr (math-format-value aggr)))))
-	   (if (equal "0" aggr)
-	       (setq aggr "")))	     
+		(setq aggr (math-format-value aggr))))))
 	 aggr))
      aggcols)))
 

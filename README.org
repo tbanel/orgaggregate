@@ -549,14 +549,44 @@ after the =+= symbol.  In this case, the value will be replaced by
 =INPUT_ERROR= which will appear in the aggregated table, signaling the
 problem.
 
-An input cell may be empty.  In this case, it is silently replaced by
-zero.  In an output cell, if the computed result is zero, it not
-output, leaving a blank cell.  This allows for empty input cells to
-result in empty output cells.
+An input cell may be empty.  In this case, it is ignored (rather than
+converted to zero)
+- This makes no difference for =sum= and =count=.
+- For =prod=, empty input do not result in zero.
+- For =mean=, only non-empty cells participate
+  (if empty cells were zero, they would count in the division).
+- For =min= and =max=, a possibly empty list of values is possible,
+  resulting in =inf= or =-inf=
 
-The empty cell handling may be changed in the futur.  For instance, we
-may want to compute an average aggregation ignoring empty cells (right
-now, empty cells contribute to the average by pulling it toward zero).
+Some aggregation functions operate on two columns.  In this case, a
+pair of empty cells is ignored.  But a pair of an empty and a
+non-empty cell is added to the aggregation, by replacing the missing
+value with zero.
+
+On output, a blank value may result from the aggregation. This happens
+when not enough input is available. For instance, a =mean= does not
+make sense when the input set is empty (it would generate a division
+by zero). On the other hand, some aggregations do have a mathematical
+meaning with an enpty input set. For instance, =prod= on an empty set
+yields =1=. Here is the minimun number of values for each aggregation:
+
+| function | minimum required values |
+|----------+-------------------------|
+| mean     |                       1 |
+| meane    |                       2 |
+| gmean    |                       1 |
+| hmean    |                       1 |
+| median   |                       1 |
+| sum      |                       0 |
+| min      |                       0 |
+| max      |                       0 |
+| prod     |                       0 |
+| pvar     |                       1 |
+| sdev     |                       2 |
+| psdev    |                       1 |
+| corr     |                       2 |
+| cov      |                       2 |
+| pcov     |                       1 |
 
 * Additional formulas
 
@@ -584,7 +614,7 @@ This happens in /pull mode/ only.
 * Author, contributors
 - Thierry Banel, author
 - Eric Abrahamsen, non-ascii column names
-- Michael Brand, =#+TBLFM= survival
+- Michael Brand, =#+TBLFM= survival, empty input cells, empty output.
 
 * Changes
 - Wizard now correctly ask for columns with =$1, $2...= names
@@ -592,3 +622,6 @@ This happens in /pull mode/ only.
 - Handle tables begining with hlines
 - Handle non-ascii column names
 - =:formula= parameter and =#+TBLFM= survival
+- Empty cells are ignored.
+- Empty output upon too small input set.
+- Fix ordering of output values

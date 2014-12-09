@@ -44,23 +44,23 @@ No need to name it.
 #+ORGTBL: SEND aggtable8 orgtbl-to-aggregated-table :cols "hline min(d) max(d) mean(d)"
 #+ORGTBL: SEND aggtable9 orgtbl-to-aggregated-table :cols "sum(x) q sum(y) mean(z) sum(x*x) min(z) max(z)" :cond (equal hline "2")
 #+ORGTBL: SEND aggtablea orgtbl-to-aggregated-table :cols "sum(x) q sum(y) mean(z) sum(x*x) min(z) max(z)" :cond (equal q "b")
-| p | q |   x |    y | z | f | d                       |
-|---+---+-----+------+---+---+-------------------------|
-| 1 | b |  12 |    8 | 9 | 0 | [2013-12-22 dim. 09:01] |
-| 3 | b |  12 |    8 | 9 | 0 | [2013-11-23 sam. 13:04] |
-| 1 | a |   3 |    2 | 4 | 0 | [2011-09-24 sam. 13:54] |
-| 2 | a |   3 |    2 | 2 |   | [2013-09-25 mer. 03:54] |
-| 3 | a |   3 |    2 | 1 |   | [2014-02-26 mer. 16:11] |
-| 3 | a |   5 |    4 | 2 |   | [2014-01-18 sam. 03:51] |
-| 1 | a | 5.1 |    2 | 8 | 1 | [2013-12-25 mer. 00:00] |
-|---+---+-----+------+---+---+-------------------------|
-| 2 | b |   9 |    8 | 5 |   | [2012-12-25 mar. 00:00] |
-| 3 | b |   9 |    8 | 1 |   | [2014-01-18 sam. 23:22] |
-| 4 | a |   a |    a | 8 |   | [2014-08-02 sam. 23:22] |
-| 5 | a |   a | 10*a | 4 |   | [2015-09-14 lun. 13:07] |
-|---+---+-----+------+---+---+-------------------------|
-| 4 | b |   b |    b | 6 | 1 | [2015-10-02 ven. 17:42] |
-| 5 | b | b+3 |  b*b | 8 | 1 | [2016-01-28 jeu. 15:06] |
+| p | q |   x |    y | z | f | d                      |
+|---+---+-----+------+---+---+------------------------|
+| 1 | b |  12 |    8 | 9 | 0 | [2013-12-22 sun 09:01] |
+| 3 | b |  12 |    8 | 9 | 0 | [2013-11-23 sat 13:04] |
+| 1 | a |   3 |    2 | 4 | 0 | [2011-09-24 sat 13:54] |
+| 2 | a |   3 |    2 | 2 |   | [2013-09-25 wed 03:54] |
+| 3 | a |   3 |    2 | 1 |   | [2014-02-26 wed 16:11] |
+| 3 | a |   5 |    4 | 2 |   | [2014-01-18 sat 03:51] |
+| 1 | a | 5.1 |    2 | 8 | 1 | [2013-12-25 wed 00:00] |
+|---+---+-----+------+---+---+------------------------|
+| 2 | b |   9 |    8 | 5 |   | [2012-12-25 tue 00:00] |
+| 3 | b |   9 |    8 | 1 |   | [2014-01-18 sat 23:22] |
+| 4 | a |   a |    a | 8 |   | [2014-08-02 sat 23:22] |
+| 5 | a |   a | 10*a | 4 |   | [2015-09-14 mon 13:07] |
+|---+---+-----+------+---+---+------------------------|
+| 4 | b |   b |    b | 6 | 1 | [2015-10-02 fri 17:42] |
+| 5 | b | b+3 |  b*b | 8 | 1 | [2016-01-28 thu 15:06] |
 
 ** Resulting tables
 
@@ -68,31 +68,31 @@ No need to name it.
 | sum($3)    | $2 | sum($4)      |      mean($5) | sum($3*$3)        | min($5) | max($5) |
 |------------+----+--------------+---------------+-------------------+---------+---------|
 | x          | q  | y            |             z | x^2               |       z |       z |
-| 2 b + 45   | b  | b^2 + b + 32 | 6.33333333333 | 6 b + 2 b^2 + 459 |       1 |       9 |
+| 2 b + 45   | b  | b + b^2 + 32 | 6.33333333333 | 2 b^2 + 6 b + 459 |       1 |       9 |
 | 2 a + 19.1 | a  | 11 a + 12    | 4.14285714286 | 2 a^2 + 78.01     |       1 |       8 |
 #+END RECEIVE ORGTBL aggtable1
 
 #+BEGIN RECEIVE ORGTBL aggtable2
 | sum(x)     | q | sum(y)       |       mean(z) | sum(x*x)          | min(z) | max(z) |
 |------------+---+--------------+---------------+-------------------+--------+--------|
-| 2 b + 45   | b | b^2 + b + 32 | 6.33333333333 | 6 b + 2 b^2 + 459 |      1 |      9 |
+| 2 b + 45   | b | b + b^2 + 32 | 6.33333333333 | 2 b^2 + 6 b + 459 |      1 |      9 |
 | 2 a + 19.1 | a | 11 a + 12    | 4.14285714286 | 2 a^2 + 78.01     |      1 |      8 |
 #+END RECEIVE ORGTBL aggtable2
 
 #+BEGIN RECEIVE ORGTBL aggtable3
 | p | count() |    sum($4) | mean(z) | sum(z*z) | list(x)            |         min(y) |         max(y) |
 |---+---------+------------+---------+----------+--------------------+----------------+----------------|
-| 1 |       3 |         12 |       7 |      161 | ("5.1" "3" "12")   |              2 |              8 |
-| 3 |       4 |         22 |    3.25 |       87 | ("9" "5" "3" "12") |              2 |              8 |
-| 2 |       2 |         10 |     3.5 |       29 | ("9" "3")          |              2 |              8 |
-| 4 |       2 |      b + a |       7 |      100 | ("b" "a")          |      min(b, a) |      max(b, a) |
-| 5 |       2 | b^2 + 10 a |       6 |       80 | ("b+3" "a")        | min(b^2, 10 a) | max(b^2, 10 a) |
+| 1 |       3 |         12 |       7 |      161 | ("12" "3" "5.1")   |              2 |              8 |
+| 3 |       4 |         22 |    3.25 |       87 | ("12" "3" "5" "9") |              2 |              8 |
+| 2 |       2 |         10 |     3.5 |       29 | ("3" "9")          |              2 |              8 |
+| 4 |       2 |      a + b |       7 |      100 | ("a" "b")          |      min(a, b) |      max(a, b) |
+| 5 |       2 | 10 a + b^2 |       6 |       80 | ("a" "b+3")        | min(10 a, b^2) | max(10 a, b^2) |
 #+END RECEIVE ORGTBL aggtable3
 
 #+BEGIN RECEIVE ORGTBL aggtable4
-| count() | mean(x)      | mean(y)                         |       mean(z) | meane(z)                         | median(z) |
-|---------+--------------+---------------------------------+---------------+----------------------------------+-----------|
-|       6 | b / 3 + 5.85 | b^2 / 6 + b / 6 + 3.33333333333 | 7.33333333333 | 7.33333333333 +/- 0.802772971919 |         8 |
+| count() | mean(x)                 | mean(y)                         |       mean(z) | meane(z)                         | median(z) |
+|---------+-------------------------+---------------------------------+---------------+----------------------------------+-----------|
+|       6 | 0.333333333333 b + 5.85 | b / 6 + b^2 / 6 + 3.33333333333 | 7.33333333333 | 7.33333333333 +/- 0.802772971919 |         8 |
 #+END RECEIVE ORGTBL aggtable4
 
 #+BEGIN RECEIVE ORGTBL aggtable5
@@ -100,7 +100,7 @@ No need to name it.
 |---------+---------------+-----------------+---------+-----------------------+-----------+-------|
 |       7 | 6.15714285714 | 4               |       5 | 5 +/- 1.34518541827   |         4 |     0 |
 |       4 | 0.5 a + 4.5   | 2.75 a + 4      |     4.5 | 4.5 +/- 1.44337567297 |       4.5 |     1 |
-|       2 | b + 1.5       | b^2 / 2 + b / 2 |       7 | 7 +/- 1               |         7 |     2 |
+|       2 | b + 1.5       | b / 2 + b^2 / 2 |       7 | 7 +/- 1               |         7 |     2 |
 #+END RECEIVE ORGTBL aggtable5
 
 #+BEGIN RECEIVE ORGTBL aggtable6
@@ -111,30 +111,30 @@ No need to name it.
 #+END RECEIVE ORGTBL aggtable6
 
 #+BEGIN RECEIVE ORGTBL aggtable7
-| q | prod(z) | cov(x,y)                                                         | corr(z,z) |
-|---+---------+------------------------------------------------------------------+-----------|
-| b |   19440 | 0.133333333333 b^3 - 0.766666666672 b^2 - 3.63333333333 b + 19.2 |        1. |
-| a |    4096 | 1.30952380953 a^2 - 5.57380952384 a + 2.5761904762               |        1. |
+| q | prod(z) | cov(x,y)                                                                  | corr(z,z) |
+|---+---------+---------------------------------------------------------------------------+-----------|
+| b |   19440 | 0.133333333334 b^3 - 3.63333333335 b - 0.766666666667 b^2 + 19.1999999999 |        1. |
+| a |    4096 | 1.30952380953 a^2 - 5.57380952383 a + 2.5761904762                        |        1. |
 #+END RECEIVE ORGTBL aggtable7
 
 #+BEGIN RECEIVE ORGTBL aggtable8
-| hline | min(d)                  | max(d)                  |                         mean(d) |
-|-------+-------------------------+-------------------------+---------------------------------|
-|     0 | <2011-09-24 sat. 13:54> | <2014-02-26 wed. 16:11> | <14089-07-17 sun. 11:55:00> / 7 |
-|     1 | <2012-12-25 tue. 00:00> | <2015-09-14 mon. 13:07> |                   735355.373438 |
-|     2 | <2015-10-02 fri. 17:42> | <2016-01-28 thu. 15:06> |                   735933.683334 |
+| hline | min(d)                 | max(d)                 |                         mean(d) |
+|-------+------------------------+------------------------+---------------------------------|
+|     0 | <2011-09-24 sat 13:54> | <2014-02-26 wed 16:11> | <14089-07-17 sun. 11:55:00> / 7 |
+|     1 | <2012-12-25 tue 00:00> | <2015-09-14 mon 13:07> |                   735355.373438 |
+|     2 | <2015-10-02 fri 17:42> | <2016-01-28 thu 15:06> |                   735933.683334 |
 #+END RECEIVE ORGTBL aggtable8
 
 #+BEGIN RECEIVE ORGTBL aggtable9
 | sum(x)  | q | sum(y)  | mean(z) | sum(x*x)        | min(z) | max(z) |
 |---------+---+---------+---------+-----------------+--------+--------|
-| 2 b + 3 | b | b^2 + b |       7 | 6 b + 2 b^2 + 9 |      6 |      8 |
+| 2 b + 3 | b | b + b^2 |       7 | 2 b^2 + 6 b + 9 |      6 |      8 |
 #+END RECEIVE ORGTBL aggtable9
 
 #+BEGIN RECEIVE ORGTBL aggtablea
 | sum(x)   | q | sum(y)       |       mean(z) | sum(x*x)          | min(z) | max(z) |
 |----------+---+--------------+---------------+-------------------+--------+--------|
-| 2 b + 45 | b | b^2 + b + 32 | 6.33333333333 | 6 b + 2 b^2 + 459 |      1 |      9 |
+| 2 b + 45 | b | b + b^2 + 32 | 6.33333333333 | 2 b^2 + 6 b + 459 |      1 |      9 |
 #+END RECEIVE ORGTBL aggtablea
 
 * Test PULL
@@ -181,7 +181,7 @@ Note the additional $8 column automatically computed after the aggregation
 #+BEGIN: aggregate :table pulledtable :cols "sum(xà) qû sum(yÿ) mean(zö) sum(xà*xà) min(zö) max(zö)"
 | sum(xà)    | qû | sum(yÿ)      |      mean(zö) | sum(xà*xà)        | min(zö) | max(zö) |     |
 |------------+----+--------------+---------------+-------------------+---------+---------+-----|
-| 2 b + 45   | b  | b^2 + b + 32 | 6.33333333333 | 6 b + 2 b^2 + 459 |       1 |       9 |   5 |
+| 2 b + 45   | b  | b + b^2 + 32 | 6.33333333333 | 2 b^2 + 6 b + 459 |       1 |       9 |   5 |
 | 2 a + 19.1 | a  | 11 a + 12    | 4.14285714286 | 2 a^2 + 78.01     |       1 |       8 | 4.5 |
 #+TBLFM: $8=($6+$7)/2
 #+END
@@ -189,17 +189,17 @@ Note the additional $8 column automatically computed after the aggregation
 #+BEGIN: aggregate :table pulledtable :cols "pé count() sum($4) mean(zö) sum(zö*zö) list(xà) min(yÿ) max(yÿ)"
 | pé | count() |    sum($4) | mean(zö) | sum(zö*zö) | list(xà)           |        min(yÿ) |        max(yÿ) |
 |----+---------+------------+----------+------------+--------------------+----------------+----------------|
-|  1 |       3 |         12 |        7 |        161 | ("5.1" "3" "12")   |              2 |              8 |
-|  3 |       4 |         22 |     3.25 |         87 | ("9" "5" "3" "12") |              2 |              8 |
-|  2 |       2 |         10 |      3.5 |         29 | ("9" "3")          |              2 |              8 |
-|  4 |       2 |      b + a |        7 |        100 | ("b" "a")          |      min(b, a) |      max(b, a) |
-|  5 |       2 | b^2 + 10 a |        6 |         80 | ("b+3" "a")        | min(b^2, 10 a) | max(b^2, 10 a) |
+|  1 |       3 |         12 |        7 |        161 | ("12" "3" "5.1")   |              2 |              8 |
+|  3 |       4 |         22 |     3.25 |         87 | ("12" "3" "5" "9") |              2 |              8 |
+|  2 |       2 |         10 |      3.5 |         29 | ("3" "9")          |              2 |              8 |
+|  4 |       2 |      a + b |        7 |        100 | ("a" "b")          |      min(a, b) |      max(a, b) |
+|  5 |       2 | 10 a + b^2 |        6 |         80 | ("a" "b+3")        | min(10 a, b^2) | max(10 a, b^2) |
 #+END
 
 #+BEGIN: aggregate :table pulledtable :cols "count() mean(xà) mean(yÿ) mean(zö)"
-| count() | mean(xà)                                  | mean(yÿ)                                             |      mean(zö) |
-|---------+-------------------------------------------+------------------------------------------------------+---------------|
-|      13 | 2:13 b + 0.153846153846 a + 4.93076923077 | b^2 / 13 + b / 13 + 0.846153846154 a + 3.38461538462 | 5.15384615385 |
+| count() | mean(xà)                                            | mean(yÿ)                                             |      mean(zö) |
+|---------+-----------------------------------------------------+------------------------------------------------------+---------------|
+|      13 | 0.153846153846 a + 0.153846153846 b + 4.93076923077 | 0.846153846154 a + b / 13 + b^2 / 13 + 3.38461538462 | 5.15384615385 |
 #+END
 
 #+BEGIN: aggregate :table pulledtable :cols "pé count() mean(zö) meane(zö) gmean(zö) hmean(zö) median(zö)"
@@ -222,8 +222,8 @@ Note the additional $8 column automatically computed after the aggregation
 #+BEGIN: aggregate :table pulledtable :cols "qû count() cov(zö,xà) pcov(zö,zö) corr(zö,zö)"
 | qû | count() | cov(zö,xà)                       |   pcov(zö,zö) | corr(zö,zö) |
 |----+---------+----------------------------------+---------------+-------------|
-| b  |       6 | 0.266666666666 b + 1.79999999996 | 7.88888888889 |          1. |
-| a  |       7 | 0.619047619048 a - 1.22142857143 | 6.97959183673 |          1. |
+| b  |       6 | 0.266666666667 b + 1.79999999998 | 7.88888888889 |          1. |
+| a  |       7 | 0.619047619049 a - 1.22142857143 | 6.97959183673 |          1. |
 #+END
 
 * Test :cond PUSH
@@ -367,8 +367,8 @@ Then columns should be named $1, $2, $3 and so on.
 |     0 |  1 | 6.7                 | 12         |
 |     0 |  3 | 7.25                | 22         |
 |     0 |  2 | 6                   | 10         |
-|     0 |  4 | b / 2 + a / 2       | b + a      |
-|     0 |  5 | b / 2 + a / 2 + 1.5 | b^2 + 10 a |
+|     0 |  4 | a / 2 + b / 2       | a + b      |
+|     0 |  5 | a / 2 + b / 2 + 1.5 | 10 a + b^2 |
 #+END
 
 * Test hline
@@ -476,7 +476,7 @@ Result is variabilized with x and a.
 | Monday    | 2. x + 27.5           | a + 14        |
 | Thuesday  | 0.333333333334 x + 43 | 45            |
 | Wednesday | x / 3 + 18            | 54 - 6 a      |
-| Turdsday  | x / 3 + 43.           | 4 a + 83      |
+| Turdsday  | x / 3 + 43            | 4 a + 83      |
 | Friday    | 8                     | a + 22        |
 #+END
 
@@ -484,8 +484,7 @@ Result is variabilized with x and a.
 
 The following test produces sums which happen to be zero, either
 because input is empty, or by chance (1-1 = 0).
-Zeros are translated to empty cells.
-This will change in the future.
+Zeros are no longer translated to empty cells.
 
 #+TBLNAME: resultzero
 | Item | Value |
@@ -505,13 +504,27 @@ This will change in the future.
 | Item | sum(Value) | mean(Value) |
 |------+------------+-------------|
 | a2   |          2 |           1 |
-| a0   |            |             |
-| b2   |          2 |           1 |
-| b0   |            |             |
-| c    |            |             |
+| a0   |          0 |           0 |
+| b2   |          2 |           2 |
+| b0   |          0 |           0 |
+| c    |          0 |             |
 #+END
 
 * Test empty inputs
+
+Empty input cells are most often ignored.
+- This makes no difference for =sum= and =count=.
+- For =prod=, empty input do not result in zero.
+- For =mean=, only non-empty cells participate
+  (if empty cells were zero, they would count in the division)
+- For =min= and =max=, a possibly empty list of values is possible,
+  resulting in =inf= or =-inf=
+
+Some aggregation functions operate on two columns.
+In this case, a pair of empty cells is ignored.
+But a pair of an empty and a non-empty cell is
+added to the aggregation, by replacing the missing
+value with zero.
 
 #+tblname: emptyinput
 | T                |  Q |   R |
@@ -537,60 +550,69 @@ This will change in the future.
 | single-non-blank |    |     |
 | single-non-blank |    |     |
 
-Right now empty input cells are replaced by zero.
-It would be better to just ignore them.
-It makes no difference for =sum(Q)=.
-But for =prod(Q)=, =max(Q)=, =mean(Q)=, the results change.
-The situation is even more complex for aggregations which use two columns
-like =corr(Q,R)=.
-Moreover, in some cases, a division by zero may arise.
-
-Expect the following aggregations to change.
-
 #+BEGIN: aggregate :table "emptyinput" :cols "T sum(Q) prod(Q) list(Q)"
 | T                | sum(Q) | prod(Q) | list(Q)               |
 |------------------+--------+---------+-----------------------|
-| no-blank         |      6 |       6 | ("3" "2" "1")         |
-| 1-left-blank     |     17 |         | ("7" "6" "" "4")      |
-| all-blank        |        |         | ("" "" "")            |
-| 2-left-blank     |     50 |   24024 | ("14" "13" "12" "11") |
-| 1-dual-blank     |     32 |         | ("17" "" "15")        |
-| single-non-blank |     18 |         | ("" "" "18")          |
+| no-blank         |      6 |       6 | ("1" "2" "3")         |
+| 1-left-blank     |     17 |     168 | ("4" "" "6" "7")      |
+| all-blank        |      0 |       1 | ("" "" "")            |
+| 2-left-blank     |     50 |   24024 | ("11" "12" "13" "14") |
+| 1-dual-blank     |     32 |     255 | ("15" "" "17")        |
+| single-non-blank |     18 |      18 | ("18" "" "")          |
 #+END:
 
 #+BEGIN: aggregate :table "emptyinput" :cols "T mean(Q) meane(Q) gmean(Q) hmean(Q)"
-| T                |       mean(Q) | meane(Q)                        |      gmean(Q) | hmean(Q)                         |
-|------------------+---------------+---------------------------------+---------------+----------------------------------|
-| no-blank         |             2 | 2 +/- 0.577350269189            | 1.81712059283 | 1.63636363636                    |
-| 1-left-blank     |          4.25 | 4.25 +/- 1.54784796842          |               | 4 / (inv(0) + 0.559523809524)    |
-| all-blank        |               |                                 |               | 1 / inv(0)                       |
-| 2-left-blank     |          12.5 | 12.5 +/- 0.645497224368         | 12.4497700445 | 12.399483871                     |
-| 1-dual-blank     | 10.6666666667 | 10.6666666667 +/- 5.36449231315 |               | 3 / (inv(0) + 0.125490196079)    |
-| single-non-blank |             6 | 6 +/- 6                         |               | 3 / (2 inv(0) + 0.0555555555556) |
+| T                |       mean(Q) | meane(Q)                         |      gmean(Q) |      hmean(Q) |
+|------------------+---------------+----------------------------------+---------------+---------------|
+| no-blank         |             2 | 2 +/- 0.577350269189             | 1.81712059283 | 1.63636363636 |
+| 1-left-blank     | 5.66666666667 | 5.66666666667 +/- 0.881917103688 | 5.51784835276 | 5.36170212766 |
+| all-blank        |               |                                  |               |               |
+| 2-left-blank     |          12.5 | 12.5 +/- 0.645497224368          | 12.4497700445 |  12.399483871 |
+| 1-dual-blank     |            16 | 16 +/- 1                         | 15.9687194227 |       15.9375 |
+| single-non-blank |            18 |                                  |            18 |           18. |
 #+END:
 
 #+BEGIN: aggregate :table "emptyinput" :cols "T min(Q) max(Q)"
 | T                | min(Q) | max(Q) |
 |------------------+--------+--------|
 | no-blank         |      1 |      3 |
-| 1-left-blank     |        |      7 |
-| all-blank        |        |        |
+| 1-left-blank     |      4 |      7 |
+| all-blank        |    inf |   -inf |
 | 2-left-blank     |     11 |     14 |
-| 1-dual-blank     |        |     17 |
-| single-non-blank |        |     18 |
+| 1-dual-blank     |     15 |     17 |
+| single-non-blank |     18 |     18 |
 #+END:
 
 #+BEGIN: aggregate :table "emptyinput" :cols "T pvar(Q) sdev(Q) psdev(Q)"
 | T                |        pvar(Q) |       sdev(Q) |       psdev(Q) |
 |------------------+----------------+---------------+----------------|
 | no-blank         | 0.666666666667 |             1 | 0.816496580928 |
-| 1-left-blank     |         7.1875 | 3.09569593683 |  2.68095132369 |
+| 1-left-blank     |  1.55555555556 | 1.52752523165 |  1.24721912893 |
 | all-blank        |                |               |                |
 | 2-left-blank     |           1.25 | 1.29099444874 |  1.11803398875 |
-| 1-dual-blank     |  57.5555555556 | 9.29157324318 |   7.5865377845 |
-| single-non-blank |             72 | 10.3923048454 |  8.48528137424 |
+| 1-dual-blank     |              1 | 1.41421356237 |              1 |
+| single-non-blank |              0 |               |              0 |
 #+END:
 
 #+BEGIN: aggregate :table "emptyinput" :cols "T corr(Q,R) cov(Q,R) pcov(Q,R)"
-
+| T                |      corr(Q,R) |      cov(Q,R) |     pcov(Q,R) |
+|------------------+----------------+---------------+---------------|
+| no-blank         |              1 |            10 | 6.66666666667 |
+| 1-left-blank     | 0.625543242171 |           25. |         18.75 |
+| all-blank        |                |               |               |
+| 2-left-blank     |             1. | 16.6666666667 |          12.5 |
+| 1-dual-blank     |              1 |            20 |            10 |
+| single-non-blank |                |               |             0 |
 #+END:
+
+#+BEGIN: aggregate :table "emptyinput" :cols "T count() list(Q) list(R)"
+| T                | count() | list(Q)               | list(R)                   |
+|------------------+---------+-----------------------+---------------------------|
+| no-blank         |       3 | ("1" "2" "3")         | ("10" "20" "30")          |
+| 1-left-blank     |       4 | ("4" "" "6" "7")      | ("40" "50" "60" "70")     |
+| all-blank        |       3 | ("" "" "")            | ("" "" "")                |
+| 2-left-blank     |       4 | ("11" "12" "13" "14") | ("110" "120" "130" "140") |
+| 1-dual-blank     |       3 | ("15" "" "17")        | ("150" "" "170")          |
+| single-non-blank |       3 | ("18" "" "")          | ("180" "" "")             |
+#+END:
+

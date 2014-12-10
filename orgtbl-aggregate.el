@@ -354,7 +354,8 @@ containing this single ROW."
   "Convert DATA, a lisp list of mathematical values, to a Calc
 vector.  In the process, empty values are removed (rather than
 interpreted as zero).  Then apply the Calc FUN the vectors.
-Empty value is returned when all input values are empty."
+Empty value is returned when not enough non-empty input is
+available."
   (let ((vec))
     (mapc (lambda (x)
 	    (unless (eq x 'EMPTY)

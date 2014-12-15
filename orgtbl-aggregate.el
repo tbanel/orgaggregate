@@ -529,51 +529,58 @@ with material aggregated.
 Grouping of rows is done for identical values of grouping columns.
 For each group, aggregation (sum, mean, etc.) is done for other columns.
   
-:table    names the destination table
-          The destination must be specified somewhere in the same file
-          with a bloc like this:
-          #+BEGIN RECEIVE ORGTBL destination_table_name
-          #+END RECEIVE ORGTBL destination_table_name
+The source table must contain sending directives with the following format:
+#+ORGTBL: SEND destination orgtbl-to-aggregated-table :cols ... :cond ...
 
-:columns  gives the specifications of the resulting columns.
+The destination must be specified somewhere in the same file
+with a bloc like this:
+  #+BEGIN RECEIVE ORGTBL destination
+  #+END RECEIVE ORGTBL destination
+
+:cols     gives the specifications of the resulting columns.
           It is a space-separated list of column specifications.
           Example:
-             p q sum(x) max(x) mean(y)
+             P Q sum(X) max(X) mean(Y)
           Which means:
-             group rows with similar values in columns p and q,
+             group rows with similar values in columns P and Q,
              and for each group, compute the sum of elements in
-             column x, etc.
+             column X, etc.
 
           The specification for a resulting column may be:
-             col              the name of a grouping column in the source table
-             hline            a special name for grouping rows separated by horizontal lines
+             COL              the name of a grouping column in the source table
+             hline            a special name for grouping rows separated
+                              by horizontal lines
              count()          give the number of rows in each group
-             list(col)        list the values of the column for each group
-             sum(col)         compute the sum of the column for each group
-             sum(col1*col2)   compute the sum of the product of two columns for each group
-             mean(col)        compute the average of the column for each group
-             mean(col1*col2)  compute the average of the product of two columns for each group
-             meane(col)       compute the average along with the estimated error
-             hmean(col)       compute the harmonic average
-             gmean(col)       compute the geometric average
-             median(col)      give the middle element after sorting them
-             max(col)         gives the largest element of each group
-             min(col)         gives the smallest element of each group
-             sdev(col)        compute the standard deviation (divide by N-1)
-             psdev(col)       compute the population standard deviation (divide by N)
-             pvar(col)        compute the variance
-             prod(col)        compute the product
-             cov(col1,col2)   compute the covariance of two columns for each group (divide by N-1)
-             pcov(col1,col2)  compute the population covariance of two columns for each group (/N)
-             corr(col1,col2)  compute the linear correlation of two columns
+             list(COL)        list the values of the column for each group
+             sum(COL)         compute the sum of the column for each group
+             sum(COL1*COL2)   compute the sum of the product of two columns
+                              for each group
+             mean(COL)        compute the average of the column for each group
+             mean(COL1*COL2)  compute the average of the product of two columns
+                              for each group
+             meane(COL)       compute the average along with the estimated error
+             hmean(COL)       compute the harmonic average
+             gmean(COL)       compute the geometric average
+             median(COL)      give the middle element after sorting them
+             max(COL)         gives the largest element of each group
+             min(COL)         gives the smallest element of each group
+             sdev(COL)        compute the standard deviation (divide by N-1)
+             psdev(COL)       compute the population standard deviation (divide by N)
+             pvar(COL)        compute the variance
+             prod(COL)        compute the product
+             cov(COL1,COL2)   compute the covariance of two columns
+                              for each group (divide by N-1)
+             pcov(COL1,COL2)  compute the population covariance of two columns
+                              for each group (/N)
+             corr(COL1,COL2)  compute the linear correlation of two columns
 
 :cond     optional
           a lisp expression to filter out rows in the source table
           when the expression evaluate to nil for a given row of the source table,
           then this row is discarded in the resulting table
           Example:
-             (equal q \"b\")
-          Which means: keep only source rows for which the column q has the value b
+             (equal Q \"b\")
+          Which means: keep only source rows for which the column Q has the value b
 
 Columns in the source table may be in the dollar form,
 for example $3 to name the 3th column,
@@ -585,7 +592,7 @@ and is incremented by one for each horizontal line.
 
 Example:
 add a line like this one before your table
-,#+ORGTBL: SEND aggregatedtable orgtbl-to-aggregated-table :cols \"sum(x) q sum(y) mean(z) sum(x*x)\"
+,#+ORGTBL: SEND aggregatedtable orgtbl-to-aggregated-table :cols \"sum(X) q sum(Y) mean(Z) sum(X*X)\"
 then add somewhere in the same file the following lines:
 ,#+BEGIN RECEIVE ORGTBL aggregatedtable
 ,#+END RECEIVE ORGTBL aggregatedtable
@@ -615,45 +622,50 @@ For each group, aggregation (sum, mean, etc.) is done for other columns.
 
 :table    name of the source table
 
-:columns  gives the specifications of the resulting columns.
+:cols     gives the specifications of the resulting columns.
           It is a space-separated list of column specifications.
           Example:
-             \"p q sum(x) max(x) mean(y)\"
+             \"P Q sum(X) max(X) mean(Y)\"
           Which means:
-             group rows with similar values in columns p and q,
+             group rows with similar values in columns P and Q,
              and for each group, compute the sum of elements in
-             column x, etc.
+             column X, etc.
 
           The specification for a resulting column may be:
-             col              the name of a grouping column in the source table
-             hline            a special name for grouping rows separated by horizontal lines
+             COL              the name of a grouping column in the source table
+             hline            a special name for grouping rows separated
+                              by horizontal lines
              count()          give the number of rows in each group
-             list(col)        list the values of the column for each group
-             sum(col)         compute the sum of the column for each group
-             sum(col1*col2)   compute the sum of the product of two columns for each group
-             mean(col)        compute the average of the column for each group
-             mean(col1*col2)  compute the average of the product of two columns for each group
-             meane(col)       compute the average along with the estimated error
-             hmean(col)       compute the harmonic average
-             gmean(col)       compute the geometric average
-             median(col)      give the middle element after sorting them
-             max(col)         gives the largest element of each group
-             min(col)         gives the smallest element of each group
-             sdev(col)        compute the standard deviation (divide by N-1)
-             psdev(col)       compute the population standard deviation (divide by N)
-             pvar(col)        compute the variance
-             prod(col)        compute the product
-             cov(col1,col2)   compute the covariance of two columns for each group (divide by N-1)
-             pcov(col1,col2)  compute the population covariance of two columns for each group (/N)
-             corr(col1,col2)  compute the linear correlation of two columns
+             list(COL)        list the values of the column for each group
+             sum(COL)         compute the sum of the column for each group
+             sum(COL1*COL2)   compute the sum of the product of two columns
+                              for each group
+             mean(COL)        compute the average of the column for each group
+             mean(COL1*COL2)  compute the average of the product of two columns
+                              for each group
+             meane(COL)       compute the average along with the estimated error
+             hmean(COL)       compute the harmonic average
+             gmean(COL)       compute the geometric average
+             median(COL)      give the middle element after sorting them
+             max(COL)         gives the largest element of each group
+             min(COL)         gives the smallest element of each group
+             sdev(COL)        compute the standard deviation (divide by N-1)
+             psdev(COL)       compute the population standard deviation (divide by N)
+             pvar(COL)        compute the variance
+             prod(COL)        compute the product
+             cov(COL1,COL2)   compute the covariance of two columns
+                              for each group (divide by N-1)
+             pcov(COL1,COL2)  compute the population covariance of two columns
+                              for each group (/N)
+             corr(COL1,COL2)  compute the linear correlation of two columns
 
 :cond     optional
           a lisp expression to filter out rows in the source table
           when the expression evaluate to nil for a given row of the source table,
           then this row is discarded in the resulting table
           Example:
-             (equal q \"b\")
-          Which means: keep only source rows for which the column q has the value b
+             (equal Q \"b\")
+          Which means: keep only source rows for which the column Q has the value b
 
 Columns in the source table may be in the dollar form,
 for example $3 to name the 3th column,
@@ -665,7 +677,7 @@ and is incremented by one for each horizontal line.
 
 Example:
 - Create an empty dynamic block like this:
-  #+BEGIN: aggregate :table originaltable :cols \"sum(x) q sum(y) mean(z) sum(x*x)\"
+  #+BEGIN: aggregate :table originaltable :cols \"sum(X) Q sum(Y) mean(Z) sum(X*X)\"
   #+END
 - Type C-c C-c over the BEGIN line
   this fills in the block with an aggregated table
@@ -773,7 +785,13 @@ If AGGCOND is nil, all source rows are taken"
   "Convert the orgtbl-mode TABLE to a transposed version.
 Rows become columns, columns become rows.
 
-:table    names the destination table
+The source table must contain sending directives with the following format:
+#+ORGTBL: SEND destination orgtbl-to-transposed-table :cols ... :cond ...
+
+The destination must be specified somewhere in the same file
+with a bloc like this:
+  #+BEGIN RECEIVE ORGTBL destination
+  #+END RECEIVE ORGTBL destination
 
 :cols     optional, if omitted all source columns are taken.
           Columns specified here will become rows in the result.
@@ -788,8 +806,8 @@ Rows become columns, columns become rows.
           when the expression evaluate to nil for a given row of the source table,
           then this row is discarded in the resulting table
           Example:
-             (equal q \"b\")
-          Which means: keep only source rows for which the column q has the value b
+             (equal Q \"b\")
+          Which means: keep only source rows for which the column Q has the value b
 
 Columns in the source table may be in the dollar form,
 for example $3 to name the 3th column,

@@ -1,9 +1,12 @@
+;; -*- coding:utf-8;-*-
 ;;; orgtbl-aggregate.el --- Create an aggregated Org table from another one
 
 ;; Copyright (C) 2013-2014  Thierry Banel
 
-;; Author: Thierry Banel tbanelwebmin at free dot fr
-;; Contributors: Michael Brand, Eric Abrahamsen
+;; Authors:
+;;   Thierry Banel tbanelwebmin at free dot fr
+;;   Michael Brand michael dot ch dot brand at gmail dot com
+;; Contributors: Eric Abrahamsen
 ;; Version: 0.1
 ;; Keywords: org, table, aggregation, filtering
 
@@ -198,11 +201,6 @@ Returns nil if parameter is not a date."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Aggregation package
 
-;; this variable becomes true if there is at least one column
-;; which is designated with a true name,
-;; other than $1, $2, $3 ...
-(defvar orgtbl-to-aggregated-table-has-header)
-
 (defun orgtbl-to-aggregated-table-colname-to-int (colname table &optional err)
   "Convert the column name into an integer (first column is numbered 1)
 COLNAME may be:
@@ -211,10 +209,7 @@ COLNAME may be:
 - the special symbol `hline' which is converted into 0
 When COLNAME does not match any actual column,
 an error is generated if ERR optional parameter is true
-otherwise nil is returned.
-Side-effect: the `ORGTBL-TO-AGGREGATED-TABLE-HAS-HEADER' variable is set
-to true if COLNAME looks like the name of a column in the table 1st row.
-"
+otherwise nil is returned."
   (if (symbolp colname)
       (setq colname (symbol-name colname)))
   ;; skip first hlines if any
@@ -230,9 +225,6 @@ to true if COLNAME looks like the name of a column in the table 1st row.
 		 (user-error "Column %s outside table" colname)
 	       nil))))
 	(t
-	 (setq orgtbl-to-aggregated-table-has-header t)
-	 ;; orgtbl-to-aggregated-table-has-header set to true
-	 ;; because of a column name other than $N
 	 (let ((i 0)
 	       (j ()))
 	   (mapc (lambda (h)
@@ -247,9 +239,9 @@ to true if COLNAME looks like the name of a column in the table 1st row.
 	   j))))
 
 (defun orgtbl-to-aggregated-replace-colnames (table expression)
-  "Replace occurrences of column names in EXPRESSION
-with forms like (nth N row), N being the numbering of columns.
-Doing so, the EXPRESSION is ready to be computed against a table row."
+  "Replace occurrences of column names in lisp EXPRESSION with
+forms like (nth N row), N being the numbering of columns.  Doing
+so, the EXPRESSION is ready to be computed against a table row."
   (cond
    ((listp expression)
     (cons (car expression)
@@ -265,63 +257,27 @@ Doing so, the EXPRESSION is ready to be computed against a table row."
 	expression)))))
 
 (defun orgtbl-to-aggregated-table-parse-spec (column table)
-  "Parse a COLUMN specification for valid aggregation forms.
-In the process, replace source column names with numbers starting from 1,
-or 0 for the special 'hline column."
-  (let ((validid1
-	 '(sum mean meane gmean hmean sdev pvar psdev min max median prod list))
-	(validid2
-	 '(sum mean meane gmean hmean sdev pvar psdev min max median cov pcov corr))
-	id)
-    (cond
-     ((string-match "^count()$" column)
-      'count)
-     ((string-match "^\\([[:word:]]+\\)(\\([[:word:]0-9_$]+\\))$" column)
-      (setq id (intern (match-string 1 column)))
-      (unless (memq id validid1)
-	(error
-	 "Bad column specification in orgtbl-to-aggregated-table : %s"
-	 column))
-      (list id
-	    (orgtbl-to-aggregated-table-colname-to-int
-	     (match-string 2 column)
-	     table
-	     t)))
-     ((string-match
-       "^\\([[:word:]]+\\)(\\([[:word:]0-9_$]+\\)[*,]\\([[:word:]0-9_$]+\\))$"
-       column)
-      (setq id (intern (match-string 1 column)))
-      (unless (memq id validid2)
-	(error
-	 "Bad column specification in orgtbl-to-aggregated-table : %s"
-	 column))
-      (let ((a (match-string 2 column))	; save matches in a & b
-	    (b (match-string 3 column))); because (...-to-int ..) destroys them
-	(list id
-	      (orgtbl-to-aggregated-table-colname-to-int a table t)
-	      (orgtbl-to-aggregated-table-colname-to-int b table t))))
-     ((string-match "^\\([[:word:]0-9_$]+\\)$" column)
-      (orgtbl-to-aggregated-table-colname-to-int
-       (match-string 1 column)
-       table
-       t))
-     (t (error
-	 "Bad column specification in orgtbl-to-aggregated-table : %s"
-	 column)))))
+  "Replace COLUMN name, which is a key-column, with a number
+starting from 1, or 0 for the special 'hline column.  If COLUMN
+is a Calc expression, nil is returned."
+  (and (string-match "^\\([[:word:]0-9_$]+\\)$" column)
+       (orgtbl-to-aggregated-table-colname-to-int
+	(match-string 1 column)
+	table
+	t)))
 
-(defun orgtbl-to-aggregated-table-compare-rows (row1 row2 aggcols)
-  "Are two rows from the source table equal
-regarding the aggregation columns ?"
+(defun orgtbl-to-aggregated-table-compare-rows (row1 row2 keycols)
+  "Are two rows from the source table equal regarding the
+aggregation columns ?"
   (let ((ok t))
     (mapc (lambda (i)
-	    (unless (or
-		     (not (integerp i))
-		     (equal (nth i row1) (nth i row2))
-		     (setq ok nil))))
-	  aggcols)
+	    (and i
+		 (not (equal (nth i row1) (nth i row2)))
+		 (setq ok nil)))
+	  keycols)
     ok))
 
-(defun orgtbl-to-aggregated-table-add-group (groups row aggcols aggcond)
+(defun orgtbl-to-aggregated-table-add-group (groups row keycols aggcond)
   "Add the source ROW to the GROUPS of rows.
 If ROW fits a group within GROUPS, then it is added at the end
 of this group. Otherwise a new group is added at the end of GROUPS,
@@ -333,7 +289,7 @@ containing this single ROW."
 		(when (orgtbl-to-aggregated-table-compare-rows
 		       (car g)
 		       row
-		       aggcols)
+		       keycols)
 		  (nconc g (list row))
 		  (setq found t)))
 	      (cdr groups))
@@ -343,166 +299,106 @@ containing this single ROW."
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
   (or (org-time-string-to-calc expr)
-      (if (equal expr "") 'EMPTY)
-      (let ((x (math-read-exprs expr)))
-	  (unless (consp x) (error "not consp ?"))
-	  (if (eq (car x) 'error)
-	      (math-read-exprs "INPUT_ERROR")
-	    (car x)))))
+      (and (equal expr "") 'EMPTY)
+      (math-simplify
+       (calcFunc-expand
+	(math-read-expr expr)))))
 
-(defun orgtbl-aggregate-apply-calc-1arg-function (fun data)
-  "Convert DATA, a lisp list of mathematical values, to a Calc
-vector.  In the process, empty values are removed (rather than
-interpreted as zero).  Then apply the Calc FUN the vectors.
-Empty value is returned when not enough non-empty input is
-available."
-  (let ((vec))
-    (mapc (lambda (x)
-	    (unless (eq x 'EMPTY)
-	      (push x vec)))
-	  data)
-    (push 'vec vec)
-    (case fun
-      (mean   (if (cdr  vec) (calcFunc-vmean   vec) ""))
-      (meane  (if (cddr vec) (calcFunc-vmeane  vec) ""))
-      (gmean  (if (cdr  vec) (calcFunc-vgmean  vec) ""))
-      (hmean  (if (cdr  vec) (calcFunc-vhmean  vec) ""))
-      (median (if (cdr  vec) (calcFunc-vmedian vec) ""))
-      (sum                   (calcFunc-vsum    vec))
-      (min                   (calcFunc-vmin    vec))
-      (max                   (calcFunc-vmax    vec))
-      (prod                  (calcFunc-vprod   vec))
-      (pvar   (if (cdr  vec) (calcFunc-vpvar   vec) ""))
-      (sdev   (if (cddr vec) (calcFunc-vsdev   vec) ""))
-      (psdev  (if (cdr  vec) (calcFunc-vpsdev  vec) "")))))
+(defun orgtbl-to-aggregated-table-collect-list (var)
+  "Replace VAR, which is a column name, with a $N expression.
+If VAR is already in the $N form, VAR is left unchanged.  Collect
+the cells at the crossing of the VAR column and the current GROUP
+of rows, and store it in LISTS.  Assumes that `table', `group'
+and `lists' are binded before calling this function."
+  (cond
+   ;; compatibility
+   ((member
+     var
+     '("mean" "meane" "gmean" "hmean" "median" "sum" "min" "max"
+       "prod" "pvar" "sdev" "psdev" "corr" "cov" "pcov"))
+    (format "v%s" var))
+   ((equal var "list")
+    "")
+   (t ;; replace VAR if it is a column name
+    (let ((i (orgtbl-to-aggregated-table-colname-to-int var table)))
+      (if i
+	  (save-match-data ;; save because we are called within a regexp-replace
+	    (unless (aref lists i)
+	      (aset lists i
+		    (cons 'vec
+			  (mapcar (lambda (row)
+				    (orgtbl-aggregate-read-calc-expr
+				     (nth i row)))
+				  group))))
+	    (format "$%s" i))
+	var)))))
 
-(defun orgtbl-aggregate-apply-calc-2args-function (fun data)
-  "Convert DATA, a lisp list of mathematical values pairs, to two
-Calc vectors.  In the process, pairs of empty values are
-removed (rather than interpreted as zero).  If only one value in
-a pair is empty, it is replaced by zero.  The resulting Calc
-vectors have the same length.  Then apply the Calc FUN to those
-two vectors.  Empty value is returned when there is not enough
-non-empty input."
-  (let ((veca)
-	(vecb))
-    (mapc (lambda (pair)
-	    (if (and (eq (car pair) 'EMPTY)
-		     (eq (cdr pair) 'EMPTY))
-		nil
-	      (push (if (eq (car pair) 'EMPTY) 0 (car pair)) veca)
-	      (push (if (eq (cdr pair) 'EMPTY) 0 (cdr pair)) vecb)))
-	  data)
-    (push 'vec veca)
-    (push 'vec vecb)
-    (case fun
-      (corr
-       (if (cddr veca) ;; at least two non-empty value?
-	   (calcFunc-vcorr veca vecb)
-	 ""))
-      (cov
-       (if (cddr veca) ;; at least two non-empty value?
-	   (calcFunc-vcov veca vecb)
-	 ""))
-      (pcov
-       (if (cdr veca) ;; at least one non-empty value?
-	   (calcFunc-vpcov veca vecb)
-	 "")))))
-
-(defun orgtbl-to-aggregated-table-do-sums (group aggcols)
-  "Iterate over the rows in the GROUP
-in order to apply the summations.
-The result is a row compliant with the AGGCOLS columns specifications."
-  (let ((sums (make-vector (length aggcols) ()))
-	(i)
-	(sum))
-    (mapc
-     (lambda (row)
-       (setq i 0)
-       (mapc
-	(lambda (sc)
-	  (if (consp sc)
-	      (case (car sc)
-		((mean meane gmean hmean median
-		       sum min max prod
-		       sdev pvar psdev
-		       cov pcov corr)
-		 (aset
-		  sums
-		  i
-		  (cons 
-		   (cond
-		    ((null (cddr sc))
-		     (orgtbl-aggregate-read-calc-expr (nth (cadr sc) row)))
-		    ((memq (car sc) '(cov pcov corr))
-		     (cons
-		      (orgtbl-aggregate-read-calc-expr (nth (cadr  sc) row))
-		      (orgtbl-aggregate-read-calc-expr (nth (caddr sc) row))))
-		    (t
-		     (math-mul
-		      (orgtbl-aggregate-read-calc-expr (nth (cadr  sc) row))
-		      (orgtbl-aggregate-read-calc-expr (nth (caddr sc) row)))))
-		   (elt sums i))))
-		(list
-		 (aset sums i (cons (nth (cadr sc) row) (elt sums i))))
-		(t (error "bad aggregation specification")))) ;; cannot happen
-	  (setq i (1+ i)))
-	aggcols))
-     group)
-    (setq i 0)
+(defun orgtbl-to-aggregated-table-do-sums (group aggcols table)
+  "Iterate over the expressions in aggcols, evaluating each
+expression with Calc using values found in the rows of the GROUP.
+The result is a row identical to AGGCOLS, except expressions have
+been evaluated."
+  (let ((lists (make-vector (1+ (length (car table))) nil)))
     (mapcar
-     (lambda (sc)
-       (setq sum (aref sums i))
-       (setq i (1+ i))
-       (let ((aggr
-	      (cond
-	       ((integerp sc)  (nth sc (car group)))
-	       ((eq sc 'count) (number-to-string (length group)))
-	       ((consp sc)
-		(case (car sc)
-		  ((mean meane gmean hmean median sum min max prod sdev pvar psdev)
-		   (orgtbl-aggregate-apply-calc-1arg-function (car sc) sum))
-		  ((cov pcov corr)  
-		   (orgtbl-aggregate-apply-calc-2args-function (car sc) sum))
-		  (list (format "%S" (reverse sum))))))))
-	 (when (consp sc)
-	   (unless (eq (car sc) 'corr) ; sometimes infinite loop on vcorr
-	     (setq aggr (math-simplify (calcFunc-expand aggr))))
-	   (case (car sc)
-	     ((mean meane gmean hmean median
-		    sum min max prod
-		    sdev pvar psdev
-		    cov pcov corr)
-	      (let ((calc-date-format
-		     '((YYYY "-" MM "-" DD " " www ". " hh ":" mm ":" ss))))
-		(setq aggr (math-format-value aggr))))))
-	 aggr))
+     (lambda (colspec)
+       (if (string-match "^[[:word:]]+$" colspec) ;; a key column
+	   (nth (orgtbl-to-aggregated-table-colname-to-int colspec table)
+		(car group)) ; any line in group will do
+	 ; else it is a Calc aggregation expression
+	 (let ((expression
+		(replace-regexp-in-string
+		 "\\<[[:word:]]+\\>"
+		 'orgtbl-to-aggregated-table-collect-list
+		 colspec)))
+	   (setq expression
+		 (replace-regexp-in-string
+		  "\\<count()"
+		  (lambda (var) (format "%s" (length group)))
+		  expression))
+	   (if nil ; t for testing purpose
+	       expression
+	       (let ((calc-command-flags nil)
+		     (calc-next-why nil)
+		     (calc-language 'flat)
+		     (calc-dollar-values (cdr (mapcar #'identity lists)))
+		     (calc-dollar-used 0)
+		     (calc-date-format '(YYYY "-" MM "-" DD " " www (" " hh ":" mm))))
+		     ;(calc-float-format '(float 4))
+		 (math-format-value
+		  (math-simplify
+		   (calcFunc-expand	; yes, double expansion
+		    (calcFunc-expand	; otherwise it is not fully expanded
+		     (math-read-expr expression))))
+		  1000))))))
      aggcols)))
 
-(defun orgtbl-create-table-aggregated (table aggcolsorig aggcond)
+(defun orgtbl-create-table-aggregated (table aggcols aggcond)
   "Convert the source TABLE, which is a list of lists of cells,
-into an aggregated table compliant with the AGGCOLSORIG columns specifications,
-ignoring source rows which do not pass the AGGCOND."
-  (if (stringp aggcolsorig)
-      (setq aggcolsorig (split-string aggcolsorig)))
+into an aggregated table compliant with the AGGCOLS columns
+specifications, ignoring source rows which do not pass the
+AGGCOND."
+  (if (stringp aggcols)
+      (setq aggcols (split-string aggcols)))
   (when aggcond
     (if (stringp aggcond)
 	(setq aggcond (read aggcond)))
     (setq aggcond (orgtbl-to-aggregated-replace-colnames table aggcond)))
   ;; set to t by orgtbl-to-aggregated-table-colname-to-int
-  (setq orgtbl-to-aggregated-table-has-header nil)
-  (let* ((groups (list t)) ;; a single group is (t row1 row2 row3 ...)
-	 (aggcols
-	  (mapcar
-	   (lambda (column)
-	     (orgtbl-to-aggregated-table-parse-spec column table))
-	   aggcolsorig))
-	 (b 0)
-	 (newtable))
-    (when orgtbl-to-aggregated-table-has-header
-      (pop table) ;; remove headers
-      (if (and table (equal (car table) 'hline))
-	  (pop table)))
+  (let ((groups (list t)) ;; a single group is (t row1 row2 row3 ...)
+	(keycols
+	 (mapcar
+	  (lambda (column)
+	    (orgtbl-to-aggregated-table-parse-spec column table))
+	  aggcols))
+	(b 0)
+	(origtable table)
+	(newtable))
+    ;; remove headers
+    (while (eq 'hline (car table))
+      (setq table (cdr table)))
+    (if (memq 'hline table)
+	(setq table (cdr (memq 'hline table))))
+    ; split table into groups of rows
     (mapc (lambda (row)
 	    (cond ((equal row 'hline)
 		   (setq b (1+ b)))
@@ -510,15 +406,16 @@ ignoring source rows which do not pass the AGGCOND."
 		   (orgtbl-to-aggregated-table-add-group
 		    groups
 		    (cons (number-to-string b) row)
-		    aggcols
+		    keycols
 		    aggcond))))
 	  table)
+    ; do the aggregations for each group of rows
     (setq newtable
 	  (mapcar
 	   (lambda (group)
-	     (orgtbl-to-aggregated-table-do-sums group aggcols))
+	     (orgtbl-to-aggregated-table-do-sums group aggcols origtable))
 	   (cdr groups)))
-    (cons aggcolsorig (cons 'hline newtable))))
+    (cons aggcols (cons 'hline newtable))))
 
 ;; aggregation in Push mode
 
@@ -936,3 +833,12 @@ Note:
 
 (provide 'orgtbl-aggregate)
 ;;; orgtbl-aggregate.el ends here
+
+; TODO
+;
+; check [:word:]
+;  maybe  [:alnum:] [:alpha:] is better
+;
+; vsum(X*X) ==> does not work
+;   use X*X instead
+;

@@ -5,6 +5,16 @@
 Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the frist table.
 
+* Branch "calcunlsh" : work in progress
+We are working on a new version of the package.
+
+We plan to add flexibility to aggregation expressions, by delegating
+more processing to Calc.
+
+We will also try to make Aggregate seamless with the Spreadsheet by
+enabling expressions modifiers (=E= for empty cells, =N= for
+numerical, =%5.3f=, and so on).
+
 * Examples
 A very simple example. We have a table of activities and quantities
 (whatever they are) over several days.

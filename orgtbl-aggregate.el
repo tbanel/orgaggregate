@@ -298,18 +298,18 @@ containing this single ROW."
 
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
-  (or (org-time-string-to-calc expr)
-      (and (equal expr "") 'EMPTY)
-      (math-simplify
-       (calcFunc-expand
-	(math-read-expr expr)))))
+  (format "%s" (or (org-time-string-to-calc expr)
+		   (and (string= expr "") "")
+		   (math-simplify
+		    (calcFunc-expand
+		     (math-read-expr expr))))))
 
 (defun orgtbl-to-aggregated-table-collect-list (var)
   "Replace VAR, which is a column name, with a $N expression.
 If VAR is already in the $N form, VAR is left unchanged.  Collect
 the cells at the crossing of the VAR column and the current GROUP
 of rows, and store it in LISTS.  Assumes that `table', `group'
-and `lists' are binded before calling this function."
+and `lists' are bound before calling this function."
   (cond
    ;; compatibility
    ((member
@@ -325,11 +325,10 @@ and `lists' are binded before calling this function."
 	  (save-match-data ;; save because we are called within a regexp-replace
 	    (unless (aref lists i)
 	      (aset lists i
-		    (cons 'vec
-			  (mapcar (lambda (row)
-				    (orgtbl-aggregate-read-calc-expr
-				     (nth i row)))
-				  group))))
+		    (mapcar (lambda (row)
+			      (orgtbl-aggregate-read-calc-expr
+			       (nth i row)))
+			    group)))
 	    (format "$%s" i))
 	var)))))
 
@@ -360,7 +359,14 @@ been evaluated."
 	       (let ((calc-command-flags nil)
 		     (calc-next-why nil)
 		     (calc-language 'flat)
-		     (calc-dollar-values (cdr (mapcar #'identity lists)))
+		     (calc-dollar-values
+		      (mapcar
+		       (function
+			(lambda (column)
+			  (and column
+			       (math-read-expr (org-table-make-reference
+						column nil nil nil)))))
+		       (cdr (mapcar #'identity lists))))
 		     (calc-dollar-used 0)
 		     (calc-date-format '(YYYY "-" MM "-" DD " " www (" " hh ":" mm))))
 		     ;(calc-float-format '(float 4))

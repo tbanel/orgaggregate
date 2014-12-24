@@ -7,7 +7,7 @@
 ;;   Thierry Banel tbanelwebmin at free dot fr
 ;;   Michael Brand michael dot ch dot brand at gmail dot com
 ;; Contributors: Eric Abrahamsen
-;; Version: 0.1
+;; Version: 0.2
 ;; Keywords: org, table, aggregation, filtering
 
 ;; orgtbl-aggregate is free software: you can redistribute it and/or modify
@@ -299,10 +299,10 @@ containing this single ROW."
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
   (or (org-time-string-to-calc expr)
-      (and (equal expr "") 'EMPTY)
-      (math-simplify
-       (calcFunc-expand
-	(math-read-expr expr)))))
+      (if (equal expr "") nil
+	(math-simplify
+	 (calcFunc-expand
+	  (math-read-expr expr))))))
 
 (defun orgtbl-to-aggregated-table-collect-list (var)
   "Replace VAR, which is a column name, with a $N expression.
@@ -311,12 +311,14 @@ the cells at the crossing of the VAR column and the current GROUP
 of rows, and store it in LISTS.  Assumes that `table', `group'
 and `lists' are binded before calling this function."
   (cond
-   ;; compatibility
+   ;; aggregate functions with or without the leading "v"
+   ;; sum(X) and vsum(X) are equivalent
    ((member
      var
      '("mean" "meane" "gmean" "hmean" "median" "sum" "min" "max"
        "prod" "pvar" "sdev" "psdev" "corr" "cov" "pcov"))
     (format "v%s" var))
+   ;; compatibility: list(X) will be obsoleted for (X)
    ((equal var "list")
     "")
    (t ;; replace VAR if it is a column name
@@ -341,36 +343,107 @@ been evaluated."
   (let ((lists (make-vector (1+ (length (car table))) nil)))
     (mapcar
      (lambda (colspec)
-       (if (string-match "^[[:word:]]+$" colspec) ;; a key column
+       (if (string-match "^[[:word:]]+$" colspec)
+	   ;; a key column
 	   (nth (orgtbl-to-aggregated-table-colname-to-int colspec table)
-		(car group)) ; any line in group will do
+		(car group)) ; any row in group will do
 	 ; else it is a Calc aggregation expression
-	 (let ((expression
-		(replace-regexp-in-string
-		 "\\<[[:word:]]+\\>"
-		 'orgtbl-to-aggregated-table-collect-list
-		 colspec)))
-	   (setq expression
-		 (replace-regexp-in-string
-		  "\\<count()"
-		  (lambda (var) (format "%s" (length group)))
-		  expression))
-	   (if nil ; t for testing purpose
-	       expression
-	       (let ((calc-command-flags nil)
-		     (calc-next-why nil)
-		     (calc-language 'flat)
-		     (calc-dollar-values (cdr (mapcar #'identity lists)))
-		     (calc-dollar-used 0)
-		     (calc-date-format '(YYYY "-" MM "-" DD " " www (" " hh ":" mm))))
-		     ;(calc-float-format '(float 4))
-		 (math-format-value
-		  (math-simplify
-		   (calcFunc-expand	; yes, double expansion
-		    (calcFunc-expand	; otherwise it is not fully expanded
-		     (math-read-expr expression))))
-		  1000))))))
+	 (orgtbl-to-aggregated-table-do-one-sum colspec)))
      aggcols)))
+
+(defun orgtbl-to-aggregated-table-do-one-sum (formula)
+  (string-match "^\\([^;]*\\)\\(;\\(.*\\)\\)?$" formula)
+  ;; within this (let), we locally set Calc settings that must be active
+  ;; for the all the calls to Calc:
+  ;; (orgtbl-to-aggregated-table-collect-list) and (math-format-value)
+  (let ((expression (match-string 1 formula))
+	(fmt        (match-string 3 formula))
+	(calc-internal-prec calc-internal-prec)
+	(calc-float-format  calc-float-format )
+	(calc-angle-mode    calc-angle-mode   )
+	(calc-prefer-frac   calc-prefer-frac  )
+	(calc-symbolic-mode calc-symbolic-mode)
+	(duration)
+	(numbers)
+	(literal)
+	(keep-empty)
+	(noeval)
+	(case-fold-search nil))
+    ;; the following sexp was freely borrowed from org-table-eval-formula
+    (when fmt
+      (while (string-match "\\([pnfse]\\)\\(-?[0-9]+\\)" fmt)
+	(let ((c (string-to-char   (match-string 1 fmt)))
+	      (n (string-to-number (match-string 2 fmt))))
+	  (if (= c ?p)
+	      (setq calc-internal-prec n)
+	    (setq calc-float-format
+		  (list (cdr (assoc c '((?n . float) (?f . fix)
+					(?s . sci) (?e . eng))))
+			n)))
+	  (setq fmt (replace-match "" t t fmt))))
+      (if (string-match "T" fmt)
+	  (setq duration t numbers t
+		duration-output-format nil
+		fmt (replace-match "" t t fmt)))
+      (if (string-match "t" fmt)
+	  (setq duration t
+		duration-output-format org-table-duration-custom-format
+		numbers t
+		fmt (replace-match "" t t fmt)))
+      (if (string-match "N" fmt)
+	  (setq numbers t
+		fmt (replace-match "" t t fmt)))
+      (if (string-match "L" fmt)
+	  (setq literal t
+		fmt (replace-match "" t t fmt)))
+      (if (string-match "E" fmt)
+	  (setq keep-empty t
+		fmt (replace-match "" t t fmt)))
+      (while (string-match "[DRFSQ]" fmt)
+	(case (string-to-char (match-string 0 fmt))
+	  (?D (setq calc-angle-mode 'deg))
+	  (?R (setq calc-angle-mode 'rad))
+	  (?F (setq calc-prefer-frac t))
+	  (?S (setq calc-symbolic-mode t))
+	  (?Q (setq noeval t)))
+	(setq fmt (replace-match "" t t fmt)))
+      (unless (string-match "\\S-" fmt)
+	(setq fmt nil)))
+    (setq expression
+	  (replace-regexp-in-string
+	   "\\<[[:word:]]+\\>"
+	   'orgtbl-to-aggregated-table-collect-list
+	   expression))
+    (setq expression
+	  (replace-regexp-in-string
+	   "\\<count()"
+	   (lambda (var) (format "%s" (length group)))
+	   expression))
+    (if noeval
+	expression
+      (let ((calc-dollar-values
+	     (cdr (mapcar
+		   (cond (numbers
+			  (lambda (ls) (mapcar (lambda (x) (or x 0))        ls)))
+			 ((not keep-empty)
+			  (lambda (ls) (mapcan (lambda (x) (if x (list x))) ls)))
+			 (t #'identity))
+		   lists)))
+	    (calc-command-flags nil)
+	    (calc-next-why nil)
+	    (calc-language 'flat)
+	    (calc-dollar-used 0)
+	    (calc-date-format '(YYYY "-" MM "-" DD " " www (" " hh ":" mm))))
+	(let ((ev
+	       (math-format-value
+		(math-simplify
+		 (calcFunc-expand     ; yes, double expansion
+		  (calcFunc-expand    ; otherwise it is not fully expanded
+		   (math-read-expr expression))))
+		1000)))
+	  (if fmt
+	      (format fmt (string-to-number ev))
+	    ev))))))
 
 (defun orgtbl-create-table-aggregated (table aggcols aggcond)
   "Convert the source TABLE, which is a list of lists of cells,
@@ -833,12 +906,3 @@ Note:
 
 (provide 'orgtbl-aggregate)
 ;;; orgtbl-aggregate.el ends here
-
-; TODO
-;
-; check [:word:]
-;  maybe  [:alnum:] [:alpha:] is better
-;
-; vsum(X*X) ==> does not work
-;   use X*X instead
-;

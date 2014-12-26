@@ -553,59 +553,35 @@ Example. Here is a source table containing dates:
 
 * Empty and malformed input cells
 
-The input table may contain malformed mathematical text.  For instance,
-a cell containing =5+= is malformed, because an expression is missing
-after the =+= symbol.  In this case, the value will be replaced by
-=INPUT_ERROR= which will appear in the aggregated table, signaling the
-problem.
+The input table may contain malformed mathematical text.  For
+instance, a cell containing =5+= is malformed, because an expression
+is missing after the =+= symbol.  In this case, the value will be
+replaced by =error(2, '"Expected a number")= which will appear in the
+aggregated table, signaling the problem.
 
-An input cell may be empty.  In this case, it is ignored (rather than
-converted to zero)
-- This makes no difference for =sum= and =count=.
-- For =prod=, empty input do not result in zero.
-- For =mean=, only non-empty cells participate
-  (if empty cells were zero, they would count in the division).
-- For =min= and =max=, a possibly empty list of values is possible,
-  resulting in =inf= or =-inf=
+An input cell may be empty.  In this case, it may be ignored or
+converted to zero, depending on modifier flags =E= and =N=. This topic
+is currently experimental, and may change.
 
-Some aggregation functions operate on two columns.  In this case, a
-pair of empty cells is ignored.  But a pair of an empty and a
-non-empty cell is added to the aggregation, by replacing the missing
-value with zero.
+The empty cells treatment
+- makes no difference for =sum= and =count=.
+- may result in zero for =prod=,
+- change =mean= result,
+- change =min= and =max=, a possibly empty list of values resulting in
+  =inf= or =-inf=
 
-On output, a blank value may result from the aggregation. This happens
-when not enough input is available. For instance, a =mean= does not
-make sense when the input set is empty (it would generate a division
-by zero). On the other hand, some aggregations do have a mathematical
-meaning with an enpty input set. For instance, =prod= on an empty set
-yields =1=. Here is the minimun number of values for each aggregation:
-
-| function | minimum required values |
-|----------+-------------------------|
-| mean     |                       1 |
-| meane    |                       2 |
-| gmean    |                       1 |
-| hmean    |                       1 |
-| median   |                       1 |
-| sum      |                       0 |
-| min      |                       0 |
-| max      |                       0 |
-| prod     |                       0 |
-| pvar     |                       1 |
-| sdev     |                       2 |
-| psdev    |                       1 |
-| corr     |                       2 |
-| cov      |                       2 |
-| pcov     |                       1 |
-
+Some aggregation functions operate on two columns.  If the two columns
+have empty values at different locations, then they should be
+interpreted as zero with the =NE= modifier, othervise the result will
+be inconsistent.
 
 * Expressions that can be specified
 
 Virtually any Calc formula can be specified as an aggregation formula.
 
 Single column name (as they appear in the header of the source table,
-or in the form of $1, $2, ..., or the virtual column hline) are key
-columns.  Everything else is given to Calc, to be computed as an
+or in the form of =$1=, =$2=, ..., or the virtual column =hline=) are
+key columns.  Everything else is given to Calc, to be computed as an
 aggregation.
 
 For instance:
@@ -616,10 +592,10 @@ exp(mean(map(log,N)))    ;; the exponential average
 sum((X-mean(X))^2)       ;; X-mean(X) centers the sample on zero
 #+END_EXAMPLE
 
-Arguably, the first expression is useless.
-The aggregation can be applied on a computed list of values.
-The result of an aggregation can be further processed in a formula.
-An aggreagation can even be applied on an expression containing another aggregation.
+Arguably, the first expression is useless, but legal.  The aggregation
+can apply to a computed list of values.  The result of an aggregation
+can be further processed in a formula.  An aggreagation can even apply
+to an expression containing another aggregation.
 
 In an expression, if a variable has the name of a column, then it is
 replaced by a Calc vector containing values from this column.
@@ -630,7 +606,8 @@ are not aggregated. Note that parenthesis are required, otherwise, =C=
 would act as a key grouping column.
 
 * Modifiers and formatters
-An expression may optionally be followed by modifiers and formatter, after a semicolon. Examples:
+An expression may optionally be followed by modifiers and formatter,
+after a semicolon.  Examples:
 
 #+BEGIN_EXAMPLE
 sum(X);p20    ;; increase Calc internal precision to 20 digits
@@ -641,12 +618,12 @@ sum(X);%.3f   ;; output the result with 3 digits after the decimal dot
 The modifiers and formatters are fully compatible with those of the
 Org spreadsheet.
 
-* Additional formulas
+* Additional columns
 
-A formula can be computed on top of an aggregation.  With a previous
-example, adding a =:formula= parameter, we specify a new column =$4=
-which uses aggregated columns.  It is translated into a usual =#+TBLFM:=
-spreadsheet line.
+Additional columns can be specified for the resulting table.  With a
+previous example, adding a =:formula= parameter, we specify a new
+column =$4= which uses aggregated columns.  It is translated into a
+usual =#+TBLFM:= spreadsheet line.
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table original :cols "Day mean(Level) sum(Quantity)" :formula "$4=$2*$3"

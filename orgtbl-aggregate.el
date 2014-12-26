@@ -299,10 +299,19 @@ containing this single ROW."
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
   (or (org-time-string-to-calc expr)
-      (if (equal expr "") nil
+      (cond
+       ;; empty cell returned as nil,
+       ;; to be processed later depending on modifier flags
+       ((equal expr "") nil)
+       ;; the purely numerical cell case arises very often
+       ;; short-circuiting general functions boosts performance (a lot)
+       ((string-match "^[+-]?[0-9]*\.[0-9]\\(e[+-]?[0-9]+\\)?$" expr)
+	(math-read-number expr))
+       ;; generic case: symbolic expression
+       (t
 	(math-simplify
 	 (calcFunc-expand
-	  (math-read-expr expr))))))
+	  (math-read-expr expr)))))))
 
 (defun orgtbl-to-aggregated-table-collect-list (var)
   "Replace VAR, which is a column name, with a $N expression.
@@ -340,16 +349,18 @@ and `lists' are binded before calling this function."
 expression with Calc using values found in the rows of the GROUP.
 The result is a row identical to AGGCOLS, except expressions have
 been evaluated."
-  (let ((lists (make-vector (1+ (length (car table))) nil)))
-    (mapcar
-     (lambda (colspec)
-       (if (string-match "^[[:word:]]+$" colspec)
-	   ;; a key column
-	   (nth (orgtbl-to-aggregated-table-colname-to-int colspec table)
-		(car group)) ; any row in group will do
-	 ; else it is a Calc aggregation expression
-	 (orgtbl-to-aggregated-table-do-one-sum colspec)))
-     aggcols)))
+  ;; inactivating math-read-preprocess-string boosts performance
+  (cl-flet ((math-read-preprocess-string (x) x))
+    (let ((lists (make-vector (1+ (length (car table))) nil)))
+      (mapcar
+       (lambda (colspec)
+	 (if (string-match "^[[:word:]]+$" colspec)
+	     ;; a key column
+	     (nth (orgtbl-to-aggregated-table-colname-to-int colspec table)
+		  (car group))		; any row in group will do
+					; else it is a Calc aggregation expression
+	   (orgtbl-to-aggregated-table-do-one-sum colspec)))
+       aggcols))))
 
 (defun orgtbl-to-aggregated-table-do-one-sum (formula)
   (string-match "^\\([^;]*\\)\\(;\\(.*\\)\\)?$" formula)

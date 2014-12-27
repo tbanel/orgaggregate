@@ -1,6 +1,6 @@
 # -*- mode: org; -*-
 #+TITLE: Aggregate Values in a Table
-#+OPTIONS: ^:{} author:Thierry Banel toc:nil
+#+OPTIONS: ^:{} authors:Thierry Banel, Michael Brand toc:nil
 
 Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the frist table.
@@ -14,6 +14,8 @@ more processing to Calc.
 We are also trying to make Aggregate seamless with the Spreadsheet by
 enabling expressions modifiers (=E= for empty cells, =N= for
 numerical, =%5.3f=, and so on).
+
+We are working on performance for large data sets.
 
 * Examples
 A very simple example. We have a table of activities and quantities
@@ -45,14 +47,14 @@ exist for each day). First we give a name to the table through the
 block/ to receive the aggregation:
 
 #+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table original :cols "Day mean(Level) sum(Quantity)"
+#+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
 #+END
 #+END_EXAMPLE
 
 Now typing =C-c C-c= in the dynamic block computes the aggregation:
 
 #+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table original :cols "Day mean(Level) sum(Quantity)"
+#+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
 | Day       | mean(Level) | sum(Quantity) |
 |-----------+-------------+---------------|
 | Monday    |        27.5 |            14 |
@@ -73,10 +75,10 @@ To get this result, we specified columns in this way, after the
   want in this way. We get only one aggregated row for each different
   combination of values of those columns.
 
-- =mean(Level)= : this instructs Org to compute the average of values
+- =vmean(Level)= : this instructs Org to compute the average of values
   found in the =Level= column, grouped by the same =Day=.
 
-- =sum(Quantity)=: Org computes the sum of values found in the
+- =vsum(Quantity)=: Org computes the sum of values found in the
   =Quantity= column, one sum for each =Day=.
 
 * SQL equivalent
@@ -122,10 +124,10 @@ Maybe we are just interested in the sum of =Quantities=, regardless of
 =Days=. We just type:
 
 #+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table "original" :cols "sum(Quantity)"
-| sum(Quantity) |
-|---------------|
-|           218 |
+#+BEGIN: aggregate :table "original" :cols "vsum(Quantity)"
+| vsum(Quantity) |
+|----------------|
+|            218 |
 #+END
 #+END_EXAMPLE
 
@@ -151,11 +153,11 @@ If we want to get measurments for =Colors= rather than =Days=, we
 type:
 
 #+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table "original" :cols "Color mean(Level) sum(Quantity)"
-| Color |   mean(Level) | sum(Quantity) |
-|-------+---------------+---------------|
-| Red   | 40.2857142857 |           144 |
-| Blue  | 15.5714285714 |            74 |
+#+BEGIN: aggregate :table "original" :cols "Color vmean(Level) vsum(Quantity)"
+| Color |  vmean(Level) | vsum(Quantity) |
+|-------+---------------+----------------|
+| Red   | 40.2857142857 |            144 |
+| Blue  | 15.5714285714 |             74 |
 #+END
 #+END_EXAMPLE
 
@@ -172,13 +174,13 @@ The names of the columns in the original table may be
 
 * Grouping specifications in :cols
 
-Grouping is done on columns of the source table.
-Just name the columns.
+Grouping is done on columns of the source table acting as key columns.
+Just name the key columns.
 
 Additionally, the =hline= specification means that rows between two
 horizontal lines should be grouped.
 
-Grouping columns and =hline= are used to group rows of the source
+Key columns and =hline= are used to group rows of the source
 table with uniq combinations of those columns.
 
 * hline example
@@ -211,27 +213,27 @@ lines:
 And here is the aggregation by those 3 blocks:
 
 #+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table originalhl :cols "hline mean(Level) sum(Quantity)"
-| hline | mean(Level) | sum(Quantity) |
-|-------+-------------+---------------|
-|     0 |        36.8 |            59 |
-|     1 |        26.8 |           107 |
-|     2 |       18.25 |            52 |
+#+BEGIN: aggregate :table originalhl :cols "hline vmean(Level) vsum(Quantity)"
+| hline | vmean(Level) | vsum(Quantity) |
+|-------+--------------+----------------|
+|     0 |         36.8 |             59 |
+|     1 |         26.8 |            107 |
+|     2 |        18.25 |             52 |
 #+END:
 #+END_EXAMPLE
 
 If we want additionnal details with the =Color= column, we just name it:
 
 #+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table originalhl :cols "hline Color mean(Level) sum(Quantity)"
-| hline | Color |   mean(Level) | sum(Quantity) |
-|-------+-------+---------------+---------------|
-|     0 | Red   |            42 |            38 |
-|     0 | Blue  |            29 |            21 |
-|     1 | Red   | 35.6666666667 |            76 |
-|     1 | Blue  |          13.5 |            31 |
-|     2 | Red   |            49 |            30 |
-|     2 | Blue  |             8 |            22 |
+#+BEGIN: aggregate :table originalhl :cols "hline Color vmean(Level) vsum(Quantity)"
+| hline | Color |  vmean(Level) | vsum(Quantity) |
+|-------+-------+---------------+----------------|
+|     0 | Red   |            42 |             38 |
+|     0 | Blue  |            29 |             21 |
+|     1 | Red   | 35.6666666667 |             76 |
+|     1 | Blue  |          13.5 |             31 |
+|     2 | Red   |            49 |             30 |
+|     2 | Blue  |             8 |             22 |
 #+END:
 #+END_EXAMPLE
 
@@ -247,67 +249,72 @@ many other aggregations. They are based on functions provided by Calc:
   + in Calc: =`u #' (`calc-vector-count') [`vcount'])=
   + gives the number of elements being aggregated
 
-- =sum=
+- =sum= or =vsum=
   + in Calc: =`u +' (`calc-vector-sum') [`vsum']=
   + computes the sum of elements being aggregated
 
-- =max=
+- =max= or =vmax=
   + in Calc: =`u X' (`calc-vector-max') [`vmax']=
   + gives the largest of the elements being aggregated
 
-- =min=
+- =min= or =vmin=
   + in Calc: =`u N' (`calc-vector-min') [`vmin']=
   + gives the smallest of the elements being aggregated
 
-- =mean=
+- =mean= or =vmean=
   + in Calc: =`u M' (`calc-vector-mean') [`vmean']=
   + computes the average (arithmetic mean) of elements being aggregated
 
-- =meane=
+- =meane= or =vmeane=
   + in Calc: =`I u M' (`calc-vector-mean-error') [`vmeane']=
   + computes the average (as mean) along with the estimated error of elements being aggregated
 
-- =median=
+- =median= or =vmedian=
   + in Calc: =`H u M' (`calc-vector-median') [`vmedian']=
   + computes the median of elements being aggregated, by taken the middle element after sorting them
 
-- =hmean=
+- =hmean= or =vhmean=
   + in Calc: =`H I u M' (`calc-vector-harmonic-mean') [`vhmean']=
   + computes the harmonic mean of elements being aggregated
  
-- =gmean=
+- =gmean= or =vgmean=
   + in Calc: =`u G' (`calc-vector-geometric-mean') [`vgmean']=
   + computes the geometric mean of elements being aggregated
 
-- =sdev=
+- =sdev= or =vsdev=
   + in Calc: =`u S' (`calc-vector-sdev') [`vsdev']=
   + computes the standard deviation of elements being aggregated
 
-- =psdev=
+- =psdev= or =vpsdev=
   + in Calc: =`I u S' (`calc-vector-pop-sdev') [`vpsdev']=
   + computes the population standard deviation (divide by N instead of N-1)
 
-- =pvar=
+- =pvar= or =vpvar=
   + in Calc: =`H u S' (`calc-vector-variance') [`vvar']=
   + computes the variance of elements being aggregated
 
-- =pcov=
+- =pcov= or =vpcov=
   + in Calc: =`I u C' (`calc-vector-pop-covariance') [`vpcov']=
   + computes the population covariance of elements being aggregated from two columns (divides by N)
 
-- =cov=
+- =cov= or =vcov=
   + in Calc: =`u C' (`calc-vector-covariance') [`vcov']=
   + computes the sample covariance of elements being aggregated from two columns (divides by N-1)
 
-- =corr=
+- =corr= or =vcorr=
   + in Calc: =`H u C' (`calc-vector-correlation') [`vcorr']=
   + computes the linear correlation coefficient of elements being aggregated in two columns
 
 - =prod=
   + computes the product of elements being aggregated
 
-- =list=
+- =list= or =(X)=
   + gives the list of elements being aggregated, without processing
+
+The aggregation functions may be written with or without a leading
+=v=. =sum= and =vsum= are equivalent.  The =v= form should be
+prefered, as it is the one used in the Org table spreadsheet, and in
+Calc.  The non-v names may be dropped in the future.
 
 * The :cond filtering
 
@@ -359,14 +366,14 @@ We create somewhere else a /dynamic block/ which carries the
 specification of the aggregation:
 
 #+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table "source1" :cols "Day mean(Level) sum(Quantity)"
-| Day       | mean(Level) | sum(Quantity) |
-|-----------+-------------+---------------|
-| Monday    |        27.5 |            14 |
-| Thuesday  |          43 |            45 |
-| Wednesday |          18 |            54 |
-| Turdsday  |          43 |            83 |
-| Friday    |           8 |            22 |
+#+BEGIN: aggregate :table "source1" :cols "Day vmean(Level) vsum(Quantity)"
+| Day       | vmean(Level) | vsum(Quantity) |
+|-----------+--------------+----------------|
+| Monday    |         27.5 |             14 |
+| Thuesday  |           43 |             45 |
+| Wednesday |           18 |             54 |
+| Turdsday  |           43 |             83 |
+| Friday    |            8 |             22 |
 #+END
 #+END_EXAMPLE
 
@@ -377,8 +384,8 @@ tables. We specify the wanted results in =#+ORGTBL: SEND= directives
 (as many as desired):
 
 #+BEGIN_EXAMPLE
-#+ORGTBL: SEND derived1 orgtbl-to-aggregated-table :cols "mean(Level) sum(Quantity)"
-#+ORGTBL: SEND derived2 orgtbl-to-aggregated-table :cols "Day mean(Level) sum(Quantity)"
+#+ORGTBL: SEND derived1 orgtbl-to-aggregated-table :cols "vmean(Level) vsum(Quantity)"
+#+ORGTBL: SEND derived2 orgtbl-to-aggregated-table :cols "Day vmean(Level) vsum(Quantity)"
 | Day       | Color | Level | Quantity |
 |-----------+-------+-------+----------|
 | Monday    | Red   |    30 |       11 |
@@ -414,21 +421,21 @@ cursor on the 1st pipe of the table, to refresh the derived tables:
 
 #+BEGIN_EXAMPLE
 #+BEGIN RECEIVE ORGTBL derived1
-|   mean(Level) | sum(Quantity) |
-|---------------+---------------|
-| 27.9285714286 |           218 |
+|  vmean(Level) | vsum(Quantity) |
+|---------------+----------------|
+| 27.9285714286 |            218 |
 #+END RECEIVE ORGTBL derived1
 #+END_EXAMPLE
 
 #+BEGIN_EXAMPLE
 #+BEGIN RECEIVE ORGTBL derived2
-| Day       | mean(Level) | sum(Quantity) |
-|-----------+-------------+---------------|
-| Monday    |        27.5 |            14 |
-| Thuesday  |          43 |            45 |
-| Wednesday |          18 |            54 |
-| Turdsday  |          43 |            83 |
-| Friday    |           8 |            22 |
+| Day       | vmean(Level) | vsum(Quantity) |
+|-----------+--------------+----------------|
+| Monday    |         27.5 |             14 |
+| Thuesday  |           43 |             45 |
+| Wednesday |           18 |             54 |
+| Turdsday  |           43 |             83 |
+| Friday    |            8 |             22 |
 #+END RECEIVE ORGTBL derived2
 #+END_EXAMPLE
 
@@ -465,14 +472,14 @@ This is the source table:
 And here is the aggregated, symbolic result:
 
 #+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table "symtable" :cols "Day mean(Level) sum(Quantity)"
-| Day       | mean(Level)           | sum(Quantity) |
-|-----------+-----------------------+---------------|
-| Monday    | 2. x + 27.5           | a + 14        |
-| Thuesday  | 0.333333333334 x + 43 | 45            |
-| Wednesday | x / 3 + 18            | 54 - 6 a      |
-| Turdsday  | x / 3 + 43.           | 4 a + 83      |
-| Friday    | 8                     | a + 22        |
+#+BEGIN: aggregate :table "symtable" :cols "Day vmean(Level) vsum(Quantity)"
+| Day       | vmean(Level)          | vsum(Quantity) |
+|-----------+-----------------------+----------------|
+| Monday    | 2. x + 27.5           | a + 14         |
+| Thuesday  | 0.333333333334 x + 43 | 45             |
+| Wednesday | x / 3 + 18            | 54 - 6 a       |
+| Turdsday  | x / 3 + 43.           | 4 a + 83       |
+| Friday    | 8                     | a + 22         |
 #+END
 #+END_EXAMPLE
 
@@ -482,10 +489,10 @@ are symbolic (as opposed to numeric) expressions.
 * Correlation of two columns
 
 Some aggregations work on two columns (rather than one column for
-=sum()=, =mean()=).
-Those aggregations are =cov(,)=, =pcov(,)=, =corr(,)=.
-- =corr(,)= computes the linear correlation between two columns.
-- =cov(,)= and =pcov(,)= compute the covariance of two columns.
+=vsum()=, =vmean()=).
+Those aggregations are =vcov(,)=, =vpcov(,)=, =vcorr(,)=.
+- =vcorr(,)= computes the linear correlation between two columns.
+- =vcov(,)= and =vpcov(,)= compute the covariance of two columns.
 
 Example. We create a table where column =y= is a noisy version of
 column =x=:
@@ -510,8 +517,8 @@ column =x=:
 #+END_EXAMPLE
 
 #+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table noisydata :cols "bin corr(x,y) cov(x,y) pcov(x,y)"
-| bin   |      corr(x,y) |      cov(x,y) |     pcov(x,y) |
+#+BEGIN: aggregate :table noisydata :cols "bin vcorr(x,y) vcov(x,y) vpcov(x,y)"
+| bin   |     vcorr(x,y) |     vcov(x,y) |    vpcov(x,y) |
 |-------+----------------+---------------+---------------|
 | small | 0.999459736649 |        25.434 |       20.3472 |
 | large | 0.999542438688 | 46.4656666667 | 39.8277142857 |
@@ -544,8 +551,8 @@ Example. Here is a source table containing dates:
 #+END_EXAMPLE
 
 #+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table datetable :cols "min(Date) max(Date) mean(Date)"
-| min(Date)                  | max(Date)                  |    mean(Date) |
+#+BEGIN: aggregate :table datetable :cols "vmin(Date) vmax(Date) vmean(Date)"
+| vmin(Date)                 | vmax(Date)                 |   vmean(Date) |
 |----------------------------+----------------------------+---------------|
 | <2011-09-24 sat. 13:54:00> | <2014-02-26 wed. 16:11:00> | 735074.937066 |
 #+END:
@@ -560,14 +567,13 @@ replaced by =error(2, '"Expected a number")= which will appear in the
 aggregated table, signaling the problem.
 
 An input cell may be empty.  In this case, it may be ignored or
-converted to zero, depending on modifier flags =E= and =N=. This topic
-is currently experimental, and may change.
+converted to zero, depending on modifier flags =E= and =N=.
 
 The empty cells treatment
-- makes no difference for =sum= and =count=.
+- makes no difference for =vsum= and =count=.
 - may result in zero for =prod=,
-- change =mean= result,
-- change =min= and =max=, a possibly empty list of values resulting in
+- change =vmean= result,
+- change =vmin= and =vmax=, a possibly empty list of values resulting in
   =inf= or =-inf=
 
 Some aggregation functions operate on two columns.  If the two columns
@@ -586,10 +592,10 @@ aggregation.
 
 For instance:
 #+BEGIN_EXAMPLE
-(3)                      ;; a constant
-mean(2*X+1)              ;; aggregate a complex expression
-exp(mean(map(log,N)))    ;; the exponential average
-sum((X-mean(X))^2)       ;; X-mean(X) centers the sample on zero
+(3)                        ;; a constant
+vmean(2*X+1)               ;; aggregate a complex expression
+exp(vmean(map(log,N)))     ;; the exponential average
+vsum((X-vmean(X))^2)       ;; X-vmean(X) centers the sample on zero
 #+END_EXAMPLE
 
 Arguably, the first expression is useless, but legal.  The aggregation
@@ -610,9 +616,9 @@ An expression may optionally be followed by modifiers and formatter,
 after a semicolon.  Examples:
 
 #+BEGIN_EXAMPLE
-sum(X);p20    ;; increase Calc internal precision to 20 digits
-sum(X);f3     ;; output the result with 3 digits after the decimal dot
-sum(X);%.3f   ;; output the result with 3 digits after the decimal dot
+vsum(X);p20    ;; increase Calc internal precision to 20 digits
+vsum(X);f3     ;; output the result with 3 digits after the decimal dot
+vsum(X);%.3f   ;; output the result with 3 digits after the decimal dot
 #+END_EXAMPLE
 
 The modifiers and formatters are fully compatible with those of the
@@ -626,14 +632,14 @@ column =$4= which uses aggregated columns.  It is translated into a
 usual =#+TBLFM:= spreadsheet line.
 
 #+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table original :cols "Day mean(Level) sum(Quantity)" :formula "$4=$2*$3"
-| Day       | mean(Level) | sum(Quantity) |      |
-|-----------+-------------+---------------+------|
-| Monday    |        27.5 |            14 | 385. |
-| Thuesday  |          43 |            45 | 1935 |
-| Wednesday |          18 |            54 |  972 |
-| Turdsday  |          43 |            83 | 3569 |
-| Friday    |           8 |            22 |  176 |
+#+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)" :formula "$4=$2*$3"
+| Day       | vmean(Level) | vsum(Quantity) |      |
+|-----------+--------------+----------------+------|
+| Monday    |         27.5 |             14 | 385. |
+| Thuesday  |           43 |             45 | 1935 |
+| Wednesday |           18 |             54 |  972 |
+| Turdsday  |           43 |             83 | 3569 |
+| Friday    |            8 |             22 |  176 |
 #+TBLFM: $4=$2*$3
 #+END_EXAMPLE
 
@@ -642,9 +648,13 @@ Moreover, if a =#+TBLFM:= was already there, it survives aggregation re-computat
 This happens in /pull mode/ only.
 
 * Author, contributors
-- Thierry Banel, author
+
+Authors
+- Thierry Banel, first version, implementation
+- Michael Brand, =#+TBLFM= survival, empty input cells, formatters.
+
+Contributors
 - Eric Abrahamsen, non-ascii column names
-- Michael Brand, =#+TBLFM= survival, empty input cells, empty output.
 
 * Changes
 - Wizard now correctly ask for columns with =$1, $2...= names
@@ -653,10 +663,12 @@ This happens in /pull mode/ only.
 - Handle non-ascii column names
 - =:formula= parameter and =#+TBLFM= survival
 - Empty cells are ignored.
-- Empty output upon too small input set.
+- Empty output upon too small input set
 - Fix ordering of output values
 
 - Aggregations formulas may now be arbitrary expressions
 - Table headers (and the lack of) are better handled
 - Modifiers and formatters can now be specified
-- Aggregation function names can optionally have a leading "v", like sum & vsum
+- Aggregation function names can optionally have a leading "v", like =sum= & =vsum=
+- Increased performance on large data sets
+

@@ -432,19 +432,28 @@ been evaluated."
 	   expression))
     (if noeval
 	expression
-      (let ((calc-dollar-values
-	     (cdr (mapcar
-		   (cond (numbers
-			  (lambda (ls) (mapcar (lambda (x) (or x 0))        ls)))
-			 ((not keep-empty)
-			  (lambda (ls) (mapcan (lambda (x) (if x (list x))) ls)))
-			 (t #'identity))
-		   lists)))
+      (let ((calc-dollar-values (cdr (mapcar #'identity lists)))
 	    (calc-command-flags nil)
 	    (calc-next-why nil)
 	    (calc-language 'flat)
 	    (calc-dollar-used 0)
 	    (calc-date-format '(YYYY "-" MM "-" DD " " www (" " hh ":" mm))))
+	(setq
+	 calc-dollar-values
+	 (mapcar
+	  (lambda (ls)
+	    (if (memq nil ls)
+		(setq
+		 ls
+		 (if keep-empty
+		     (mapcar (lambda (x) (or x '(var nan var-nan))) ls)
+		   (mapcan (lambda (x) (if x (list x))) ls))))
+	    (if numbers
+		(cons (car ls)
+		      (mapcar (lambda (x) (if (math-numberp x) x 0))
+			      (cdr ls)))
+	      ls))
+	  calc-dollar-values))
 	(let ((ev
 	       (math-format-value
 		(math-simplify

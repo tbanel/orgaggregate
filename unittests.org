@@ -618,7 +618,7 @@ value with zero.
 * Test empty and non-numeric
 
 #+tblname: nonnumeric
-|  N |
+|  X |
 |----|
 |  1 |
 |  2 |
@@ -626,17 +626,31 @@ value with zero.
 |    |
 |  4 |
 
-#+BEGIN: aggregate :table "nonnumeric" :cols "hline (N) (N);E (N);N (N);EN"
-| hline | (N)           | (N);E               | (N);N            | (N);EN           |
-|-------+---------------+---------------------+------------------+------------------|
-|     0 | [1, 2, aa, 4] | [1, 2, aa, 'nil, 4] | [1, 2, aa, 0, 4] | [1, 2, aa, 0, 4] |
+#+BEGIN: aggregate :table "nonnumeric" :cols "(X) (X);E (X);N (X);EN"
+| (X)           | (X);E              | (X);N        | (X);EN          |
+|---------------+--------------------+--------------+-----------------|
+| [1, 2, aa, 4] | [1, 2, aa, nan, 4] | [1, 2, 0, 4] | [1, 2, 0, 0, 4] |
 #+END:
 
-#+BEGIN: aggregate :table "nonnumeric" :cols "mean(N) mean(N);E mean(N);N mean(N);EN"
-| mean(N)       | mean(N);E                  | mean(N);N    | mean(N);EN   |
-|---------------+----------------------------+--------------+--------------|
-| aa / 4 + 1.75 | vmean([1, 2, aa, 'nil, 4]) | aa / 5 + 1.4 | aa / 5 + 1.4 |
+#+BEGIN: aggregate :table "nonnumeric" :cols "mean(X) mean(X);E mean(X);N mean(X);EN"
+| mean(X)       | mean(X);E | mean(X);N | mean(X);EN |
+|---------------+-----------+-----------+------------|
+| aa / 4 + 1.75 |       nan |      1.75 |        1.4 |
 #+END:
+
+Comparison with the spreadsheet:
+
+| 1                  |                 1 |
+| 2                  |                 2 |
+| aa                 |                aa |
+|                    |                   |
+| 4                  |                 4 |
+|--------------------+-------------------|
+| [1, 2, aa, 4]      | 0.75 + aa / 4 + 1 |
+| [1, 2, aa, nan, 4] |               nan |
+| [1, 2, 0, 4]       |              1.75 |
+| [1, 2, 0, 0, 4]    |               1.4 |
+#+TBLFM: @6$1=@1..@5 :: @7$1=@1..@5;E :: @8$1=@1..@5;N :: @9$1=@1..@5;EN :: @6$2=vmean(@1..@5) :: @7$2=vmean(@1..@5);E :: @8$2=vmean(@1..@5);N :: @9$2=vmean(@1..@5);EN
 
 * Test input errors
 

@@ -302,19 +302,20 @@ of this group. Otherwise a new group is added at the end of GROUPS,
 containing this single ROW."
   (if (or (not aggcond)
 	  (eval aggcond)) ;; this eval need the variable 'row to have a value
-      (let ((found ()))
+      (let ((found))
 	(mapc (lambda (g)
-		(when (orgtbl-to-aggregated-table-compare-rows
-		       (car (-appendable-list-get g))
-		       row
-		       keycols)
+		(when (and (not found)
+			   (orgtbl-to-aggregated-table-compare-rows
+			    (car (-appendable-list-get g))
+			    row
+			    keycols))
 		  (-appendable-list-append g row)
 		  (setq found t)))
-	      (cdr groups))
+	      (-appendable-list-get groups))
 	(unless found
 	  (let ((g (-appendable-list-create)))
 	    (-appendable-list-append g row)
-	    (nconc groups (list g)))))))
+	    (-appendable-list-append groups g))))))
 
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
@@ -500,7 +501,7 @@ AGGCOND."
 	(setq aggcond (read aggcond)))
     (setq aggcond (orgtbl-to-aggregated-replace-colnames table aggcond)))
   ;; set to t by orgtbl-to-aggregated-table-colname-to-int
-  (let ((groups (list t))
+  (let ((groups (-appendable-list-create))
 	(keycols
 	 (mapcar
 	  (lambda (column)
@@ -530,7 +531,7 @@ AGGCOND."
 	  (mapcar
 	   (lambda (group)
 	     (orgtbl-to-aggregated-table-do-sums group aggcols origtable))
-	   (cdr groups)))
+	   (-appendable-list-get groups)))
     (cons aggcols (cons 'hline newtable))))
 
 ;; aggregation in Push mode

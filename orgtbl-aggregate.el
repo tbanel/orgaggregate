@@ -173,6 +173,24 @@ Returns nil if parameter is not a date."
   (and (string-match org-ts-regexp0 orgdate)
        (math-parse-date (replace-regexp-in-string " *[a-z]*[.] *" " " orgdate))))
 
+;; creating long lists in the right order may be done
+;; - by (nconc)  but behavior is quadratic
+;; - by (cons) (nreverse)
+;; a third way involves keeping track of the last cons of the growing list
+;; a cons at the head of the list is used for housekeeping
+;; the actual list is (cdr ls)
+
+(defsubst -appendable-list-create ()
+  (let ((x (cons nil nil)))
+    (setcar x x)
+    x))
+
+(defmacro -appendable-list-append (ls value)
+  `(setcar ,ls (setcdr (car ,ls) (cons ,value nil))))
+
+(defmacro -appendable-list-get (ls)
+  `(cdr ,ls))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The venerable Calc is used thoroughly by the Aggregate package.
 ;; A few bugs were found.
@@ -287,14 +305,16 @@ containing this single ROW."
       (let ((found ()))
 	(mapc (lambda (g)
 		(when (orgtbl-to-aggregated-table-compare-rows
-		       (car g)
+		       (car (-appendable-list-get g))
 		       row
 		       keycols)
-		  (nconc g (list row))
+		  (-appendable-list-append g row)
 		  (setq found t)))
 	      (cdr groups))
 	(unless found
-	  (nconc groups (list (list row)))))))
+	  (let ((g (-appendable-list-create)))
+	    (-appendable-list-append g row)
+	    (nconc groups (list g)))))))
 
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
@@ -317,8 +337,9 @@ containing this single ROW."
   "Replace VAR, which is a column name, with a $N expression.
 If VAR is already in the $N form, VAR is left unchanged.  Collect
 the cells at the crossing of the VAR column and the current GROUP
-of rows, and store it in LISTS.  Assumes that `table', `group'
-and `lists' are binded before calling this function."
+of rows, and store it in LISTS.
+Assume that `table', `group' and `lists' are binded before
+calling this function."
   (cond
    ;; aggregate functions with or without the leading "v"
    ;; sum(X) and vsum(X) are equivalent
@@ -340,7 +361,7 @@ and `lists' are binded before calling this function."
 			  (mapcar (lambda (row)
 				    (orgtbl-aggregate-read-calc-expr
 				     (nth i row)))
-				  group))))
+				  (-appendable-list-get group)))))
 	    (format "$%s" i))
 	var)))))
 
@@ -355,14 +376,14 @@ been evaluated."
       (mapcar
        (lambda (colspec)
 	 (if (string-match "^[[:word:]]+$" colspec)
-	     ;; a key column
+	     ;; just a bare word, it is a key column
 	     (nth (orgtbl-to-aggregated-table-colname-to-int colspec table)
-		  (car group))		; any row in group will do
-					; else it is a Calc aggregation expression
-	   (orgtbl-to-aggregated-table-do-one-sum colspec)))
+		  (car (-appendable-list-get group))) ; any row in group will do
+	   ; otherwise it is a Calc aggregation expression
+	   (orgtbl-to-aggregated-table-do-one-sum colspec group lists)))
        aggcols))))
 
-(defun orgtbl-to-aggregated-table-do-one-sum (formula)
+(defun orgtbl-to-aggregated-table-do-one-sum (formula group lists)
   (string-match "^\\([^;]*\\)\\(;\\(.*\\)\\)?$" formula)
   ;; within this (let), we locally set Calc settings that must be active
   ;; for the all the calls to Calc:
@@ -374,6 +395,7 @@ been evaluated."
 	(calc-angle-mode    calc-angle-mode   )
 	(calc-prefer-frac   calc-prefer-frac  )
 	(calc-symbolic-mode calc-symbolic-mode)
+	(duration-output-format)
 	(duration)
 	(numbers)
 	(literal)
@@ -428,7 +450,8 @@ been evaluated."
     (setq expression
 	  (replace-regexp-in-string
 	   "\\<count()"
-	   (lambda (var) (format "%s" (length group)))
+	   (lambda (var)
+	     (format "%s" (length (-appendable-list-get group))))
 	   expression))
     (if noeval
 	expression
@@ -477,7 +500,7 @@ AGGCOND."
 	(setq aggcond (read aggcond)))
     (setq aggcond (orgtbl-to-aggregated-replace-colnames table aggcond)))
   ;; set to t by orgtbl-to-aggregated-table-colname-to-int
-  (let ((groups (list t)) ;; a single group is (t row1 row2 row3 ...)
+  (let ((groups (list t))
 	(keycols
 	 (mapcar
 	  (lambda (column)

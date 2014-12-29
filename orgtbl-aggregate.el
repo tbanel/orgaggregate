@@ -347,7 +347,8 @@ calling this function."
    ((member
      var
      '("mean" "meane" "gmean" "hmean" "median" "sum" "min" "max"
-       "prod" "pvar" "sdev" "psdev" "corr" "cov" "pcov"))
+       "prod" "pvar" "sdev" "psdev" "corr" "cov" "pcov"
+       "count"))
     (format "v%s" var))
    ;; compatibility: list(X) will be obsoleted for (X)
    ((equal var "list")
@@ -450,7 +451,7 @@ been evaluated."
 	   expression))
     (setq expression
 	  (replace-regexp-in-string
-	   "\\<count()"
+	   "\\<v?count()"
 	   (lambda (var)
 	     (format "%s" (length (-appendable-list-get group))))
 	   expression))

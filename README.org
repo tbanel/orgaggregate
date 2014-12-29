@@ -164,13 +164,24 @@ type:
 * The :cols parameter
 
 The =:cols= parameter lists the columns of the resulting table. It
-contains in any order, grouping columns and aggregation formulas.
+contains in any order, grouping key columns and aggregation formulas.
 
 The names of the columns in the original table may be
 - the names as they appear in the header of the source table,
 - or $1, $2, $3 and so on (as in spreadsheet formulas),
 - additionaly, the special column =hline= is used to group
   parts of the source table separated by horizontal lines.
+
+The =:cols= parameter may be a string or a list of strings. Examples:
+#+BEGIN_EXAMPLE
+  :cols "Day vmean(Level);f3 vsum(Quantity);f2"
+  :cols ("Day" "vmean(Level);f3" "vsum(Quantity);f2")
+#+END_EXAMPLE
+
+If a single string is used, it is split by spaces. Thus, a given
+formula, including its semicolon and modifiers, must not contain any
+space. If spaces are required within a formula, then use the
+paranthesis list.
 
 * Grouping specifications in :cols
 
@@ -245,9 +256,12 @@ specified columns.
 We saw examples with =sum=, =mean=, =count= aggregations. There are
 many other aggregations. They are based on functions provided by Calc:
 
-- =count()=
+- =count()= or =vcount()=
   + in Calc: =`u #' (`calc-vector-count') [`vcount'])=
-  + gives the number of elements being aggregated
+  + gives the number of elements in the group being aggregated;
+    this function may or may not take a column parameter;
+    with a parameter, empty cells are not counted
+    (except with the =E= modifier)..
 
 - =sum= or =vsum=
   + in Calc: =`u +' (`calc-vector-sum') [`vsum']=
@@ -289,7 +303,7 @@ many other aggregations. They are based on functions provided by Calc:
   + in Calc: =`I u S' (`calc-vector-pop-sdev') [`vpsdev']=
   + computes the population standard deviation (divide by N instead of N-1)
 
-- =pvar= or =vpvar=
+- =pvar= or =vvar=
   + in Calc: =`H u S' (`calc-vector-variance') [`vvar']=
   + computes the variance of elements being aggregated
 
@@ -305,11 +319,12 @@ many other aggregations. They are based on functions provided by Calc:
   + in Calc: =`H u C' (`calc-vector-correlation') [`vcorr']=
   + computes the linear correlation coefficient of elements being aggregated in two columns
 
-- =prod=
+- =prod= or =vprod=
+  + in Calc: =`u *' (`calc-vector-product') [`vprod']=
   + computes the product of elements being aggregated
 
 - =list= or =(X)=
-  + gives the list of elements being aggregated, without processing
+  + gives the list of elements being aggregated, without aggregation
 
 The aggregation functions may be written with or without a leading
 =v=. =sum= and =vsum= are equivalent.  The =v= form should be
@@ -606,8 +621,8 @@ to an expression containing another aggregation.
 In an expression, if a variable has the name of a column, then it is
 replaced by a Calc vector containing values from this column.
 
-The special expression =(C)= (a column name withing parenthesis)
-yields a list of values from this column to be aggregated, except they
+The special expression =(C)= (a column name within parenthesis)
+yields a list of values to be aggregated from this column, except they
 are not aggregated. Note that parenthesis are required, otherwise, =C=
 would act as a key grouping column.
 
@@ -669,6 +684,6 @@ Contributors
 - Aggregations formulas may now be arbitrary expressions
 - Table headers (and the lack of) are better handled
 - Modifiers and formatters can now be specified
-- Aggregation function names can optionally have a leading "v", like =sum= & =vsum=
+- Aggregation function names can optionally have a leading =v=, like =sum= & =vsum=
 - Increased performance on large data sets
 

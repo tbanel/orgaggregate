@@ -501,6 +501,14 @@ And here is the aggregated, symbolic result:
 Symbolic calculations are correctly performed on =x= and =a=, which
 are symbolic (as opposed to numeric) expressions.
 
+Note that if there are empty cells in the input, they will be changed to
+=nan= /not a number/, and the whole aggregation will yield =nan=.  This is
+probably not the expected result.  The =N= modifier (see paragraph "modifiers
+and formatters") won't help, because even though it will replace empty cells
+with zero, it will do the same for anything which does not look like a
+number.  The best is to just avoid empty cells when dealing with symbolic
+calculations.
+
 * Correlation of two columns
 
 Some aggregations work on two columns (rather than one column for
@@ -639,7 +647,7 @@ vsum(X);%.3f   ;; output the result with 3 digits after the decimal dot
 The modifiers and formatters are fully compatible with those of the
 Org spreadsheet.
 
-* Additional columns
+* Spreadsheet formulas
 
 Additional columns can be specified for the resulting table.  With a
 previous example, adding a =:formula= parameter, we specify a new
@@ -656,11 +664,51 @@ usual =#+TBLFM:= spreadsheet line.
 | Turdsday  |           43 |             83 | 3569 |
 | Friday    |            8 |             22 |  176 |
 #+TBLFM: $4=$2*$3
+#+END:
 #+END_EXAMPLE
 
 Moreover, if a =#+TBLFM:= was already there, it survives aggregation re-computations.
 
 This happens in /pull mode/ only.
+
+This feature may be used to change the headers.  Usually, the aggregated
+table headers are the aggragation formulas.  To change that, enter a cell
+formula, which will end up in the =#+TBLFM:= tag.  Example:
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table original :cols "vsum(Quantity)" :formula "@1$1=SQuantity"
+| SQuantity |
+|-----------|
+|       218 |
+#+TBLFM: @1$1=SQuantity
+#+END:
+#+END_EXAMPLE
+
+* Chaining
+
+The result of an aggregation may become the source of further processing.  To
+do that, just add a =#+TBLNAME:= just above the aggragated table.  Here is an
+example of a double aggregation:
+
+#+BEGIN_EXAMPLE
+#+TBLNAME: squantity
+#+BEGIN: aggregate :table original :cols "Day vsum(Quantity)"
+| Day       | SQuantity |
+|-----------+-----------|
+| Monday    |        14 |
+| Thuesday  |        45 |
+| Wednesday |        54 |
+| Turdsday  |        83 |
+| Friday    |        22 |
+#+TBLFM: @1$2=SQuantity
+#+END:
+
+#+BEGIN: aggregate :table "squantity" :cols "vsum(SQuantity)"
+| vsum(SQuantity) |
+|-----------------|
+|             218 |
+#+END:
+#+END_EXAMPLE
 
 * Author, contributors
 

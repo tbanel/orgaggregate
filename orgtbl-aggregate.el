@@ -373,7 +373,7 @@ expression with Calc using values found in the rows of the GROUP.
 The result is a row identical to AGGCOLS, except expressions have
 been evaluated."
   ;; inactivating math-read-preprocess-string boosts performance
-  (cl-flet ((math-read-preprocess-string (x) x))
+  (letf (((symbol-function 'math-read-preprocess-string) #'identity))
     (let ((lists (make-vector (1+ (length (car table))) nil)))
       (mapcar
        (lambda (colspec)
@@ -509,11 +509,12 @@ AGGCOND."
 	    (orgtbl-to-aggregated-table-parse-spec column table))
 	  aggcols))
 	(b 0)
-	(origtable table)
+	(origtable)
 	(newtable))
     ;; remove headers
     (while (eq 'hline (car table))
       (setq table (cdr table)))
+    (setq origtable table)
     (if (memq 'hline table)
 	(setq table (cdr (memq 'hline table))))
     ; split table into groups of rows
@@ -765,10 +766,13 @@ If AGGCOND is nil, all source rows are taken"
              (lambda (column)
 	       (orgtbl-to-aggregated-table-colname-to-int column table t))
              cols)
-          (let ((n 0))
+          (let ((n 0)
+		(head table))
+	    (while (eq (car head) 'hline)
+	      (setq head (cdr head)))
             (mapcar
 	     (lambda (x) (setq n (1+ n)))
-	     (car table)))))
+	     (car head)))))
   (if aggcond
       (setq aggcond (orgtbl-to-aggregated-replace-colnames table aggcond)))
   (let ((result (mapcar (lambda (x) (list t)) cols))

@@ -90,8 +90,8 @@
       (save-restriction
 	(widen)
 	(goto-char (point-min))
-	(while (re-search-forward "^[ \t]*#\\+tblname:[ \t]*\\(.*\\)" nil t)
-	  (let ((text (match-string 1)))
+	(while (re-search-forward "^[ \t]*#\\+\\(tbl\\)?name:[ \t]*\\(.*\\)" nil t)
+	  (let ((text (match-string 2)))
 	    (set-text-properties 0 (length text) () text)
 	    (setq tables (cons text tables))))))
     tables))
@@ -109,7 +109,7 @@ An horizontal line is translated as the special symbol `hline'."
 	(save-excursion
 	  (goto-char (point-min))
 	  (if (re-search-forward
-	       (concat "^[ \t]*#\\+tblname:[ \t]*"
+	       (concat "^[ \t]*#\\+\\(tbl\\)?name:[ \t]*"
 		       (regexp-quote name-or-id)
 		       "[ \t]*$")
 	       nil t)

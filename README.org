@@ -22,7 +22,7 @@ A very simple example. We have a table of activities and quantities
 (whatever they are) over several days.
 
 #+BEGIN_EXAMPLE
-#+TBLNAME: original
+#+NAME: original
 | Day       | Color | Level | Quantity |
 |-----------+-------+-------+----------|
 | Monday    | Red   |    30 |       11 |
@@ -43,8 +43,8 @@ A very simple example. We have a table of activities and quantities
 
 We want to aggregate this table for each day (because several rows
 exist for each day). First we give a name to the table through the
-=#+TBLNAME:= tag, just above the table. Then we create a /dynamic
-block/ to receive the aggregation:
+=#+NAME:= or =#+TBLNAME:= tags, just above the table. Then we create a
+/dynamic block/ to receive the aggregation:
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
@@ -200,7 +200,7 @@ Here is a source table containing 3 blocks separated by horizontal
 lines:
 
 #+BEGIN_EXAMPLE
-#+TBLNAME: originalhl
+#+NAME: originalhl
 | Color | Level | Quantity |
 |-------+-------+----------|
 | Red   |    30 |       11 |
@@ -358,7 +358,7 @@ We have a source table which is unaware that it will be derived in an
 aggregated table:
 
 #+BEGIN_EXAMPLE
-#+TBLNAME: source1
+#+NAME: source1
 | Day       | Color | Level | Quantity |
 |-----------+-------+-------+----------|
 | Monday    | Red   |    30 |       11 |
@@ -465,7 +465,7 @@ Thus, symbolic computations are built-in. Example:
 This is the source table:
 
 #+BEGIN_EXAMPLE
-#+TBLNAME: symtable
+#+NAME: symtable
 | Day       | Color |  Level | Quantity |
 |-----------+-------+--------+----------|
 | Monday    | Red   |   30+x |     11+a |
@@ -686,12 +686,13 @@ formula, which will end up in the =#+TBLFM:= tag.  Example:
 
 * Chaining
 
-The result of an aggregation may become the source of further processing.  To
-do that, just add a =#+TBLNAME:= just above the aggragated table.  Here is an
-example of a double aggregation:
+The result of an aggregation may become the source of further
+processing.  To do that, just add a =#+NAME:= or =#+TBLNAME:= line
+just above the aggragated table.  Here is an example of a double
+aggregation:
 
 #+BEGIN_EXAMPLE
-#+TBLNAME: squantity
+#+NAME: squantity
 #+BEGIN: aggregate :table original :cols "Day vsum(Quantity)"
 | Day       | SQuantity |
 |-----------+-----------|

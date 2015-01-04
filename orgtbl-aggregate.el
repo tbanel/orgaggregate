@@ -1,7 +1,7 @@
 ;; -*- coding:utf-8;-*-
 ;;; orgtbl-aggregate.el --- Create an aggregated Org table from another one
 
-;; Copyright (C) 2013-2014  Thierry Banel
+;; Copyright (C) 2013, 2014, 2015  Thierry Banel
 
 ;; Authors:
 ;;   Thierry Banel tbanelwebmin at free dot fr

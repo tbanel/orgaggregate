@@ -1,4 +1,4 @@
-# -*- mode: org; -*-
+# -*- mode: org; coding:utf-8; -*-
 #+TITLE: Aggregate Values in a Table
 #+OPTIONS: ^:{} authors:Thierry Banel, Michael Brand toc:nil
 
@@ -8,7 +8,7 @@ averages, and so on, out of material from the frist table.
 This is the second version, with:
 - more flexibility for the formulas,
 - modifiers and formatters with the same meanings as in the spreadsheet,
-- increased performance on large datasets
+- increased performance on large datasets.
 
 * Examples
 A very simple example. We have a table of activities and quantities
@@ -704,11 +704,15 @@ aggregation:
 #+END:
 #+END_EXAMPLE
 
+Note the spreadsheet cell formula =@1$2=SQuantity=, which changes the
+column heading from it default =vsum(Quantity)= to =SQuantity=.  This
+new heading will survive any refresh the aggregations.
+
 * Author, contributors
 
 Authors
-- Thierry Banel, first version, implementation
-- Michael Brand, =#+TBLFM= survival, empty input cells, formatters.
+- Thierry Banel, first version, implementations.
+- Michael Brand, Calc unleached, =#+TBLFM= survival, empty input cells, formatters.
 
 Contributors
 - Eric Abrahamsen, non-ascii column names
@@ -722,12 +726,9 @@ Contributors
 - Empty cells are ignored.
 - Empty output upon too small input set
 - Fix ordering of output values
-
 - Aggregations formulas may now be arbitrary expressions
 - Table headers (and the lack of) are better handled
 - Modifiers and formatters can now be specified as in the spreadsheet
 - Aggregation function names can optionally have a leading =v=, like =sum= & =vsum=
 - Increased performance on large data sets
 - Tables can be named with =#+NAME:= besides =#+TBLNAME:=
-
-

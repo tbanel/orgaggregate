@@ -5,17 +5,10 @@
 Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the frist table.
 
-* Branch "calcunlsh" : work in progress
-We are working on a new version of the package.
-
-We are adding flexibility to aggregation expressions, by delegating
-more processing to Calc.
-
-We are also trying to make Aggregate seamless with the Spreadsheet by
-enabling expressions modifiers (=E= for empty cells, =N= for
-numerical, =%5.3f=, and so on).
-
-We are working on performance for large data sets.
+This is the second version, with:
+- more flexibility for the formulas,
+- modifiers and formatters with the same meanings as in the spreadsheet,
+- increased performance on large datasets
 
 * Examples
 A very simple example. We have a table of activities and quantities
@@ -732,7 +725,9 @@ Contributors
 
 - Aggregations formulas may now be arbitrary expressions
 - Table headers (and the lack of) are better handled
-- Modifiers and formatters can now be specified
+- Modifiers and formatters can now be specified as in the spreadsheet
 - Aggregation function names can optionally have a leading =v=, like =sum= & =vsum=
 - Increased performance on large data sets
+- Tables can be named with =#+NAME:= besides =#+TBLNAME:=
+
 

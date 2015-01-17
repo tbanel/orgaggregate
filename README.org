@@ -711,7 +711,7 @@ new heading will survive any refresh the aggregations.
 * Author, contributors
 
 Authors
-- Thierry Banel, first version, implementations.
+- Thierry Banel, tbanelwebmin at free dot fr, first version, implementations.
 - Michael Brand, Calc unleached, =#+TBLFM= survival, empty input cells, formatters.
 
 Contributors

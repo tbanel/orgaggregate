@@ -64,9 +64,10 @@ To get this result, we specified columns in this way, after the
 =:cols= parameter:
 
 - =Day= : we got the same column as in the source table, except
-  entries are not duplicated.  We may specify as many columns as we
-  want in this way. We get only one aggregated row for each different
-  combination of values of those columns.
+  entries are not duplicated.  Here =Day= acts as a /key grouping colum/.
+  We may specify as many key columns as we want just by naming them.
+  We get only one aggregated row for each different combination
+  of values of key grouping columns.
 
 - =vmean(Level)= : this instructs Org to compute the average of values
   found in the =Level= column, grouped by the same =Day=.
@@ -88,7 +89,7 @@ group by Day;
 * R equivalent
 
 If you are familiar with the R statistical package, you would get a
-similar result with =factors= and =aggregate= functions:
+similar result with =factor= and =aggregate= functions:
 
 #+begin_src R
 original <- the table as a data.frame
@@ -159,7 +160,7 @@ type:
 The =:cols= parameter lists the columns of the resulting table. It
 contains in any order, grouping key columns and aggregation formulas.
 
-The names of the columns in the original table may be
+The names of the columns in the original table may be:
 - the names as they appear in the header of the source table,
 - or $1, $2, $3 and so on (as in spreadsheet formulas),
 - additionaly, the special column =hline= is used to group
@@ -332,9 +333,9 @@ expression evaluates to nil, the row is discarded.
 
 Examples of useful expressions includes:
 - =:cond (equal Color "Red")=
-  + to keep only rows where Color is Red
+  + to keep only rows where =Color= is =Red=
 - =:cond (> (string-to-number Quantity) 19)=
-  + to keep only rows for which Quantity is more than 19
+  + to keep only rows for which =Quantity= is more than =19=
   + note the call to =string-to-number=; without this call, =Quantity= would be used as a string
 - =:cond (> (* (string-to-number Level) 2.5) (string-to-number Quantity))=
   + to keep only rows for which =2.5*Level > Quantity=
@@ -628,7 +629,7 @@ are not aggregated. Note that parenthesis are required, otherwise, =C=
 would act as a key grouping column.
 
 * Modifiers and formatters
-An expression may optionally be followed by modifiers and formatter,
+An expression may optionally be followed by modifiers and formatters,
 after a semicolon.  Examples:
 
 #+BEGIN_EXAMPLE
@@ -640,7 +641,7 @@ vsum(X);%.3f   ;; output the result with 3 digits after the decimal dot
 The modifiers and formatters are fully compatible with those of the
 Org spreadsheet.
 
-* Spreadsheet formulas
+* Post-aggregation spreadsheet formulas
 
 Additional columns can be specified for the resulting table.  With a
 previous example, adding a =:formula= parameter, we specify a new
@@ -706,7 +707,28 @@ aggregation:
 
 Note the spreadsheet cell formula =@1$2=SQuantity=, which changes the
 column heading from it default =vsum(Quantity)= to =SQuantity=.  This
-new heading will survive any refresh the aggregations.
+new heading will survive any refresh.
+
+* Installation
+
+Emacs package on Melpa: add the following lignes to your =.emacs= file, and reload it.
+
+#+BEGIN_EXAMPLE
+(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
+(package-initialize)
+#+END_EXAMPLE
+
+Then browse the list of available packages and install =orgtbl-aggregate=
+#+BEGIN_EXAMPLE
+M-x package-list-packages
+#+END_EXAMPLE
+
+Alternatively, you can download the lisp files, and load them:
+
+#+BEGIN_EXAMPLE
+(load-file "orgtbl-aggregate.el")
+(load-file "org-insert-dblock.el") ;; optional, extends C-c C-c i
+#+END_EXAMPLE
 
 * Author, contributors
 
@@ -732,3 +754,5 @@ Contributors
 - Aggregation function names can optionally have a leading =v=, like =sum= & =vsum=
 - Increased performance on large data sets
 - Tables can be named with =#+NAME:= besides =#+TBLNAME:=
+- Document Melpa installation
+

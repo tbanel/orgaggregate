@@ -9,7 +9,7 @@
 ;; Contributors:
 ;;   Eric Abrahamsen
 ;;   Alejandro Erickson alejandro dot erickson at gmail dot com
-;; Version: 0.3
+;; Version: 1.0
 ;; Keywords: org, table, aggregation, filtering
 
 ;; orgtbl-aggregate is free software: you can redistribute it and/or modify
@@ -134,21 +134,30 @@ An horizontal line is translated as the special symbol `hline'."
 	      (setq tbeg (point-at-bol))
 	      (org-table-to-lisp))))))))
 
-(defun orgtbl-get-header-distant-table (table)
-"Return the header of TABLE as a list.
-TABLE names a table in the same buffer.
-The function takes care of possibly missing headers,
-and in this case returns a list of $1, $2, $3... column names"
+(defun orgtbl-get-header-distant-table (table &optional asstring)
+  "Return the header of TABLE as a list, or as a string if
+ASSTRING is true. TABLE names a table in the same buffer.  The
+function takes care of possibly missing headers, and in this case
+returns a list of $1, $2, $3... column names.  Actual column
+names which are not fully alphanumeric are quoted."
   (setq table (orgtbl-get-distant-table table))
   (while (eq 'hline (car table))
     (setq table (cdr table)))
-  (if (memq 'hline table)
-      (car table)
-    (let ((i 0))
-      (mapcar (lambda (x)
-		(setq i (1+ i))
-		(format "$%s" i))
-	      (car table)))))
+  (let ((header
+	 (if (memq 'hline table)
+	     (mapcar (lambda (x)
+		       (if (string-match "^[[:word:]0-9_$]+$" x)
+			   x
+			 (format "\"%s\"" x)))
+		     (car table))
+	   (let ((i 0))
+	     (mapcar (lambda (x)
+		       (setq i (1+ i))
+		       (format "$%s" i))
+		     (car table))))))
+    (if asstring
+	(mapconcat #'identity header " ")
+      header)))
 
 (defun orgtbl-insert-elisp-table (table)
   "Insert TABLE, which is a lisp list of lists,
@@ -766,13 +775,15 @@ Note:
   (interactive)
   (let* ((table
 	  (org-icompleting-read "Table name: " (orgtbl-list-local-tables)))
-	 (header (orgtbl-get-header-distant-table table))
+	 (header (orgtbl-get-header-distant-table table t))
 	 (aggcols
-	  (read-string
-	   (format
-	    "columns %s: "
-	    header)
-	   nil 'orgtbl-aggregate-history-cols))
+	  (replace-regexp-in-string
+	   "\"" "'"
+	   (read-string
+	    (format
+	     "target columns (operating on %s): "
+	     header)
+	    nil 'orgtbl-aggregate-history-cols)))
 	 (aggcond
 	  (read-string
 	   (format
@@ -968,13 +979,15 @@ Note:
   (interactive)
   (let* ((table
 	  (org-icompleting-read "Table name: " (orgtbl-list-local-tables)))
-         (header (orgtbl-get-header-distant-table table))
+         (header (orgtbl-get-header-distant-table table t))
 	 (aggcols
-	  (read-string
-	   (format
-	    "columns (or empty for all) (source columns are %s): "
-	    header)
-	   nil 'orgtbl-aggregate-history-cols))
+	  (replace-regexp-in-string
+	   "\"" "'"
+	   (read-string
+	    (format
+	     "target columns (empty for all) (source columns are %s): "
+	     header)
+	    nil 'orgtbl-aggregate-history-cols)))
 	 (aggcond
 	  (read-string
 	   (format
@@ -983,7 +996,7 @@ Note:
 	   nil 'orgtbl-aggregate-history-cols))
 	 (params (list :name "transpose" :table table)))
     (unless (equal aggcols "")
-      (nconc params (list :cols (read (format "(%s)" aggcols)))))
+      (nconc params (list :cols aggcols)))
     (unless (equal aggcond "")
       (nconc params (list :cond (read aggcond))))
     (org-create-dblock params)

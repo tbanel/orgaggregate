@@ -4,7 +4,7 @@
 ;; Copyright (C) 2013, 2014, 2015, 2016  Thierry Banel
 
 ;; Author: Thierry Banel
-;; Version: 0.3
+;; Version: 1.0
 ;; Package-Requires: ((cl-lib "0.5"))
 ;; Keywords: org, table
 

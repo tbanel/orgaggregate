@@ -1,13 +1,15 @@
 ;; -*- coding:utf-8;-*-
 ;;; orgtbl-aggregate.el --- Create an aggregated Org table from another one
 
-;; Copyright (C) 2013, 2014, 2015  Thierry Banel
+;; Copyright (C) 2013, 2014, 2015, 2016  Thierry Banel
 
 ;; Authors:
 ;;   Thierry Banel tbanelwebmin at free dot fr
 ;;   Michael Brand michael dot ch dot brand at gmail dot com
-;; Contributors: Eric Abrahamsen
-;; Version: 0.2
+;; Contributors:
+;;   Eric Abrahamsen
+;;   Alejandro Erickson alejandro dot erickson at gmail dot com
+;; Version: 0.3
 ;; Keywords: org, table, aggregation, filtering
 
 ;; orgtbl-aggregate is free software: you can redistribute it and/or modify
@@ -38,15 +40,15 @@
 ;; |-----------+-------+-------+----------|
 ;; | Monday    | Red   |    30 |       11 |
 ;; | Monday    | Blue  |    25 |        3 |
-;; | Thuesday  | Red   |    51 |       12 |
-;; | Thuesday  | Red   |    45 |       15 |
-;; | Thuesday  | Blue  |    33 |       18 |
+;; | Tuesday   | Red   |    51 |       12 |
+;; | Tuesday   | Red   |    45 |       15 |
+;; | Tuesday   | Blue  |    33 |       18 |
 ;; | Wednesday | Red   |    27 |       23 |
 ;; | Wednesday | Blue  |    12 |       16 |
 ;; | Wednesday | Blue  |    15 |       15 |
-;; | Turdsday  | Red   |    39 |       24 |
-;; | Turdsday  | Red   |    41 |       29 |
-;; | Turdsday  | Red   |    49 |       30 |
+;; | Thursday  | Red   |    39 |       24 |
+;; | Thursday  | Red   |    41 |       29 |
+;; | Thursday  | Red   |    49 |       30 |
 ;; | Friday    | Blue  |     7 |        5 |
 ;; | Friday    | Blue  |     6 |        8 |
 ;; | Friday    | Blue  |    11 |        9 |
@@ -58,9 +60,9 @@
 ;; | Day       | mean(Level) | sum(Quantity) |
 ;; |-----------+-------------+---------------|
 ;; | Monday    |        27.5 |            14 |
-;; | Thuesday  |          43 |            45 |
+;; | Tuesday   |          43 |            45 |
 ;; | Wednesday |          18 |            54 |
-;; | Turdsday  |          43 |            83 |
+;; | Thursday  |          43 |            83 |
 ;; | Friday    |           8 |            22 |
 ;; #+END
 ;;
@@ -243,6 +245,9 @@ otherwise nil is returned."
 		 (user-error "Column %s outside table" colname)
 	       nil))))
 	(t
+	 (if (or (string-match "^'\\(.*\\)'$" colname)
+		 (string-match "^\"\\(.*\\)\"$" colname))
+	     (setq colname (match-string 1 colname)))
 	 (let ((i 0)
 	       (j ()))
 	   (mapc (lambda (h)
@@ -278,7 +283,9 @@ so, the EXPRESSION is ready to be computed against a table row."
   "Replace COLUMN name, which is a key-column, with a number
 starting from 1, or 0 for the special 'hline column.  If COLUMN
 is a Calc expression, nil is returned."
-  (and (string-match "^\\([[:word:]0-9_$]+\\)$" column)
+  (and (or (string-match "^\\([[:word:]0-9_$]+\\)$" column)
+	   (string-match "^'\\(.*\\)'$" column)
+	   (string-match "^\"\\(.*\\)\"$" column))
        (orgtbl-to-aggregated-table-colname-to-int
 	(match-string 1 column)
 	table
@@ -339,7 +346,7 @@ containing this single ROW."
 If VAR is already in the $N form, VAR is left unchanged.  Collect
 the cells at the crossing of the VAR column and the current GROUP
 of rows, and store it in LISTS.
-Assume that `table', `group' and `lists' are binded before
+Assume that `table', `group' and `lists' are bounded before
 calling this function."
   (cond
    ;; aggregate functions with or without the leading "v"
@@ -356,7 +363,7 @@ calling this function."
    (t ;; replace VAR if it is a column name
     (let ((i (orgtbl-to-aggregated-table-colname-to-int var table)))
       (if i
-	  (save-match-data ;; save because we are called within a regexp-replace
+	  (save-match-data ;; save because we are called within a replace-regexp
 	    (unless (aref lists i)
 	      (aset lists i
 		    (cons 'vec
@@ -368,7 +375,7 @@ calling this function."
 	var)))))
 
 (defun orgtbl-to-aggregated-table-do-sums (group aggcols table)
-  "Iterate over the expressions in aggcols, evaluating each
+  "Iterate over the expressions in AGGCOLS, evaluating each
 expression with Calc using values found in the rows of the GROUP.
 The result is a row identical to AGGCOLS, except expressions have
 been evaluated."
@@ -377,9 +384,13 @@ been evaluated."
     (let ((lists (make-vector (1+ (length (car table))) nil)))
       (mapcar
        (lambda (colspec)
-	 (if (string-match "^[[:word:]]+$" colspec)
+	 (if (or (string-match "^\\([[:word:]0-9_$]+\\)$" colspec)
+		 (string-match "^'\\(.*\\)'$" colspec)
+		 (string-match "^\"\\(.*\\)\"$" colspec))
 	     ;; just a bare word, it is a key column
-	     (nth (orgtbl-to-aggregated-table-colname-to-int colspec table)
+	     (nth (orgtbl-to-aggregated-table-colname-to-int
+		   (match-string 1 colspec)
+		   table)
 		  (car (-appendable-list-get group))) ; any row in group will do
 	   ; otherwise it is a Calc aggregation expression
 	   (orgtbl-to-aggregated-table-do-one-sum colspec group lists)))
@@ -446,7 +457,8 @@ been evaluated."
 	(setq fmt nil)))
     (setq expression
 	  (replace-regexp-in-string
-	   "\\<[[:word:]]+\\>"
+	   "\\('[^']*'\\)\\|\\(\\<[[:word:]]+\\>\\)"
+	   ;;"\\(\\<[[:word:]]+\\>\\)"
 	   'orgtbl-to-aggregated-table-collect-list
 	   expression))
     (setq expression
@@ -490,13 +502,35 @@ been evaluated."
 	      (format fmt (string-to-number ev))
 	    ev))))))
 
+(defun split-string-with-quotes (string)
+  "Like `split-string', but also allows single or double quotes
+to protect space characters, and also single quotes to protect
+double quotes and the other way around"
+  (let ((l (length string))
+	(start 0)
+	(result (-appendable-list-create))
+	)
+    (save-match-data
+      (string-match "[ \f\t\n\r\v]*" string 0)
+      (setq start (match-end 0))
+      (while (and (< start l)
+		  (string-match
+		   "[^ '\"]*\\(\\(\\('[^']*'\\)\\|\\(\"[^\"]*\"\\)\\)[^ '\"]*\\)*"
+		   string start))
+	(-appendable-list-append result (match-string 0 string))
+	(setq start (match-end 0))
+	(string-match "[ \f\t\n\r\v]+" string start)
+	(setq start (match-end 0))
+	))
+    (cdr result)))
+
 (defun orgtbl-create-table-aggregated (table aggcols aggcond)
   "Convert the source TABLE, which is a list of lists of cells,
 into an aggregated table compliant with the AGGCOLS columns
 specifications, ignoring source rows which do not pass the
 AGGCOND."
   (if (stringp aggcols)
-      (setq aggcols (split-string aggcols)))
+      (setq aggcols (split-string-with-quotes aggcols)))
   (when aggcond
     (if (stringp aggcond)
 	(setq aggcond (read aggcond)))
@@ -760,6 +794,8 @@ into a transposed table compliant with the COLS source columns list,
 ignoring source rows which do not pass the AGGCOND.
 If COLS is nil, all source columns are taken.
 If AGGCOND is nil, all source rows are taken"
+  (if (stringp cols)
+      (setq cols (split-string-with-quotes cols)))
   (setq cols
         (if cols
             (mapcar

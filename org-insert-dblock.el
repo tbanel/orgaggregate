@@ -1,10 +1,10 @@
 ;; -*- coding:utf-8;-*-
 ;;; org-inset-dblock.el --- Wizzard to insert a dynamic block
 
-;; Copyright (C) 2013, 2014, 2015  Thierry Banel
+;; Copyright (C) 2013, 2014, 2015, 2016  Thierry Banel
 
 ;; Author: Thierry Banel
-;; Version: 0.2
+;; Version: 0.3
 ;; Package-Requires: ((cl-lib "0.5"))
 ;; Keywords: org, table
 

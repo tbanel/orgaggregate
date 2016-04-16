@@ -1,6 +1,6 @@
 # -*- coding:utf-8; -*-
 #+TITLE: Unit Tests & Examples for Orgtbl Aggregate
-Copyright (C) 2013, 2014, 2015  Thierry Banel
+Copyright (C) 2013, 2014, 2015, 2016  Thierry Banel
 
 org-aggregate is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -119,9 +119,9 @@ No need to name it.
 #+BEGIN RECEIVE ORGTBL aggtable8
 | hline | min(d)                  | max(d)                  |                     mean(d) |
 |-------+-------------------------+-------------------------+-----------------------------|
-|     0 | <2011-09-24 sam. 13:54> | <2014-02-26 mer. 16:11> | <14089-07-17 sun 11:55> / 7 |
-|     1 | <2012-12-25 mar. 00:00> | <2015-09-14 lun. 13:07> |               735355.373438 |
-|     2 | <2015-10-02 ven. 17:42> | <2016-01-28 jeu. 15:06> |               735933.683334 |
+|     0 | <2011-09-24 sam. 13:54> | <2014-02-26 mer. 16:11> | <14089-07-11 mon 11:55> / 7 |
+|     1 | <2012-12-25 mar. 00:00> | <2015-09-14 lun. 13:07> |               735354.373438 |
+|     2 | <2015-10-02 ven. 17:42> | <2016-01-28 jeu. 15:06> |               735932.683334 |
 #+END RECEIVE ORGTBL aggtable8
 
 #+BEGIN RECEIVE ORGTBL aggtable9
@@ -425,7 +425,7 @@ Some (limited) handling of dates is available.
 #+BEGIN: aggregate :table datetable :cols "min(d) max(d) min(n) max(n) mean(d)"
 | min(d)                 | max(d)                 | min(n) | max(n) |       mean(d) |
 |------------------------+------------------------+--------+--------+---------------|
-| <2011-09-24 sat 13:54> | <2014-02-26 wed 16:11> |      1 |      8 | 735074.937066 |
+| <2011-09-24 sat 13:54> | <2014-02-26 wed 16:11> |      1 |      8 | 735073.937066 |
 #+END
 
 * Test symbolic
@@ -654,9 +654,9 @@ Comparison with the spreadsheet:
 #+BEGIN: aggregate :table "inputerrors" :cols "A sum(Q) sum(R)"
 | A | sum(Q)                             | sum(R)                               |
 |---+------------------------------------+--------------------------------------|
-| a | 3 + error(2, '"Expected a number") | 30                                   |
+| a | error(2, '"Expected a number") + 3 | 30                                   |
 | b | t + 3                              | error(4, '"Expected a number") + 152 |
-| c | 8 + error(2, '"Expected a number") | error(2, '"Syntax error") + 4        |
+| c | error(2, '"Expected a number") + 8 | error(2, '"Syntax error") + 4        |
 #+END:
 
 #+BEGIN: aggregate :table "inputerrors" :cols "A (Q) (R)"
@@ -759,3 +759,46 @@ Result of an aggregation can be further processed, for example with another aggr
 
 The double transposition is identical to the original "amx" table,
 including horizontal lines
+* Test funny column names
+Name of columns are not unnecessarily alphanumeric words.
+They need to be single or double quoted in formulas.
+In a :cond lisp formula, only double quotes work.
+
+** Source table
+
+#+NAME: funnynames
+| first column | observed.number | computed/expected |
+|--------------+-----------------+-------------------|
+| a/experiment |             2.3 |               2.4 |
+| a/experiment |            15.4 |              12.1 |
+| a/experiment |             8.2 |               6.9 |
+| b/test       |           -98.7 |               0.0 |
+| b/test       |             4.5 |               3.4 |
+| b/test       |             2.2 |               2.9 |
+| zero         |               0 |                 0 |
+
+#+BEGIN: aggregate :table "funnynames" :cols "\"first column\" mean('observed.number');%.3f mean('computed/expected');%.4f" :cond (and (>= (string-to-number "observed.number") 0) (not (equal "first column" "zero")))
+| "first column" | mean('observed.number');%.3f | mean('computed/expected');%.4f |
+|----------------+------------------------------+--------------------------------|
+| a/experiment   |                        8.633 |                         7.1333 |
+| b/test         |                        3.350 |                         3.1500 |
+#+END:
+
+#+BEGIN: aggregate :table "funnynames" :cols ("'first column'" "mean('observed.number');%.3f" "mean('computed/expected');%.4f") :cond "(and (>= (string-to-number \"observed.number\") 0) (not (equal \"first column\" \"zero\")))" 
+| 'first column' | mean('observed.number');%.3f | mean('computed/expected');%.4f |
+|----------------+------------------------------+--------------------------------|
+| a/experiment   |                        8.633 |                         7.1333 |
+| b/test         |                        3.350 |                         3.1500 |
+#+END:
+
+#+BEGIN: transpose :table "funnynames" :cols ("first column" "computed/expected" "observed.number")
+| first column      |   | a/experiment | a/experiment | a/experiment | b/test | b/test | b/test | zero |
+| computed/expected |   |          2.4 |         12.1 |          6.9 |    0.0 |    3.4 |    2.9 |    0 |
+| observed.number   |   |          2.3 |         15.4 |          8.2 |  -98.7 |    4.5 |    2.2 |    0 |
+#+END:
+
+#+BEGIN: transpose :table "funnynames" :cols "'first column' 'computed/expected' 'observed.number'"
+| first column      |   | a/experiment | a/experiment | a/experiment | b/test | b/test | b/test | zero |
+| computed/expected |   |          2.4 |         12.1 |          6.9 |    0.0 |    3.4 |    2.9 |    0 |
+| observed.number   |   |          2.3 |         15.4 |          8.2 |  -98.7 |    4.5 |    2.2 |    0 |
+#+END:

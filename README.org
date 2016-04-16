@@ -5,10 +5,8 @@
 Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the frist table.
 
-This is the second version, with:
-- more flexibility for the formulas,
-- modifiers and formatters with the same meanings as in the spreadsheet,
-- increased performance on large datasets.
+This is the third version, allowing non necessarilly alphanumeric
+column names (they must be quoted).
 
 * Examples
 A very simple example. We have a table of activities and quantities
@@ -20,15 +18,15 @@ A very simple example. We have a table of activities and quantities
 |-----------+-------+-------+----------|
 | Monday    | Red   |    30 |       11 |
 | Monday    | Blue  |    25 |        3 |
-| Thuesday  | Red   |    51 |       12 |
-| Thuesday  | Red   |    45 |       15 |
-| Thuesday  | Blue  |    33 |       18 |
+| Tuesday   | Red   |    51 |       12 |
+| Tuesday   | Red   |    45 |       15 |
+| Tuesday   | Blue  |    33 |       18 |
 | Wednesday | Red   |    27 |       23 |
 | Wednesday | Blue  |    12 |       16 |
 | Wednesday | Blue  |    15 |       15 |
-| Turdsday  | Red   |    39 |       24 |
-| Turdsday  | Red   |    41 |       29 |
-| Turdsday  | Red   |    49 |       30 |
+| Thursday  | Red   |    39 |       24 |
+| Thursday  | Red   |    41 |       29 |
+| Thursday  | Red   |    49 |       30 |
 | Friday    | Blue  |     7 |        5 |
 | Friday    | Blue  |     6 |        8 |
 | Friday    | Blue  |    11 |        9 |
@@ -64,7 +62,7 @@ To get this result, we specified columns in this way, after the
 =:cols= parameter:
 
 - =Day= : we got the same column as in the source table, except
-  entries are not duplicated.  Here =Day= acts as a /key grouping colum/.
+  entries are not duplicated.  Here =Day= acts as a /key grouping column/.
   We may specify as many key columns as we want just by naming them.
   We get only one aggregated row for each different combination
   of values of key grouping columns.
@@ -134,11 +132,11 @@ Or we may want to count the number of rows for each combination of
 |---------+-----------+-------|
 |       1 | Monday    | Red   |
 |       1 | Monday    | Blue  |
-|       2 | Thuesday  | Red   |
-|       1 | Thuesday  | Blue  |
+|       2 | Tuesday   | Red   |
+|       1 | Tuesday   | Blue  |
 |       1 | Wednesday | Red   |
 |       2 | Wednesday | Blue  |
-|       3 | Turdsday  | Red   |
+|       3 | Thursday  | Red   |
 |       3 | Friday    | Blue  |
 #+END
 #+END_EXAMPLE
@@ -297,9 +295,13 @@ many other aggregations. They are based on functions provided by Calc:
   + in Calc: =`I u S' (`calc-vector-pop-sdev') [`vpsdev']=
   + computes the population standard deviation (divide by N instead of N-1)
 
-- =pvar= or =vvar=
+- =var= or =vvar=
   + in Calc: =`H u S' (`calc-vector-variance') [`vvar']=
   + computes the variance of elements being aggregated
+
+- =pvar= or =vpvar=
+  + in Calc: =`H u S' (`calc-vector-variance') [`vpvar']=
+  + computes the population variance of elements being aggregated
 
 - =pcov= or =vpcov=
   + in Calc: =`I u C' (`calc-vector-pop-covariance') [`vpcov']=
@@ -575,6 +577,19 @@ Example. Here is a source table containing dates:
 #+END:
 #+END_EXAMPLE
 
+* Arbitrary column names
+Column names are not necessarilly alphanumeric words. They can contain
+any characters, including spaces, quotes, +, -, whatever.
+
+Those names need to be protected with quotes (single or double quotes)
+within formulas.
+
+Examples:
+- =:cols "mean('estimated value')"=
+- =:cond (equal "true color" "Red")=
+
+Note that in =:cond= lisp expression, only double quotes work.
+
 * Empty and malformed input cells
 
 The input table may contain malformed mathematical text.  For
@@ -734,7 +749,7 @@ Alternatively, you can download the lisp files, and load them:
 
 Authors
 - Thierry Banel, tbanelwebmin at free dot fr, first version, implementations.
-- Michael Brand, Calc unleached, =#+TBLFM= survival, empty input cells, formatters.
+- Michael Brand, Calc unleashed, =#+TBLFM= survival, empty input cells, formatters.
 
 Contributors
 - Eric Abrahamsen, non-ascii column names

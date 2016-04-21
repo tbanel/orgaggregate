@@ -3,9 +3,9 @@
 #+OPTIONS: ^:{} authors:Thierry Banel, Michael Brand toc:nil
 
 Aggregating a table is creating a new table by computing sums,
-averages, and so on, out of material from the frist table.
+averages, and so on, out of material from the first table.
 
-This is the third version, allowing non necessarilly alphanumeric
+This is the third version, allowing non necessarily alphanumeric
 column names (they must be quoted).
 
 * Examples
@@ -49,9 +49,9 @@ Now typing =C-c C-c= in the dynamic block computes the aggregation:
 | Day       | mean(Level) | sum(Quantity) |
 |-----------+-------------+---------------|
 | Monday    |        27.5 |            14 |
-| Thuesday  |          43 |            45 |
+| Tuesday   |          43 |            45 |
 | Wednesday |          18 |            54 |
-| Turdsday  |          43 |            83 |
+| Thursday  |          43 |            83 |
 | Friday    |           8 |            22 |
 #+END
 #+END_EXAMPLE
@@ -141,7 +141,7 @@ Or we may want to count the number of rows for each combination of
 #+END
 #+END_EXAMPLE
 
-If we want to get measurments for =Colors= rather than =Days=, we
+If we want to get measurements for =Colors= rather than =Days=, we
 type:
 
 #+BEGIN_EXAMPLE
@@ -161,7 +161,7 @@ contains in any order, grouping key columns and aggregation formulas.
 The names of the columns in the original table may be:
 - the names as they appear in the header of the source table,
 - or $1, $2, $3 and so on (as in spreadsheet formulas),
-- additionaly, the special column =hline= is used to group
+- additionally, the special column =hline= is used to group
   parts of the source table separated by horizontal lines.
 
 The =:cols= parameter may be a string or a list of strings. Examples:
@@ -173,7 +173,7 @@ The =:cols= parameter may be a string or a list of strings. Examples:
 If a single string is used, it is split by spaces. Thus, a given
 formula, including its semicolon and modifiers, must not contain any
 space. If spaces are required within a formula, then use the
-paranthesis list. If a column name has spaces, quote it like this:
+parenthesis list. If a column name has spaces, quote it like this:
 ='yellow submarine'=.
 
 * Grouping specifications in :cols
@@ -226,7 +226,7 @@ And here is the aggregation by those 3 blocks:
 #+END:
 #+END_EXAMPLE
 
-If we want additionnal details with the =Color= column, we just name it:
+If we want additional details with the =Color= column, we just name it:
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table originalhl :cols "hline Color vmean(Level) vsum(Quantity)"
@@ -325,7 +325,7 @@ many other aggregations. They are based on functions provided by Calc:
 
 The aggregation functions may be written with or without a leading
 =v=. =sum= and =vsum= are equivalent.  The =v= form should be
-prefered, as it is the one used in the Org table spreadsheet, and in
+preferred, as it is the one used in the Org table spreadsheet, and in
 Calc.  The non-v names may be dropped in the future.
 
 * The :cond filtering
@@ -360,15 +360,15 @@ aggregated table:
 |-----------+-------+-------+----------|
 | Monday    | Red   |    30 |       11 |
 | Monday    | Blue  |    25 |        3 |
-| Thuesday  | Red   |    51 |       12 |
-| Thuesday  | Red   |    45 |       15 |
-| Thuesday  | Blue  |    33 |       18 |
+| Tuesday   | Red   |    51 |       12 |
+| Tuesday   | Red   |    45 |       15 |
+| Tuesday   | Blue  |    33 |       18 |
 | Wednesday | Red   |    27 |       23 |
 | Wednesday | Blue  |    12 |       16 |
 | Wednesday | Blue  |    15 |       15 |
-| Turdsday  | Red   |    39 |       24 |
-| Turdsday  | Red   |    41 |       29 |
-| Turdsday  | Red   |    49 |       30 |
+| Thursday  | Red   |    39 |       24 |
+| Thursday  | Red   |    41 |       29 |
+| Thursday  | Red   |    49 |       30 |
 | Friday    | Blue  |     7 |        5 |
 | Friday    | Blue  |     6 |        8 |
 | Friday    | Blue  |    11 |        9 |
@@ -382,9 +382,9 @@ specification of the aggregation:
 | Day       | vmean(Level) | vsum(Quantity) |
 |-----------+--------------+----------------|
 | Monday    |         27.5 |             14 |
-| Thuesday  |           43 |             45 |
+| Tuesday   |           43 |             45 |
 | Wednesday |           18 |             54 |
-| Turdsday  |           43 |             83 |
+| Thursday  |           43 |             83 |
 | Friday    |            8 |             22 |
 #+END
 #+END_EXAMPLE
@@ -402,15 +402,15 @@ tables. We specify the wanted results in =#+ORGTBL: SEND= directives
 |-----------+-------+-------+----------|
 | Monday    | Red   |    30 |       11 |
 | Monday    | Blue  |    25 |        3 |
-| Thuesday  | Red   |    51 |       12 |
-| Thuesday  | Red   |    45 |       15 |
-| Thuesday  | Blue  |    33 |       18 |
+| Tuesday   | Red   |    51 |       12 |
+| Tuesday   | Red   |    45 |       15 |
+| Tuesday   | Blue  |    33 |       18 |
 | Wednesday | Red   |    27 |       23 |
 | Wednesday | Blue  |    12 |       16 |
 | Wednesday | Blue  |    15 |       15 |
-| Turdsday  | Red   |    39 |       24 |
-| Turdsday  | Red   |    41 |       29 |
-| Turdsday  | Red   |    49 |       30 |
+| Thursday  | Red   |    39 |       24 |
+| Thursday  | Red   |    41 |       29 |
+| Thursday  | Red   |    49 |       30 |
 | Friday    | Blue  |     7 |        5 |
 | Friday    | Blue  |     6 |        8 |
 | Friday    | Blue  |    11 |        9 |
@@ -444,9 +444,9 @@ cursor on the 1st pipe of the table, to refresh the derived tables:
 | Day       | vmean(Level) | vsum(Quantity) |
 |-----------+--------------+----------------|
 | Monday    |         27.5 |             14 |
-| Thuesday  |           43 |             45 |
+| Tuesday   |           43 |             45 |
 | Wednesday |           18 |             54 |
-| Turdsday  |           43 |             83 |
+| Thursday  |           43 |             83 |
 | Friday    |            8 |             22 |
 #+END RECEIVE ORGTBL derived2
 #+END_EXAMPLE
@@ -467,15 +467,15 @@ This is the source table:
 |-----------+-------+--------+----------|
 | Monday    | Red   |   30+x |     11+a |
 | Monday    | Blue  | 25+3*x |        3 |
-| Thuesday  | Red   | 51+2*x |       12 |
-| Thuesday  | Red   |   45-x |       15 |
-| Thuesday  | Blue  |     33 |       18 |
+| Tuesday   | Red   | 51+2*x |       12 |
+| Tuesday   | Red   |   45-x |       15 |
+| Tuesday   | Blue  |     33 |       18 |
 | Wednesday | Red   |     27 |       23 |
 | Wednesday | Blue  |   12+x |       16 |
 | Wednesday | Blue  |     15 |   15-6*a |
-| Turdsday  | Red   |     39 |   24-5*a |
-| Turdsday  | Red   |     41 |       29 |
-| Turdsday  | Red   |   49+x |   30+9*a |
+| Thursday  | Red   |     39 |   24-5*a |
+| Thursday  | Red   |     41 |       29 |
+| Thursday  | Red   |   49+x |   30+9*a |
 | Friday    | Blue  |      7 |      5+a |
 | Friday    | Blue  |      6 |        8 |
 | Friday    | Blue  |     11 |        9 |
@@ -488,9 +488,9 @@ And here is the aggregated, symbolic result:
 | Day       | vmean(Level)          | vsum(Quantity) |
 |-----------+-----------------------+----------------|
 | Monday    | 2. x + 27.5           | a + 14         |
-| Thuesday  | 0.333333333334 x + 43 | 45             |
+| Tuesday   | 0.333333333334 x + 43 | 45             |
 | Wednesday | x / 3 + 18            | 54 - 6 a       |
-| Turdsday  | x / 3 + 43.           | 4 a + 83       |
+| Thursday  | x / 3 + 43.           | 4 a + 83       |
 | Friday    | 8                     | a + 22         |
 #+END
 #+END_EXAMPLE
@@ -613,7 +613,7 @@ The empty cells treatment
 
 Some aggregation functions operate on two columns.  If the two columns
 have empty values at different locations, then they should be
-interpreted as zero with the =NE= modifier, othervise the result will
+interpreted as zero with the =NE= modifier, otherwise the result will
 be inconsistent.
 
 * (Almost) any expression can be specified
@@ -635,7 +635,7 @@ vsum((X-vmean(X))^2)       ;; X-vmean(X) centers the sample on zero
 
 Arguably, the first expression is useless, but legal.  The aggregation
 can apply to a computed list of values.  The result of an aggregation
-can be further processed in a formula.  An aggreagation can even apply
+can be further processed in a formula.  An aggregation can even apply
 to an expression containing another aggregation.
 
 In an expression, if a variable has the name of a column, then it is
@@ -671,9 +671,9 @@ usual =#+TBLFM:= spreadsheet line.
 | Day       | vmean(Level) | vsum(Quantity) |      |
 |-----------+--------------+----------------+------|
 | Monday    |         27.5 |             14 | 385. |
-| Thuesday  |           43 |             45 | 1935 |
+| Tuesday   |           43 |             45 | 1935 |
 | Wednesday |           18 |             54 |  972 |
-| Turdsday  |           43 |             83 | 3569 |
+| Thursday  |           43 |             83 | 3569 |
 | Friday    |            8 |             22 |  176 |
 #+TBLFM: $4=$2*$3
 #+END:
@@ -684,7 +684,7 @@ Moreover, if a =#+TBLFM:= was already there, it survives aggregation re-computat
 This happens in /pull mode/ only.
 
 This feature may be used to change the headers.  Usually, the aggregated
-table headers are the aggragation formulas.  To change that, enter a cell
+table headers are the aggregation formulas.  To change that, enter a cell
 formula, which will end up in the =#+TBLFM:= tag.  Example:
 
 #+BEGIN_EXAMPLE
@@ -700,7 +700,7 @@ formula, which will end up in the =#+TBLFM:= tag.  Example:
 
 The result of an aggregation may become the source of further
 processing.  To do that, just add a =#+NAME:= or =#+TBLNAME:= line
-just above the aggragated table.  Here is an example of a double
+just above the aggregated table.  Here is an example of a double
 aggregation:
 
 #+BEGIN_EXAMPLE
@@ -709,9 +709,9 @@ aggregation:
 | Day       | SQuantity |
 |-----------+-----------|
 | Monday    |        14 |
-| Thuesday  |        45 |
+| Tuesday   |        45 |
 | Wednesday |        54 |
-| Turdsday  |        83 |
+| Thursday  |        83 |
 | Friday    |        22 |
 #+TBLFM: @1$2=SQuantity
 #+END:
@@ -729,7 +729,7 @@ new heading will survive any refresh.
 
 * Installation
 
-Emacs package on Melpa: add the following lignes to your =.emacs= file, and reload it.
+Emacs package on Melpa: add the following lines to your =.emacs= file, and reload it.
 
 #+BEGIN_EXAMPLE
 (add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
@@ -761,7 +761,7 @@ Contributors
 * Changes
 - Wizard now correctly ask for columns with =$1, $2...= names
   when table header is missing
-- Handle tables begining with hlines
+- Handle tables beginning with hlines
 - Handle non-ascii column names
 - =:formula= parameter and =#+TBLFM= survival
 - Empty cells are ignored.

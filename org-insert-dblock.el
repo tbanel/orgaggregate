@@ -23,9 +23,9 @@
 
 ;;; Commentary:
 
-;; A wizzard to insert Org-mode dynamic blocks.
-;; The toplevel wizzard calls specialized wizzards.
-;; Specialized wizzards are functions matching org-insert-dblock:*
+;; A wizard to insert Org-mode dynamic blocks.
+;; The top-level wizard calls specialized wizards.
+;; Specialized wizards are functions matching org-insert-dblock:*
 ;; Right now, the following are available:
 ;;   org-insert-dblock:columnview   (calls org-insert-columns-dblock)
 ;;   org-insert-dblock:clocktable   (calls org-clock-report)
@@ -34,10 +34,10 @@
 ;;   org-insert-dblock:aggregate
 ;;   org-insert-dblock:transpose
 ;;
-;; The toplevel wizzards extends the C-c C-x i keybinding.
+;; The top-level wizards extends the C-c C-x i key-binding.
 ;; (The C-c C-x i binding was limited to org-insert-columns-dblock,
-;; which can be invoqued by answering "columnview"
-;; at the toplevel wizzard prompt)
+;; which can be invoked by answering "columnview"
+;; at the top-level wizard prompt)
 
 ;;; Code:
 
@@ -46,7 +46,7 @@
 
 ;; ------------------------------------
 ;; A few adapters need to be defined 
-;; to make present wizzards compliant with
+;; to make present wizards compliant with
 ;; the org-insert-dblock:* pattern naming
 
 ;;;###autoload
@@ -87,10 +87,10 @@
     :headers t
     :summary t)))
 
-;; The top-level wizzard collects sub-wizzards by looking
+;; The top-level wizard collects sub-wizards by looking
 ;; for functions named following the org-insert-dblock:* pattern
-;; The wizzard can find any loaded or auto-loadable sub-wizzard
-;; It is up to each sub-wizzard to do whatever completion they need.
+;; The wizard can find any loaded or auto-loadable sub-wizard
+;; It is up to each sub-wizard to do whatever completion they need.
 
 ;;;###autoload
 (defun org-insert-dblock ()

@@ -667,7 +667,7 @@ Comparison with the spreadsheet:
 | c | [8, error(2, '"Expected a number")] | [error(2, '"Syntax error"), 4]            |
 #+END:
 
-* Test modfiers
+* Test modifiers
 
 #+tblname: bigprec
 | A  | Q     |                   N |

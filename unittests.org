@@ -767,7 +767,7 @@ In a :cond lisp formula, only double quotes work.
 ** Source table
 
 #+NAME: funnynames
-| first column | observed.number | computed/expected |
+| first column | observed;number | computed/expected |
 |--------------+-----------------+-------------------|
 | a/experiment |             2.3 |               2.4 |
 | a/experiment |            15.4 |              12.1 |
@@ -777,28 +777,28 @@ In a :cond lisp formula, only double quotes work.
 | b/test       |             2.2 |               2.9 |
 | zero         |               0 |                 0 |
 
-#+BEGIN: aggregate :table "funnynames" :cols "\"first column\" mean('observed.number');%.3f mean('computed/expected');%.4f" :cond (and (>= (string-to-number "observed.number") 0) (not (equal "first column" "zero")))
-| "first column" | mean('observed.number');%.3f | mean('computed/expected');%.4f |
+#+BEGIN: aggregate :table "funnynames" :cols "\"first column\" mean('observed;number');%.3f mean('computed/expected');%.4f" :cond (and (>= (string-to-number "observed;number") 0) (not (equal "first column" "zero")))
+| "first column" | mean('observed;number');%.3f | mean('computed/expected');%.4f |
 |----------------+------------------------------+--------------------------------|
 | a/experiment   |                        8.633 |                         7.1333 |
 | b/test         |                        3.350 |                         3.1500 |
 #+END:
 
-#+BEGIN: aggregate :table "funnynames" :cols ("'first column'" "mean('observed.number');%.3f" "mean('computed/expected');%.4f") :cond "(and (>= (string-to-number \"observed.number\") 0) (not (equal \"first column\" \"zero\")))" 
-| 'first column' | mean('observed.number');%.3f | mean('computed/expected');%.4f |
+#+BEGIN: aggregate :table "funnynames" :cols ("'first column'" "mean('observed;number');%.3f" "mean('computed/expected');%.4f") :cond "(and (>= (string-to-number \"observed;number\") 0) (not (equal \"first column\" \"zero\")))" 
+| 'first column' | mean('observed;number');%.3f | mean('computed/expected');%.4f |
 |----------------+------------------------------+--------------------------------|
 | a/experiment   |                        8.633 |                         7.1333 |
 | b/test         |                        3.350 |                         3.1500 |
 #+END:
 
-#+BEGIN: transpose :table "funnynames" :cols ("first column" "computed/expected" "observed.number")
+#+BEGIN: transpose :table "funnynames" :cols ("first column" "computed/expected" "observed;number")
 | first column      |   | a/experiment | a/experiment | a/experiment | b/test | b/test | b/test | zero |
 | computed/expected |   |          2.4 |         12.1 |          6.9 |    0.0 |    3.4 |    2.9 |    0 |
-| observed.number   |   |          2.3 |         15.4 |          8.2 |  -98.7 |    4.5 |    2.2 |    0 |
+| observed;number   |   |          2.3 |         15.4 |          8.2 |  -98.7 |    4.5 |    2.2 |    0 |
 #+END:
 
-#+BEGIN: transpose :table "funnynames" :cols "'first column' 'computed/expected' 'observed.number'"
+#+BEGIN: transpose :table "funnynames" :cols "'first column' 'computed/expected' 'observed;number'"
 | first column      |   | a/experiment | a/experiment | a/experiment | b/test | b/test | b/test | zero |
 | computed/expected |   |          2.4 |         12.1 |          6.9 |    0.0 |    3.4 |    2.9 |    0 |
-| observed.number   |   |          2.3 |         15.4 |          8.2 |  -98.7 |    4.5 |    2.2 |    0 |
+| observed;number   |   |          2.3 |         15.4 |          8.2 |  -98.7 |    4.5 |    2.2 |    0 |
 #+END:

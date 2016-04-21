@@ -173,7 +173,8 @@ The =:cols= parameter may be a string or a list of strings. Examples:
 If a single string is used, it is split by spaces. Thus, a given
 formula, including its semicolon and modifiers, must not contain any
 space. If spaces are required within a formula, then use the
-paranthesis list.
+paranthesis list. If a column name has spaces, quote it like this:
+='yellow submarine'=.
 
 * Grouping specifications in :cols
 
@@ -184,7 +185,7 @@ Additionally, the =hline= specification means that rows between two
 horizontal lines should be grouped.
 
 Key columns and =hline= are used to group rows of the source
-table with uniq combinations of those columns.
+table with unique combinations of those columns.
 
 * hline example
 
@@ -578,8 +579,9 @@ Example. Here is a source table containing dates:
 #+END_EXAMPLE
 
 * Arbitrary column names
-Column names are not necessarilly alphanumeric words. They can contain
-any characters, including spaces, quotes, +, -, whatever.
+Column names are not necessarily alphanumeric words. They may contain
+any characters, including spaces, quotes, +, -, whatever. They must
+not extend on several lines thought.
 
 Those names need to be protected with quotes (single or double quotes)
 within formulas.
@@ -588,7 +590,8 @@ Examples:
 - =:cols "mean('estimated value')"=
 - =:cond (equal "true color" "Red")=
 
-Note that in =:cond= lisp expression, only double quotes work.
+Note that in =:cond= lisp expression, only double quotes work. This is
+because single quote in Lisp has a very special meaning.
 
 * Empty and malformed input cells
 
@@ -613,7 +616,7 @@ have empty values at different locations, then they should be
 interpreted as zero with the =NE= modifier, othervise the result will
 be inconsistent.
 
-* Expressions that can be specified
+* (Almost) any expression can be specified
 
 Virtually any Calc formula can be specified as an aggregation formula.
 
@@ -745,15 +748,15 @@ Alternatively, you can download the lisp files, and load them:
 (load-file "org-insert-dblock.el") ;; optional, extends C-c C-c i
 #+END_EXAMPLE
 
-* Author, contributors
+* Authors, contributors
 
 Authors
-- Thierry Banel, tbanelwebmin at free dot fr, first version, implementations.
+- Thierry Banel, tbanelwebmin at free dot fr, inception & implementation.
 - Michael Brand, Calc unleashed, =#+TBLFM= survival, empty input cells, formatters.
 
 Contributors
 - Eric Abrahamsen, non-ascii column names
-- Alejandro Erickson, non-alphanumeric column names
+- Alejandro Erickson, quoting non alphanumeric column names
 
 * Changes
 - Wizard now correctly ask for columns with =$1, $2...= names
@@ -771,6 +774,7 @@ Contributors
 - Increased performance on large data sets
 - Tables can be named with =#+NAME:= besides =#+TBLNAME:=
 - Document Melpa installation
+- Support quoting of column names, like "a.b" or 'c/d'
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016  Thierry Banel

@@ -236,11 +236,16 @@ COLNAME may be:
 - a dollar form, like $5 which is converted to 5
 - an alphanumeric name which appears in the column header (if any)
 - the special symbol `hline' which is converted into 0
+If COLNAME is quoted (single or double quotes),
+quotes are removed beforhand.
 When COLNAME does not match any actual column,
 an error is generated if ERR optional parameter is true
 otherwise nil is returned."
   (if (symbolp colname)
       (setq colname (symbol-name colname)))
+  (if (or (string-match "^'\\(.*\\)'$" colname)
+	  (string-match "^\"\\(.*\\)\"$" colname))
+      (setq colname (match-string 1 colname)))
   ;; skip first hlines if any
   (while (not (listp (car table)))
     (setq table (cdr table)))
@@ -254,9 +259,6 @@ otherwise nil is returned."
 		 (user-error "Column %s outside table" colname)
 	       nil))))
 	(t
-	 (if (or (string-match "^'\\(.*\\)'$" colname)
-		 (string-match "^\"\\(.*\\)\"$" colname))
-	     (setq colname (match-string 1 colname)))
 	 (let ((i 0)
 	       (j ()))
 	   (mapc (lambda (h)
@@ -370,18 +372,19 @@ calling this function."
    ((equal var "list")
     "")
    (t ;; replace VAR if it is a column name
-    (let ((i (orgtbl-to-aggregated-table-colname-to-int var table)))
-      (if i
-	  (save-match-data ;; save because we are called within a replace-regexp
-	    (unless (aref lists i)
-	      (aset lists i
-		    (cons 'vec
-			  (mapcar (lambda (row)
-				    (orgtbl-aggregate-read-calc-expr
-				     (nth i row)))
-				  (-appendable-list-get group)))))
-	    (format "$%s" i))
-	var)))))
+    (save-match-data ;; save because we are called within a replace-regexp
+      (let ((i (orgtbl-to-aggregated-table-colname-to-int var table)))
+	(if i
+	    (progn
+	      (unless (aref lists i)
+		(aset lists i
+		      (cons 'vec
+			    (mapcar (lambda (row)
+				      (orgtbl-aggregate-read-calc-expr
+				       (nth i row)))
+				    (-appendable-list-get group)))))
+	      (format "$%s" i))
+	  var))))))
 
 (defun orgtbl-to-aggregated-table-do-sums (group aggcols table)
   "Iterate over the expressions in AGGCOLS, evaluating each
@@ -406,7 +409,7 @@ been evaluated."
        aggcols))))
 
 (defun orgtbl-to-aggregated-table-do-one-sum (formula group lists)
-  (string-match "^\\([^;]*\\)\\(;\\(.*\\)\\)?$" formula)
+  (string-match "^\\(.*?\\)\\(;\\([^;']*\\)\\)?$" formula)
   ;; within this (let), we locally set Calc settings that must be active
   ;; for the all the calls to Calc:
   ;; (orgtbl-to-aggregated-table-collect-list) and (math-format-value)
@@ -466,8 +469,7 @@ been evaluated."
 	(setq fmt nil)))
     (setq expression
 	  (replace-regexp-in-string
-	   "\\('[^']*'\\)\\|\\(\\<[[:word:]]+\\>\\)"
-	   ;;"\\(\\<[[:word:]]+\\>\\)"
+	   "\\('[^']*'\\)\\|\\(\"[^\"]*\"\\)\\|\\(\\<[[:word:]]+\\>\\)"
 	   'orgtbl-to-aggregated-table-collect-list
 	   expression))
     (setq expression

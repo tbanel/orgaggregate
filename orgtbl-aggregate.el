@@ -75,7 +75,7 @@
 ;;; Requires:
 (require 'calc-ext)
 (require 'org-table)
-(eval-when-compile (require 'cl-lib) (require 'cl))
+(eval-when-compile (require 'cl-lib))
 
 ;;; Code:
 
@@ -352,13 +352,19 @@ containing this single ROW."
 	 (calcFunc-expand
 	  (math-read-expr expr)))))))
 
+(defvar orgtbl-aggregate-variable-table)
+(defvar orgtbl-aggregate-variable-group)
+(defvar orgtbl-aggregate-variable-lists)
+
 (defun orgtbl-to-aggregated-table-collect-list (var)
   "Replace VAR, which is a column name, with a $N expression.
 If VAR is already in the $N form, VAR is left unchanged.  Collect
 the cells at the crossing of the VAR column and the current GROUP
-of rows, and store it in LISTS.
-Assume that `table', `group' and `lists' are bounded before
-calling this function."
+of rows, and store it in LISTS.  Assume that
+`orgtbl-aggregate-variable-table',
+`orgtbl-aggregate-variable-group' and
+`orgtbl-aggregate-variable-lists' are bounded before calling this
+function."
   (cond
    ;; aggregate functions with or without the leading "v"
    ;; sum(X) and vsum(X) are equivalent
@@ -373,16 +379,19 @@ calling this function."
     "")
    (t ;; replace VAR if it is a column name
     (save-match-data ;; save because we are called within a replace-regexp
-      (let ((i (orgtbl-to-aggregated-table-colname-to-int var table)))
+      (let ((i (orgtbl-to-aggregated-table-colname-to-int
+		var
+		orgtbl-aggregate-variable-table)))
 	(if i
 	    (progn
-	      (unless (aref lists i)
-		(aset lists i
+	      (unless (aref orgtbl-aggregate-variable-lists i)
+		(aset orgtbl-aggregate-variable-lists i
 		      (cons 'vec
 			    (mapcar (lambda (row)
 				      (orgtbl-aggregate-read-calc-expr
 				       (nth i row)))
-				    (-appendable-list-get group)))))
+				    (-appendable-list-get
+				     orgtbl-aggregate-variable-group)))))
 	      (format "$%s" i))
 	  var))))))
 
@@ -405,10 +414,10 @@ been evaluated."
 		   table)
 		  (car (-appendable-list-get group))) ; any row in group will do
 	   ; otherwise it is a Calc aggregation expression
-	   (orgtbl-to-aggregated-table-do-one-sum colspec group lists)))
+	   (orgtbl-to-aggregated-table-do-one-sum colspec group lists table)))
        aggcols))))
 
-(defun orgtbl-to-aggregated-table-do-one-sum (formula group lists)
+(defun orgtbl-to-aggregated-table-do-one-sum (formula group lists table)
   (string-match "^\\(.*?\\)\\(;\\([^;']*\\)\\)?$" formula)
   ;; within this (let), we locally set Calc settings that must be active
   ;; for the all the calls to Calc:
@@ -467,11 +476,14 @@ been evaluated."
 	(setq fmt (replace-match "" t t fmt)))
       (unless (string-match "\\S-" fmt)
 	(setq fmt nil)))
-    (setq expression
-	  (replace-regexp-in-string
-	   "\\('[^']*'\\)\\|\\(\"[^\"]*\"\\)\\|\\(\\<[[:word:]]+\\>\\)"
-	   'orgtbl-to-aggregated-table-collect-list
-	   expression))
+    (let ((orgtbl-aggregate-variable-table table)
+	  (orgtbl-aggregate-variable-group group)
+	  (orgtbl-aggregate-variable-lists lists))
+      (setq expression
+	    (replace-regexp-in-string
+	     "\\('[^']*'\\)\\|\\(\"[^\"]*\"\\)\\|\\(\\<[[:word:]]+\\>\\)"
+	     'orgtbl-to-aggregated-table-collect-list
+	     expression)))
     (setq expression
 	  (replace-regexp-in-string
 	   "\\<v?count()"
@@ -495,7 +507,7 @@ been evaluated."
 		 ls
 		 (if keep-empty
 		     (mapcar (lambda (x) (or x '(var nan var-nan))) ls)
-		   (mapcan (lambda (x) (if x (list x))) ls))))
+		   (cl-mapcan (lambda (x) (if x (list x))) ls))))
 	    (if numbers
 		(cons (car ls)
 		      (mapcar (lambda (x) (if (math-numberp x) x 0))

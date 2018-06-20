@@ -307,7 +307,8 @@ is a Calc expression, nil is returned."
 aggregation columns ?"
   (let ((ok t))
     (mapc (lambda (i)
-	    (and i
+	    (and ok
+		 i
 		 (not (equal (nth i row1) (nth i row2)))
 		 (setq ok nil)))
 	  keycols)
@@ -566,6 +567,7 @@ AGGCOND."
 	    (orgtbl-to-aggregated-table-parse-spec column table))
 	  aggcols))
 	(b 0)
+	(bs "0")
 	(origtable)
 	(newtable))
     ;; remove headers
@@ -577,11 +579,12 @@ AGGCOND."
     ; split table into groups of rows
     (mapc (lambda (row)
 	    (cond ((equal row 'hline)
-		   (setq b (1+ b)))
+		   (setq b (1+ b)
+			 bs (number-to-string b)))
 		  ((listp row)
 		   (orgtbl-to-aggregated-table-add-group
 		    groups
-		    (cons (number-to-string b) row)
+		    (cons bs row)
 		    keycols
 		    aggcond))))
 	  table)

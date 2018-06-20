@@ -32,17 +32,45 @@ A very simple example. We have a table of activities and quantities
 | Friday    | Blue  |    11 |        9 |
 #+END_EXAMPLE
 
-We want to aggregate this table for each day (because several rows
-exist for each day). First we give a name to the table through the
-=#+NAME:= or =#+TBLNAME:= tags, just above the table. Then we create a
-/dynamic block/ to receive the aggregation:
+To begin with we want to gather all colors and count how many times
+they appear. We are interested only in the second column named
+"Color".
+
+First we give a name to the table through the =#+NAME:=
+or =#+TBLNAME:= tags, just above the table.
+Then we create a /dynamic block/ to receive the aggregation:
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table "original" :cols "Color count()"
+#+END:
+#+END_EXAMPLE
+
+Now typing =C-c C-c= in the dynamic block counts the colors in the original table:
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table "original" :cols "Color count()"
+| Color | count() |
+|-------+---------|
+| Red   |       7 |
+| Blue  |       7 |
+#+END:
+#+END_EXAMPLE
+
+Org found two colors, Red and Blue. It found 7 occurrences for
+each.
+
+Now we want to aggregate this table for each day (because several rows
+exist for each day). We want the average value of the Level column for
+each day, and the sum of the Quantity column. We write down the block
+specifying that (later we will see how to automate the creation of
+such a block):
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
 #+END
 #+END_EXAMPLE
 
-Now typing =C-c C-c= in the dynamic block computes the aggregation:
+Typing =C-c C-c= in the dynamic block computes the aggregation:
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
@@ -56,7 +84,7 @@ Now typing =C-c C-c= in the dynamic block computes the aggregation:
 #+END
 #+END_EXAMPLE
 
-The source table is not change in any way.
+The source table is not changed in any way.
 
 To get this result, we specified columns in this way, after the
 =:cols= parameter:
@@ -160,7 +188,7 @@ contains in any order, grouping key columns and aggregation formulas.
 
 The names of the columns in the original table may be:
 - the names as they appear in the header of the source table,
-- or $1, $2, $3 and so on (as in spreadsheet formulas),
+- or =$1=, =$2=, =$3= and so on (as in spreadsheet formulas),
 - additionally, the special column =hline= is used to group
   parts of the source table separated by horizontal lines.
 
@@ -174,7 +202,7 @@ If a single string is used, it is split by spaces. Thus, a given
 formula, including its semicolon and modifiers, must not contain any
 space. If spaces are required within a formula, then use the
 parenthesis list. If a column name has spaces, quote it like this:
-='yellow submarine'=.
+'yellow submarine'.
 
 * Grouping specifications in :cols
 
@@ -240,6 +268,9 @@ If we want additional details with the =Color= column, we just name it:
 |     2 | Blue  |             8 |             22 |
 #+END:
 #+END_EXAMPLE
+
+There is an ugly value, =35.6666666667=, in the middle of the
+table. See later how to format it.
 
 * Aggregation formulas in :cols
 
@@ -587,7 +618,7 @@ Those names need to be protected with quotes (single or double quotes)
 within formulas.
 
 Examples:
-- =:cols "mean('estimated value')"=
+- =:cols= "=mean('estimated value')="
 - =:cond (equal "true color" "Red")=
 
 Note that in =:cond= lisp expression, only double quotes work. This is
@@ -757,6 +788,7 @@ Authors
 Contributors
 - Eric Abrahamsen, non-ascii column names
 - Alejandro Erickson, quoting non alphanumeric column names
+- Uwe Brauer, simpler example in documentation
 
 * Changes
 - Wizard now correctly ask for columns with =$1, $2...= names
@@ -777,7 +809,7 @@ Contributors
 - Support quoting of column names, like "a.b" or 'c/d'
 
 * License
-Copyright (C) 2013, 2014, 2015, 2016  Thierry Banel
+Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018  Thierry Banel
 
 orgtbl-aggregate is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

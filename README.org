@@ -789,6 +789,7 @@ Contributors
 - Eric Abrahamsen, non-ascii column names
 - Alejandro Erickson, quoting non alphanumeric column names
 - Uwe Brauer, simpler example in documentation
+- Peking Duck, fixed obsolete letf function
 
 * Changes
 - Wizard now correctly ask for columns with =$1, $2...= names

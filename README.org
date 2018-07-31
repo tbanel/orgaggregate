@@ -788,7 +788,8 @@ Authors
 Contributors
 - Eric Abrahamsen, non-ascii column names
 - Alejandro Erickson, quoting non alphanumeric column names
-- Uwe Brauer, simpler example in documentation
+- Uwe Brauer, simpler example in documentation, take
+  org-calc-default-modes preferences into account
 - Peking Duck, fixed obsolete letf function
 
 * Changes

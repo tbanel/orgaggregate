@@ -402,7 +402,7 @@ expression with Calc using values found in the rows of the GROUP.
 The result is a row identical to AGGCOLS, except expressions have
 been evaluated."
   ;; inactivating math-read-preprocess-string boosts performance
-  (letf (((symbol-function 'math-read-preprocess-string) #'identity))
+  (cl-letf (((symbol-function 'math-read-preprocess-string) #'identity))
     (let ((lists (make-vector (1+ (length (car table))) nil)))
       (mapcar
        (lambda (colspec)
@@ -425,11 +425,16 @@ been evaluated."
   ;; (orgtbl-to-aggregated-table-collect-list) and (math-format-value)
   (let ((expression (match-string 1 formula))
 	(fmt        (match-string 3 formula))
-	(calc-internal-prec calc-internal-prec)
-	(calc-float-format  calc-float-format )
-	(calc-angle-mode    calc-angle-mode   )
-	(calc-prefer-frac   calc-prefer-frac  )
-	(calc-symbolic-mode calc-symbolic-mode)
+	(calc-internal-prec (or (cadr (memq 'calc-internal-prec org-calc-default-modes)) calc-internal-prec))
+	(calc-float-format  (or (cadr (memq 'calc-float-format  org-calc-default-modes)) calc-float-format ))
+	(calc-angle-mode    (or (cadr (memq 'calc-angle-mode    org-calc-default-modes)) calc-angle-mode   ))
+	(calc-prefer-frac   (or (cadr (memq 'calc-prefer-frac   org-calc-default-modes)) calc-prefer-frac  ))
+	(calc-symbolic-mode (or (cadr (memq 'calc-symbolic-mode org-calc-default-modes)) calc-symbolic-mode))
+	(calc-date-format   (or (cadr (memq 'calc-date-format org-calc-default-modes))
+				calc-date-format
+				'(YYYY "-" MM "-" DD " " www (" " hh ":" mm))))
+	(calc-display-working-message
+	 (or (cadr (memq 'calc-display-working-message org-calc-default-modes)) calc-display-working-message))
 	(duration-output-format)
 	(duration)
 	(numbers)
@@ -497,8 +502,7 @@ been evaluated."
 	    (calc-command-flags nil)
 	    (calc-next-why nil)
 	    (calc-language 'flat)
-	    (calc-dollar-used 0)
-	    (calc-date-format '(YYYY "-" MM "-" DD " " www (" " hh ":" mm))))
+	    (calc-dollar-used 0))
 	(setq
 	 calc-dollar-values
 	 (mapcar

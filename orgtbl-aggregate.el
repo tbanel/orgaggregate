@@ -1,7 +1,7 @@
 ;; -*- coding:utf-8;-*-
 ;;; orgtbl-aggregate.el --- Create an aggregated Org table from another one
 
-;; Copyright (C) 2013, 2014, 2015, 2016  Thierry Banel
+;; Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019  Thierry Banel
 
 ;; Authors:
 ;;   Thierry Banel tbanelwebmin at free dot fr
@@ -9,6 +9,10 @@
 ;; Contributors:
 ;;   Eric Abrahamsen
 ;;   Alejandro Erickson alejandro dot erickson at gmail dot com
+;;   Uwe Brauer
+;;   Peking Duck
+;;   Bill Hunker
+
 ;; Version: 1.0
 ;; Keywords: org, table, aggregation, filtering
 

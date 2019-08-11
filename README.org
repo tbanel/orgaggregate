@@ -138,6 +138,24 @@ If for any reason you do not want to load this file, you can still
 create dynamic aggregate blocks by typing
 =M-x org-dblock-write:aggregate=.
 
+In the latest releases of Org Mode, there is a similar wizard (thanks
+to Kin stardiviner). Call it with =C-c C-x x=.
+
+But beforehand, you must register the =orgtbl-aggregate= sub-wizard with it.
+To do so, type this somewhere (for instance into your =.emacs= file):
+
+#+BEGIN_EXAMPLE
+(if (fboundp 'org-dynamic-block-define)
+    (org-dynamic-block-define "aggregate" 'org-insert-dblock:aggregate))
+#+END_EXAMPLE
+
+The =fboundp= test is useful to gracefully ignore this setting in case
+your Org Mode is older.
+
+For convenience those two lines have been written down into
+=org-insert-dblock.el=. If you already load this file, you do not have
+anything to configure.
+
 * Other examples
 
 Maybe we are just interested in the sum of =Quantities=, regardless of

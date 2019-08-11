@@ -39,10 +39,16 @@
 ;; which can be invoked by answering "columnview"
 ;; at the top-level wizard prompt)
 
+;; NOTE! The latest releases of Org Mode provide a similar wizard.
+;; Call it with C-c C-x x
+
 ;;; Code:
 
 (require 'easymenu)
 (require 'org)
+
+(if (fboundp 'org-dynamic-block-define)
+    (org-dynamic-block-define "aggregate" 'org-insert-dblock:aggregate))
 
 ;; ------------------------------------
 ;; A few adapters need to be defined 

@@ -477,7 +477,7 @@ been evaluated."
 	  (setq keep-empty t
 		fmt (replace-match "" t t fmt)))
       (while (string-match "[DRFSQ]" fmt)
-	(case (string-to-char (match-string 0 fmt))
+	(cl-case (string-to-char (match-string 0 fmt))
 	  (?D (setq calc-angle-mode 'deg))
 	  (?R (setq calc-angle-mode 'rad))
 	  (?F (setq calc-prefer-frac t))

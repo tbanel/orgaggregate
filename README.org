@@ -782,6 +782,27 @@ Note the spreadsheet cell formula =@1$2=SQuantity=, which changes the
 column heading from it default =vsum(Quantity)= to =SQuantity=.  This
 new heading will survive any refresh.
 
+Sometimes the name of the aggregated table is not found by some babel
+block referencing it (Gnuplot blocks are among them). To fix that,
+just exchange the =#+NAME:= and =#+BEGIN:= lines:
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table original :cols "Day vsum(Quantity)"
+#+NAME: squantity
+| Day       | SQuantity |
+|-----------+-----------|
+| Monday    |        14 |
+| Tuesday   |        45 |
+| Wednesday |        54 |
+| Thursday  |        83 |
+| Friday    |        22 |
+#+TBLFM: @1$2=SQuantity
+#+END:
+#+END_EXAMPLE
+
+The =#.NAME:= line will survive when recomputing the aggregation (as
+=#.TBLFM:= line survives)
+
 * Installation
 
 Emacs package on Melpa: add the following lines to your =.emacs= file, and reload it.
@@ -816,6 +837,7 @@ Contributors
   org-calc-default-modes preferences into account
 - Peking Duck, fixed obsolete letf function
 - Bill Hunker, discovered =\_{}= escape
+- Dirk Schmitt, surviving =#.NAME:= line
 
 * Changes
 - Wizard now correctly ask for columns with =$1, $2...= names

@@ -19,13 +19,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 Running all the tests should not change anything to this page.
 
 All pull-mode tests can be re-computed at once by executing:
-(org-update-all-dblocks)
+(let ((org-calc-default-modes
+       (cons 'calc-float-format (cons '(float 12) org-calc-default-modes))))
+  (org-update-all-dblocks))
 
 All push-mode tests can be re-computed at once by executing:
-(org-table-map-tables
-  (lambda ()
-    (org-table-align)
-    (orgtbl-send-table 'maybe)))
+(let ((org-calc-default-modes
+       (cons 'calc-float-format (cons '(float 12) org-calc-default-modes))))
+  (org-table-map-tables
+    (lambda ()
+      (org-table-align)
+      (orgtbl-send-table 'maybe))))
 
 * Test PUSH
 Push = source table drives computation of aggregated tables.
@@ -119,7 +123,7 @@ No need to name it.
 #+BEGIN RECEIVE ORGTBL aggtable8
 | hline | min(d)                  | max(d)                  |                     mean(d) |
 |-------+-------------------------+-------------------------+-----------------------------|
-|     0 | <2011-09-24 sam. 13:54> | <2014-02-26 mer. 16:11> | <14089-07-11 mon 11:55> / 7 |
+|     0 | <2011-09-24 sam. 13:54> | <2014-02-26 mer. 16:11> | <14089-07-11 Mon 11:55> / 7 |
 |     1 | <2012-12-25 mar. 00:00> | <2015-09-14 lun. 13:07> |               735354.373438 |
 |     2 | <2015-10-02 ven. 17:42> | <2016-01-28 jeu. 15:06> |               735932.683334 |
 #+END RECEIVE ORGTBL aggtable8
@@ -425,7 +429,7 @@ Some (limited) handling of dates is available.
 #+BEGIN: aggregate :table datetable :cols "min(d) max(d) min(n) max(n) mean(d)"
 | min(d)                 | max(d)                 | min(n) | max(n) |       mean(d) |
 |------------------------+------------------------+--------+--------+---------------|
-| <2011-09-24 sat 13:54> | <2014-02-26 wed 16:11> |      1 |      8 | 735073.937066 |
+| <2011-09-24 Sat 13:54> | <2014-02-26 Wed 16:11> |      1 |      8 | 735073.937066 |
 #+END
 
 * Test symbolic

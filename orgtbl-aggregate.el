@@ -617,7 +617,7 @@ The source table must contain sending directives with the following format:
 #+ORGTBL: SEND destination orgtbl-to-aggregated-table :cols ... :cond ...
 
 The destination must be specified somewhere in the same file
-with a bloc like this:
+with a block like this:
   #+BEGIN RECEIVE ORGTBL destination
   #+END RECEIVE ORGTBL destination
 
@@ -771,24 +771,28 @@ Note:
  To use the 'push' mode, look at the orgtbl-to-aggregated-table function.
 "
   (interactive)
-  (orgtbl-insert-elisp-table
-   (orgtbl-create-table-aggregated
-    (orgtbl-get-distant-table (plist-get params :table))
-    (plist-get params :cols)
-    (plist-get params :cond)))
   (let ((formula (plist-get params :formula))
 	(content (plist-get params :content))
-	(recalc nil))
-    (cond ((stringp formula)
-	   (setq recalc t)
-	   (end-of-line)
-	   (insert "\n#+TBLFM: " formula))
-	  ((and content
-		(string-match "^\\([ \t]*#\\+tblfm:.*\\)" content))
-	   (setq recalc t)
-	   (end-of-line)
-	   (insert "\n" (match-string 1 content))))
-    (when recalc
+	(tblfm nil))
+    (when (and content
+	       (string-match "^\\([ \t]*#\\+\\(tbl\\)?name:.*\\)" content))
+      (insert (match-string 1 content) "\n"))
+    (orgtbl-insert-elisp-table
+     (orgtbl-create-table-aggregated
+      (orgtbl-get-distant-table (plist-get params :table))
+      (plist-get params :cols)
+      (plist-get params :cond)))
+    (when (and content
+	       (string-match "^\\([ \t]*#\\+tblfm:.*\\)" content))
+      (setq tblfm (match-string 1 content)))
+    (when (stringp formula)
+      (if tblfm
+	  (unless (string-match (rx-to-string formula) tblfm)
+	    (setq tblfm (format "%s::%s" tblfm formula)))
+	(setq tblfm (format "#+TBLFM: %s" formula))))
+    (when tblfm
+      (end-of-line)
+      (insert "\n" tblfm)
       (forward-line -1)
       (org-table-recalculate 'all))))
 
@@ -977,24 +981,28 @@ Note:
  To use the 'push' mode, look at the orgtbl-to-transposed-table function.
 "
   (interactive)
-  (orgtbl-insert-elisp-table
-   (orgtbl-create-table-transposed
-    (orgtbl-get-distant-table (plist-get params :table))
-    (plist-get params :cols)
-    (plist-get params :cond)))
   (let ((formula (plist-get params :formula))
 	(content (plist-get params :content))
-	(recalc nil))
-    (cond ((stringp formula)
-	   (setq recalc t)
-	   (end-of-line)
-	   (insert "\n#+TBLFM: " formula))
-	  ((and content
-		(string-match "^\\([ \t]*#\\+tblfm:.*\\)" content))
-	   (setq recalc t)
-	   (end-of-line)
-	   (insert "\n" (match-string 1 content))))
-    (when recalc
+	(tblfm nil))
+    (when (and content
+	       (string-match "^\\([ \t]*#\\+\\(tbl\\)?name:.*\\)" content))
+      (insert (match-string 1 content) "\n"))
+    (orgtbl-insert-elisp-table
+     (orgtbl-create-table-transposed
+      (orgtbl-get-distant-table (plist-get params :table))
+      (plist-get params :cols)
+      (plist-get params :cond)))
+    (when (and content
+	       (string-match "^\\([ \t]*#\\+tblfm:.*\\)" content))
+      (setq tblfm (match-string 1 content)))
+    (when (stringp formula)
+      (if tblfm
+	  (unless (string-match (rx-to-string formula) tblfm)
+	    (setq tblfm (format "%s::%s" tblfm formula)))
+	(setq tblfm (format "#+TBLFM: %s" formula))))
+    (when tblfm
+      (end-of-line)
+      (insert "\n" tblfm)
       (forward-line -1)
       (org-table-recalculate 'all))))
 

@@ -857,6 +857,7 @@ Contributors
 - Document Melpa installation
 - Support quoting of column names, like "a.b" or 'c/d'
 - Disable =\_{}= escape
+- =#.NAME:= inside =#.BEGIN:= survives
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  Thierry Banel

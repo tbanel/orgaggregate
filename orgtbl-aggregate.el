@@ -775,7 +775,7 @@ Note:
 	(content (plist-get params :content))
 	(tblfm nil))
     (when (and content
-	       (string-match "^\\([ \t]*#\\+\\(tbl\\)?name:.*\\)" content))
+	       (string-match "^[ \t]*\\(#\\+\\(tbl\\)?name:.*\\)" content))
       (insert (match-string 1 content) "\n"))
     (orgtbl-insert-elisp-table
      (orgtbl-create-table-aggregated
@@ -783,7 +783,7 @@ Note:
       (plist-get params :cols)
       (plist-get params :cond)))
     (when (and content
-	       (string-match "^\\([ \t]*#\\+tblfm:.*\\)" content))
+	       (string-match "^[ \t]*\\(#\\+tblfm:.*\\)" content))
       (setq tblfm (match-string 1 content)))
     (when (stringp formula)
       (if tblfm
@@ -794,7 +794,9 @@ Note:
       (end-of-line)
       (insert "\n" tblfm)
       (forward-line -1)
-      (org-table-recalculate 'all))))
+      (condition-case nil
+	  (org-table-recalculate 'all)
+	(args-out-of-range nil)))))
 
 (defvar orgtbl-aggregate-history-cols ())
 
@@ -985,7 +987,7 @@ Note:
 	(content (plist-get params :content))
 	(tblfm nil))
     (when (and content
-	       (string-match "^\\([ \t]*#\\+\\(tbl\\)?name:.*\\)" content))
+	       (string-match "^[ \t]*\\(#\\+\\(tbl\\)?name:.*\\)" content))
       (insert (match-string 1 content) "\n"))
     (orgtbl-insert-elisp-table
      (orgtbl-create-table-transposed
@@ -993,7 +995,7 @@ Note:
       (plist-get params :cols)
       (plist-get params :cond)))
     (when (and content
-	       (string-match "^\\([ \t]*#\\+tblfm:.*\\)" content))
+	       (string-match "^[ \t]*\\(#\\+tblfm:.*\\)" content))
       (setq tblfm (match-string 1 content)))
     (when (stringp formula)
       (if tblfm
@@ -1004,7 +1006,9 @@ Note:
       (end-of-line)
       (insert "\n" tblfm)
       (forward-line -1)
-      (org-table-recalculate 'all))))
+      (condition-case nil
+	  (org-table-recalculate 'all)
+	(args-out-of-range nil)))))
 
 ;;;###autoload
 (defun org-insert-dblock:transpose ()

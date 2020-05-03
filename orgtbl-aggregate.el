@@ -375,11 +375,12 @@ function."
 	      (unless (aref orgtbl-aggregate-variable-lists i)
 		(aset orgtbl-aggregate-variable-lists i
 		      (cons 'vec
-			    (mapcar (lambda (row)
-				      (orgtbl-aggregate-read-calc-expr
-				       (nth i row)))
-				    (-appendable-list-get
-				     orgtbl-aggregate-variable-group)))))
+			    (cl-loop for row in
+				     (-appendable-list-get
+				      orgtbl-aggregate-variable-group)
+				     collect
+				     (orgtbl-aggregate-read-calc-expr
+				      (nth i row))))))
 	      (format "$%s" i))
 	  var))))))
 
@@ -833,29 +834,27 @@ If AGGCOND is nil, all source rows are taken"
 		     collect i))))
   (if aggcond
       (setq aggcond (orgtbl-to-aggregated-replace-colnames table aggcond)))
-  (let ((result (mapcar (lambda (x) (list t)) cols))
+  (let ((result (cl-loop for x in cols collect (list t)))
         (nhline 0))
-    (mapc
-     (lambda (row)
-       (if (eq row 'hline)
-	   (setq nhline (1+ nhline))
-	 (setq row (cons nhline row)))
-       (when (or (eq row 'hline) (not aggcond) (eval aggcond))
-	 (let ((r result))
-	   (mapc
-	    (lambda (spec)
-	      (nconc (pop r) (list (if (eq row 'hline) "" (nth spec row)))))
-	    cols))))
-     table)
-    (mapcar
-     (lambda (row)
-       (pop row)
-       (let ((empty t))
-         (mapc
-	  (lambda (x) (if (equal "" x) () (setq empty nil)))
-	  row)
-         (if empty 'hline row)))
-     result)))
+    (cl-loop for row in table
+	     do
+	     (if (eq row 'hline)
+		 (setq nhline (1+ nhline))
+	       (setq row (cons nhline row)))
+	     do
+	     (when (or (eq row 'hline) (not aggcond) (eval aggcond))
+	       (let ((r result))
+		 (cl-loop
+		  for spec in cols
+		  do
+		  (nconc (pop r) (list (if (eq row 'hline) "" (nth spec row))))))))
+    (cl-loop for row in result
+	     do (pop row)
+	     collect
+	     (if (cl-loop for x in row
+			  always (equal "" x))
+		 'hline
+	       row))))
 
 ;;;###autoload
 (defun orgtbl-to-transposed-table (table params)

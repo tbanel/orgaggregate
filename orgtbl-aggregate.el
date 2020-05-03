@@ -554,10 +554,9 @@ AGGCOND."
   ;; set to t by orgtbl-to-aggregated-table-colname-to-int
   (let ((groups (-appendable-list-create))
 	(keycols
-	 (mapcar
-	  (lambda (column)
-	    (orgtbl-to-aggregated-table-parse-spec column table))
-	  aggcols))
+	 (cl-loop for column in aggcols
+		  collect
+		  (orgtbl-to-aggregated-table-parse-spec column table)))
 	(b 0)
 	(bs "0")
 	(origtable)

@@ -58,7 +58,11 @@
 ;;;###autoload
 (defun org-insert-dblock:columnview ()
   (interactive)
-  (org-insert-columns-dblock))
+  (if (fboundp 'org-columns-insert-dblock)
+      (org-columns-insert-dblock)
+    ;; fall back to obsolete name
+    (if (fboundp 'org-insert-columns-dblock)
+	(org-insert-columns-dblock)))
 
 ;;;###autoload
 (defun org-insert-dblock:clocktable ()

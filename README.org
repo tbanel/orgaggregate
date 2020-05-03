@@ -124,6 +124,21 @@ aggregate (original$Level   , list(Day=day_factor), mean)
 aggregate (original$Quantity, list(Day=day_factor), sum )
 #+end_src
 
+* Datamash equivalent
+
+The command line Datamash software operates on CSV files and can
+achieve a similar result:
+
+#+begin_src shell
+datamash -H -g Day mean Level sum Quantity <original.csv
+GroupBy(Day)	mean(Level)	sum(Quantity)
+Monday	27.5	14
+Tuesday	43	45
+Wednesday	18	54
+Thursday	43	83
+Friday	8	22
+#+end_src
+
 * Key-binding & Wizard
 
 Type =C-c C-x i= to launch a wizard for creating new /dynamic blocks/.

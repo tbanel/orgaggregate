@@ -822,17 +822,15 @@ If AGGCOND is nil, all source rows are taken"
       (setq cols (split-string-with-quotes cols)))
   (setq cols
         (if cols
-            (mapcar
-             (lambda (column)
-	       (orgtbl-to-aggregated-table-colname-to-int column table t))
-             cols)
-          (let ((n 0)
-		(head table))
+	    (cl-loop for column in cols
+		     collect
+		     (orgtbl-to-aggregated-table-colname-to-int column table t))
+          (let ((head table))
 	    (while (eq (car head) 'hline)
 	      (setq head (cdr head)))
-            (mapcar
-	     (lambda (x) (setq n (1+ n)))
-	     (car head)))))
+	    (cl-loop for x in (car head)
+		     for i from 1
+		     collect i))))
   (if aggcond
       (setq aggcond (orgtbl-to-aggregated-replace-colnames table aggcond)))
   (let ((result (mapcar (lambda (x) (list t)) cols))

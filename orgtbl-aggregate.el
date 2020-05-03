@@ -492,8 +492,10 @@ been evaluated."
 	    (calc-dollar-used 0))
 	(setq
 	 calc-dollar-values
-	 (mapcar
-	  (lambda (ls)
+	 (cl-loop
+	  for ls in calc-dollar-values
+	  collect
+	  (progn
 	    (if (memq nil ls)
 		(setq
 		 ls
@@ -502,10 +504,9 @@ been evaluated."
 		   (cl-loop for x in ls nconc (if x (list x))))))
 	    (if numbers
 		(cons (car ls)
-		      (mapcar (lambda (x) (if (math-numberp x) x 0))
-			      (cdr ls)))
-	      ls))
-	  calc-dollar-values))
+		      (cl-loop for x in (cdr ls)
+			       collect (if (math-numberp x) x 0)))
+	      ls))))
 	(let ((ev
 	       (math-format-value
 		(math-simplify

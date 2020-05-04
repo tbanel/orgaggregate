@@ -161,7 +161,7 @@ to mean an horizontal line."
 	   do
 	   (cond ((consp row)
 		  (cl-loop for field in row
-			   do (insert "| " field))
+			   do (insert "| " (or field "")))
 		  (insert "\n"))
 		 ((eq row 'hline)
 		  (insert "|-\n"))
@@ -247,8 +247,7 @@ otherwise nil is returned."
 	   (if (<= n (length (car table)))
 	       n
 	     (if err
-		 (user-error "Column %s outside table" colname)
-	       nil))))
+		 (user-error "Column %s outside table" colname)))))
 	(t
 	 (or
 	  (cl-loop
@@ -293,7 +292,7 @@ is a Calc expression, nil is returned."
   "Are two rows from the source table equal regarding the
 aggregation columns ?"
   (cl-loop for i in keycols
-	always (or (not i) (equal (nth i row1) (nth i row2)))))
+	   always (or (not i) (equal (nth i row1) (nth i row2)))))
 
 (defun orgtbl-to-aggregated-table-add-group (groups row keycols aggcond)
   "Add the source ROW to the GROUPS of rows.
@@ -466,7 +465,10 @@ been evaluated."
 	  (orgtbl-aggregate-variable-lists lists))
       (setq expression
 	    (replace-regexp-in-string
-	     "\\('[^']*'\\)\\|\\(\"[^\"]*\"\\)\\|\\(\\<[[:word:]]+\\>\\)"
+	     (rx (or
+		  (group ?'  (* (not ?' )) ?')
+		  (group ?\" (* (not ?\")) ?\")
+		  (group bow (+ word)      eow)))
 	     'orgtbl-to-aggregated-table-collect-list
 	     expression)))
     (setq expression
@@ -523,7 +525,11 @@ double quotes and the other way around"
       (setq start (match-end 0))
       (while (and (< start l)
 		  (string-match
-		   "[^ '\"]*\\(\\(\\('[^']*'\\)\\|\\(\"[^\"]*\"\\)\\)[^ '\"]*\\)*"
+		   (rx (* (not (any " '\"")))
+		       (* (or
+			   (group ?'  (* (not ?'))  ?' )
+			   (group ?\" (* (not ?\")) ?\"))
+			  (* (not (any " '\"")))))
 		   string start))
 	(-appendable-list-append result (match-string 0 string))
 	(setq start (match-end 0))

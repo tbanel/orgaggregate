@@ -160,12 +160,12 @@ to mean an horizontal line."
   (cl-loop for row in table
 	   do
 	   (cond ((consp row)
-		 (cl-loop for field in row
-			  do (insert "| " field))
-		 (insert "\n"))
-		((eq row 'hline)
-		 (insert "|-\n"))
-		(t (error "bad row in elisp table"))))
+		  (cl-loop for field in row
+			   do (insert "| " field))
+		  (insert "\n"))
+		 ((eq row 'hline)
+		  (insert "|-\n"))
+		 (t (error "bad row in elisp table"))))
   (delete-char -1)
   (org-table-align))
 

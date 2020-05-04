@@ -104,35 +104,30 @@ and returns it as a lisp list of lists.
 An horizontal line is translated as the special symbol `hline'."
   (unless (stringp name-or-id)
     (setq name-or-id (format "%s" name-or-id)))
-  (let (buffer loc id-loc tbeg form)
+  (let (buffer loc)
     (save-excursion
-      (save-restriction
-	(widen)
-	(save-excursion
-	  (goto-char (point-min))
-	  (if (re-search-forward
-	       (concat "^[ \t]*#\\+\\(tbl\\)?name:[ \t]*"
-		       (regexp-quote name-or-id)
-		       "[ \t]*$")
-	       nil t)
-	      (setq buffer (current-buffer) loc (match-beginning 0))
-	    (setq id-loc (org-id-find name-or-id 'marker))
-	    (unless (and id-loc (markerp id-loc))
-	      (error "Can't find remote table \"%s\"" name-or-id))
-	    (setq buffer (marker-buffer id-loc)
-		  loc (marker-position id-loc))
-	    (move-marker id-loc nil)))
-	(with-current-buffer buffer
-	  (save-excursion
-	    (save-restriction
-	      (widen)
-	      (goto-char loc)
-	      (forward-char 1)
-	      (unless (and (re-search-forward "^\\(\\*+ \\)\\|[ \t]*|" nil t)
-			   (not (match-beginning 1)))
-		(user-error "Cannot find a table at NAME or ID %s" name-or-id))
-	      (setq tbeg (point-at-bol))
-	      (org-table-to-lisp))))))))
+      (goto-char (point-min))
+      (if (re-search-forward
+	   (concat "^[ \t]*#\\+\\(tbl\\)?name:[ \t]*"
+		   (regexp-quote name-or-id)
+		   "[ \t]*$")
+	   nil t)
+	  (setq buffer (current-buffer)
+		loc (match-beginning 0))
+	(let ((id-loc (org-id-find name-or-id 'marker)))
+	  (unless (and id-loc (markerp id-loc))
+	    (error "Can't find remote table \"%s\"" name-or-id))
+	  (setq buffer (marker-buffer id-loc)
+		loc (marker-position id-loc))
+	  (move-marker id-loc nil))))
+    (with-current-buffer buffer
+      (save-excursion
+	(goto-char loc)
+	(forward-char 1)
+	(unless (and (re-search-forward "^\\(\\*+ \\)\\|[ \t]*|" nil t)
+		     (not (match-beginning 1)))
+	  (user-error "Cannot find a table at NAME or ID %s" name-or-id))
+	(org-table-to-lisp)))))
 
 (defun orgtbl-get-header-distant-table (table &optional asstring)
   "Return the header of TABLE as a list, or as a string if

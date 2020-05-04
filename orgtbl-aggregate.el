@@ -93,13 +93,9 @@
   (interactive)
   (let ((tables))
     (save-excursion
-      (save-restriction
-	(widen)
-	(goto-char (point-min))
-	(while (re-search-forward "^[ \t]*#\\+\\(tbl\\)?name:[ \t]*\\(.*\\)" nil t)
-	  (let ((text (match-string 2)))
-	    (set-text-properties 0 (length text) () text)
-	    (setq tables (cons text tables))))))
+      (goto-char (point-min))
+      (while (re-search-forward "^[ \t]*#\\+\\(tbl\\)?name:[ \t]*\\(.*\\)" nil t)
+	(push (match-string-no-properties 2) tables)))
     tables))
 
 (defun orgtbl-get-distant-table (name-or-id)

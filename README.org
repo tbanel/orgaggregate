@@ -686,6 +686,24 @@ have empty values at different locations, then they should be
 interpreted as zero with the =NE= modifier, otherwise the result will
 be inconsistent.
 
+Sometimes an input table may be malformed, with incomplete rows, like
+this one:
+
+#+BEGIN_EXAMPLE
+| Color | Level | Quantity | Day       |
+|-------+-------+----------+-----------|
+| Red   |    30 |       11 | Monday    |
+| Blue  |    25 |        3 | Monday    |
+|
+| Blue  |    33 |       18 | Tuesday   |
+| Red   |    27 |
+| Blue  |    12 |       16 | Wednesday |
+| Blue  |    15 |       15 |
+|
+#+END_EXAMPLE
+
+Missing cells are handled as though they were empty.
+
 * (Almost) any expression can be specified
 
 Virtually any Calc formula can be specified as an aggregation formula.
@@ -873,6 +891,7 @@ Contributors
 - Support quoting of column names, like "a.b" or 'c/d'
 - Disable =\_{}= escape
 - =#.NAME:= inside =#.BEGIN:= survives
+- missing input cells handled as empty ones
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  Thierry Banel

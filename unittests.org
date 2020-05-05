@@ -18,18 +18,36 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Running all the tests should not change anything to this page.
 
+Old resulting tables can be cleaned prior to running tests
+this is optional
+#+begin_src elisp :results none
+(save-excursion
+  (goto-char (point-min))
+  (replace-regexp
+   (rx (group bol "#+BEGIN" (* any) "\n")
+       (* "|" (* any) "\n"))
+   "\\1"))
+#+end_src
+
 All pull-mode tests can be re-computed at once by executing:
+#+begin_src elisp :results none
 (let ((org-calc-default-modes
        (cons 'calc-float-format (cons '(float 12) org-calc-default-modes))))
   (org-update-all-dblocks))
+#+end_src
 
 All push-mode tests can be re-computed at once by executing:
+#+begin_src elisp :results none
 (let ((org-calc-default-modes
        (cons 'calc-float-format (cons '(float 12) org-calc-default-modes))))
   (org-table-map-tables
     (lambda ()
-      (org-table-align)
-      (orgtbl-send-table 'maybe))))
+      (when (save-excursion
+	      (forward-line -1)
+	      (looking-at-p (rx (or "#+begin" "#+orgtbl"))))
+	(org-table-align)
+	(orgtbl-send-table 'maybe)))))
+#+end_src
 
 * Test PUSH
 Push = source table drives computation of aggregated tables.
@@ -805,4 +823,38 @@ In a :cond lisp formula, only double quotes work.
 | first column      |   | a/experiment | a/experiment | a/experiment | b/test | b/test | b/test | zero |
 | computed/expected |   |          2.4 |         12.1 |          6.9 |    0.0 |    3.4 |    2.9 |    0 |
 | observed;number   |   |          2.3 |         15.4 |          8.2 |  -98.7 |    4.5 |    2.2 |    0 |
+#+END:
+* Test malformed tables
+Some columns are missing in some rows
+This is on purpose
+orgaggregate should tolerate such tables
+Missing cells are handled as though they were empty
+
+#+NAME: malformed
+| Color | Level | Quantity | Day       |
+|-------+-------+----------+-----------|
+| Red   |    30 |       11 | Monday    |
+| Blue  |    25 |        3 | Monday    |
+|
+| Red   |    45 |       15 | Tuesday   |
+| Blue  |    33 |       18 | Tuesday   |
+| Red   |    27 |
+| Blue  |    12 |       16 | Wednesday |
+| Blue  |    15 |       15 |
+| Red   |    39 |       24 | Thursday  |
+| Red   |    41 |       29 | Thursday  |
+| Red   |    49 |       30 | Thursday  |
+| Blue  |     7 |        5 | Friday    |
+| Blue  |     6 |
+| Blue  |    11 |        9 | Friday    |
+
+#+BEGIN: aggregate :table "malformed" :cols "Day count() sum(Quantity)"
+| Day       | count() | sum(Quantity) |
+|-----------+---------+---------------|
+| Monday    |       2 |            14 |
+|           |       4 |            15 |
+| Tuesday   |       2 |            33 |
+| Wednesday |       1 |            16 |
+| Thursday  |       3 |            83 |
+| Friday    |       2 |            14 |
 #+END:

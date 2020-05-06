@@ -686,6 +686,24 @@ have empty values at different locations, then they should be
 interpreted as zero with the =NE= modifier, otherwise the result will
 be inconsistent.
 
+Sometimes an input table may be malformed, with incomplete rows, like
+this one:
+
+#+BEGIN_EXAMPLE
+| Color | Level | Quantity | Day       |
+|-------+-------+----------+-----------|
+| Red   |    30 |       11 | Monday    |
+| Blue  |    25 |        3 | Monday    |
+|
+| Blue  |    33 |       18 | Tuesday   |
+| Red   |    27 |
+| Blue  |    12 |       16 | Wednesday |
+| Blue  |    15 |       15 |
+|
+#+END_EXAMPLE
+
+Missing cells are handled as though they were empty.
+
 * (Almost) any expression can be specified
 
 Virtually any Calc formula can be specified as an aggregation formula.
@@ -818,6 +836,50 @@ just exchange the =#+NAME:= and =#+BEGIN:= lines:
 The =#.NAME:= line will survive when recomputing the aggregation (as
 =#.TBLFM:= line survives)
 
+* Speeding up
+If you feel that orgaggregate is slow, then you may back-port an
+optimization which appeared in version =9.4= of Org Mode. To know
+which version you are using, execute:
+
+#+begin_src elisp
+(org-release)
+#+end_src
+
+Load this bit of Lisp:
+
+#+begin_src elisp
+(defun org-table-to-lisp (&optional txt)
+  "Convert the table at point to a Lisp structure.
+
+The structure will be a list.  Each item is either the symbol `hline'
+for a horizontal separator line, or a list of field values as strings.
+The table is taken from the parameter TXT, or from the buffer at point."
+  (if txt
+      (with-temp-buffer
+        (insert txt)
+        (goto-char (point-min))
+        (org-table-to-lisp))
+    (save-excursion
+      (goto-char (org-table-begin))
+      (let ((table nil))
+        (while (re-search-forward "\\=[ \t]*|" nil t)
+	  (let ((row nil))
+	    (if (looking-at "-")
+		(push 'hline table)
+	      (while (not (progn (skip-chars-forward " \t") (eolp)))
+		(push (buffer-substring-no-properties
+		       (point)
+		       (progn (re-search-forward "[ \t]*\\(|\\|$\\)")
+			      (match-beginning 0)))
+		      row))
+	      (push (nreverse row) table)))
+	  (forward-line))
+        (nreverse table)))))
+#+end_src
+
+The optimization is relevant for input tables of hundreds or thousands
+of rows.
+
 * Installation
 
 Emacs package on Melpa: add the following lines to your =.emacs= file, and reload it.
@@ -873,6 +935,8 @@ Contributors
 - Support quoting of column names, like "a.b" or 'c/d'
 - Disable =\_{}= escape
 - =#.NAME:= inside =#.BEGIN:= survives
+- missing input cells handled as empty ones
+- back-port Org Mode =9.4= speed up
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  Thierry Banel

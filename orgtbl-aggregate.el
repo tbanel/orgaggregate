@@ -315,20 +315,27 @@ containing this single ROW."
 
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
-  (or (org-time-string-to-calc expr)
-      (cond
-       ;; empty cell returned as nil,
-       ;; to be processed later depending on modifier flags
-       ((equal expr "") nil)
-       ;; the purely numerical cell case arises very often
-       ;; short-circuiting general functions boosts performance (a lot)
-       ((string-match "^[+-]?[0-9]*\.[0-9]\\(e[+-]?[0-9]+\\)?$" expr)
-	(math-read-number expr))
-       ;; generic case: symbolic expression
-       (t
-	(math-simplify
-	 (calcFunc-expand
-	  (math-read-expr expr)))))))
+  (let (date)
+    (cond
+     ;; nil happens when a table is malformed
+     ;; some columns are missing in some rows
+     ((not expr)
+      nil)
+     ;; empty cell returned as nil,
+     ;; to be processed later depending on modifier flags
+     ((equal expr "") nil)
+     ;; the purely numerical cell case arises very often
+     ;; short-circuiting general functions boosts performance (a lot)
+     ((string-match "^[+-]?[0-9]*\.[0-9]\\(e[+-]?[0-9]+\\)?$" expr)
+      (math-read-number expr))
+     ;; a date
+     ((setq date (org-time-string-to-calc expr))
+      date)
+     ;; generic case: symbolic calc expression
+     (t
+      (math-simplify
+       (calcFunc-expand
+	(math-read-expr expr)))))))
 
 (defvar orgtbl-aggregate-variable-table)
 (defvar orgtbl-aggregate-variable-group)

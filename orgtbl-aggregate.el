@@ -288,11 +288,11 @@ is a Calc expression, nil is returned."
 	table
 	t)))
 
-(defun orgtbl-to-aggregated-table-compare-rows (row1 row2 keycols)
+(defmacro orgtbl-to-aggregated-table-compare-rows (row1 row2 keycols)
   "Are two rows from the source table equal regarding the
 aggregation columns ?"
-  (cl-loop for i in keycols
-	   always (or (not i) (equal (nth i row1) (nth i row2)))))
+  `(cl-loop for i in ,keycols
+	   always (or (not i) (equal (nth i ,row1) (nth i ,row2)))))
 
 (defun orgtbl-to-aggregated-table-add-group (groups row keycols aggcond)
   "Add the source ROW to the GROUPS of rows.
@@ -359,6 +359,12 @@ function."
        "prod" "pvar" "sdev" "psdev" "corr" "cov" "pcov"
        "count"))
     (format "v%s" var))
+   ((member
+     var
+     '("vmean" "vmeane" "vgmean" "vhmean" "vmedian" "vsum" "vmin" "vmax"
+       "vprod" "vpvar" "vsdev" "vpsdev" "vcorr" "vcov" "vpcov"
+       "vcount"))
+    var)
    ;; compatibility: list(X) will be obsoleted for (X)
    ((equal var "list")
     "")
@@ -575,7 +581,7 @@ AGGCOND."
     ; split table into groups of rows
     (cl-loop for row in table
 	     do
-	     (cond ((equal row 'hline)
+	     (cond ((eq row 'hline)
 		    (setq b (1+ b)
 			  bs (number-to-string b)))
 		   ((listp row)

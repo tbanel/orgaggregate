@@ -93,13 +93,9 @@
   (interactive)
   (let ((tables))
     (save-excursion
-      (save-restriction
-	(widen)
-	(goto-char (point-min))
-	(while (re-search-forward "^[ \t]*#\\+\\(tbl\\)?name:[ \t]*\\(.*\\)" nil t)
-	  (let ((text (match-string 2)))
-	    (set-text-properties 0 (length text) () text)
-	    (setq tables (cons text tables))))))
+      (goto-char (point-min))
+      (while (re-search-forward "^[ \t]*#\\+\\(tbl\\)?name:[ \t]*\\(.*\\)" nil t)
+	(push (match-string-no-properties 2) tables)))
     tables))
 
 (defun orgtbl-get-distant-table (name-or-id)
@@ -108,35 +104,30 @@ and returns it as a lisp list of lists.
 An horizontal line is translated as the special symbol `hline'."
   (unless (stringp name-or-id)
     (setq name-or-id (format "%s" name-or-id)))
-  (let (buffer loc id-loc tbeg form)
+  (let (buffer loc)
     (save-excursion
-      (save-restriction
-	(widen)
-	(save-excursion
-	  (goto-char (point-min))
-	  (if (re-search-forward
-	       (concat "^[ \t]*#\\+\\(tbl\\)?name:[ \t]*"
-		       (regexp-quote name-or-id)
-		       "[ \t]*$")
-	       nil t)
-	      (setq buffer (current-buffer) loc (match-beginning 0))
-	    (setq id-loc (org-id-find name-or-id 'marker))
-	    (unless (and id-loc (markerp id-loc))
-	      (error "Can't find remote table \"%s\"" name-or-id))
-	    (setq buffer (marker-buffer id-loc)
-		  loc (marker-position id-loc))
-	    (move-marker id-loc nil)))
-	(with-current-buffer buffer
-	  (save-excursion
-	    (save-restriction
-	      (widen)
-	      (goto-char loc)
-	      (forward-char 1)
-	      (unless (and (re-search-forward "^\\(\\*+ \\)\\|[ \t]*|" nil t)
-			   (not (match-beginning 1)))
-		(user-error "Cannot find a table at NAME or ID %s" name-or-id))
-	      (setq tbeg (point-at-bol))
-	      (org-table-to-lisp))))))))
+      (goto-char (point-min))
+      (if (re-search-forward
+	   (concat "^[ \t]*#\\+\\(tbl\\)?name:[ \t]*"
+		   (regexp-quote name-or-id)
+		   "[ \t]*$")
+	   nil t)
+	  (setq buffer (current-buffer)
+		loc (match-beginning 0))
+	(let ((id-loc (org-id-find name-or-id 'marker)))
+	  (unless (and id-loc (markerp id-loc))
+	    (error "Can't find remote table \"%s\"" name-or-id))
+	  (setq buffer (marker-buffer id-loc)
+		loc (marker-position id-loc))
+	  (move-marker id-loc nil))))
+    (with-current-buffer buffer
+      (save-excursion
+	(goto-char loc)
+	(forward-char 1)
+	(unless (and (re-search-forward "^\\(\\*+ \\)\\|[ \t]*|" nil t)
+		     (not (match-beginning 1)))
+	  (user-error "Cannot find a table at NAME or ID %s" name-or-id))
+	(org-table-to-lisp)))))
 
 (defun orgtbl-get-header-distant-table (table &optional asstring)
   "Return the header of TABLE as a list, or as a string if
@@ -149,16 +140,14 @@ names which are not fully alphanumeric are quoted."
     (setq table (cdr table)))
   (let ((header
 	 (if (memq 'hline table)
-	     (mapcar (lambda (x)
-		       (if (string-match "^[[:word:]0-9_$]+$" x)
-			   x
-			 (format "\"%s\"" x)))
-		     (car table))
-	   (let ((i 0))
-	     (mapcar (lambda (x)
-		       (setq i (1+ i))
-		       (format "$%s" i))
-		     (car table))))))
+	     (cl-loop for x in (car table)
+		      collect
+		      (if (string-match "^[[:word:]0-9_$]+$" x)
+			  x
+			(format "\"%s\"" x)))
+	   (cl-loop for x in (car table)
+		    for i from 1
+		    collect (format "$%s" i)))))
     (if asstring
 	(mapconcat #'identity header " ")
       header)))
@@ -168,16 +157,15 @@ names which are not fully alphanumeric are quoted."
 into the current buffer, at the point location.
 The list may contain the special symbol 'hline
 to mean an horizontal line."
-  (mapc (lambda (row)
-	  (cond ((consp row)
-		 (mapc (lambda (field)
-			 (insert "| " (or field "")))
-		       row))
-		((eq row 'hline)
-		 (insert "|-"))
-		(t (error "bad row in elisp table")))
-	  (insert "\n"))
-	table)
+  (cl-loop for row in table
+	   do
+	   (cond ((consp row)
+		  (cl-loop for field in row
+			   do (insert "| " (or field "")))
+		  (insert "\n"))
+		 ((eq row 'hline)
+		  (insert "|-\n"))
+		 (t (error "bad row in elisp table"))))
   (delete-char -1)
   (org-table-align))
 
@@ -259,21 +247,16 @@ otherwise nil is returned."
 	   (if (<= n (length (car table)))
 	       n
 	     (if err
-		 (user-error "Column %s outside table" colname)
-	       nil))))
+		 (user-error "Column %s outside table" colname)))))
 	(t
-	 (let ((i 0)
-	       (j ()))
-	   (mapc (lambda (h)
-		   (setq i (1+ i))
-		   (if (equal h colname)
-		       (setq j i)))
-		 (car table))
-	   (and
-	    (not j)
-	    err
-	    (user-error "Column %s not found in table" colname))
-	   j))))
+	 (or
+	  (cl-loop
+	   for h in (car table)
+	   for i from 1
+	   thereis (and (equal h colname) i))
+	  (and
+	   err
+	   (user-error "Column %s not found in table" colname))))))
 
 (defun orgtbl-to-aggregated-replace-colnames (table expression)
   "Replace occurrences of column names in lisp EXPRESSION with
@@ -282,9 +265,9 @@ so, the EXPRESSION is ready to be computed against a table row."
   (cond
    ((listp expression)
     (cons (car expression)
-	  (mapcar (lambda (x)
-		    (orgtbl-to-aggregated-replace-colnames table x))
-		  (cdr expression))))
+	  (cl-loop for x in (cdr expression)
+		   collect
+		   (orgtbl-to-aggregated-replace-colnames table x))))
    ((numberp expression)
     expression)
    (t
@@ -305,39 +288,30 @@ is a Calc expression, nil is returned."
 	table
 	t)))
 
-(defun orgtbl-to-aggregated-table-compare-rows (row1 row2 keycols)
+(defmacro orgtbl-to-aggregated-table-compare-rows (row1 row2 keycols)
   "Are two rows from the source table equal regarding the
 aggregation columns ?"
-  (let ((ok t))
-    (mapc (lambda (i)
-	    (and ok
-		 i
-		 (not (equal (nth i row1) (nth i row2)))
-		 (setq ok nil)))
-	  keycols)
-    ok))
+  `(cl-loop for i in ,keycols
+	   always (or (not i) (equal (nth i ,row1) (nth i ,row2)))))
 
 (defun orgtbl-to-aggregated-table-add-group (groups row keycols aggcond)
   "Add the source ROW to the GROUPS of rows.
 If ROW fits a group within GROUPS, then it is added at the end
 of this group. Otherwise a new group is added at the end of GROUPS,
 containing this single ROW."
-  (if (or (not aggcond)
-	  (eval aggcond)) ;; this eval need the variable 'row to have a value
-      (let ((found))
-	(mapc (lambda (g)
-		(when (and (not found)
-			   (orgtbl-to-aggregated-table-compare-rows
-			    (car (-appendable-list-get g))
-			    row
-			    keycols))
+  (and (or (not aggcond)
+	   (eval aggcond)) ;; this eval need the variable 'row to have a value
+       (cl-loop for g in (-appendable-list-get groups)
+		never
+		(when (orgtbl-to-aggregated-table-compare-rows
+		       (car (-appendable-list-get g))
+		       row
+		       keycols)
 		  (-appendable-list-append g row)
-		  (setq found t)))
-	      (-appendable-list-get groups))
-	(unless found
-	  (let ((g (-appendable-list-create)))
-	    (-appendable-list-append g row)
-	    (-appendable-list-append groups g))))))
+		  t))
+       (let ((g (-appendable-list-create)))
+	 (-appendable-list-append g row)
+	 (-appendable-list-append groups g))))
 
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
@@ -385,6 +359,12 @@ function."
        "prod" "pvar" "sdev" "psdev" "corr" "cov" "pcov"
        "count"))
     (format "v%s" var))
+   ((member
+     var
+     '("vmean" "vmeane" "vgmean" "vhmean" "vmedian" "vsum" "vmin" "vmax"
+       "vprod" "vpvar" "vsdev" "vpsdev" "vcorr" "vcov" "vpcov"
+       "vcount"))
+    var)
    ;; compatibility: list(X) will be obsoleted for (X)
    ((equal var "list")
     "")
@@ -398,11 +378,12 @@ function."
 	      (unless (aref orgtbl-aggregate-variable-lists i)
 		(aset orgtbl-aggregate-variable-lists i
 		      (cons 'vec
-			    (mapcar (lambda (row)
-				      (orgtbl-aggregate-read-calc-expr
-				       (nth i row)))
-				    (-appendable-list-get
-				     orgtbl-aggregate-variable-group)))))
+			    (cl-loop for row in
+				     (-appendable-list-get
+				      orgtbl-aggregate-variable-group)
+				     collect
+				     (orgtbl-aggregate-read-calc-expr
+				      (nth i row))))))
 	      (format "$%s" i))
 	  var))))))
 
@@ -414,19 +395,19 @@ been evaluated."
   ;; inactivating math-read-preprocess-string boosts performance
   (cl-letf (((symbol-function 'math-read-preprocess-string) #'identity))
     (let ((lists (make-vector (1+ (length (car table))) nil)))
-      (mapcar
-       (lambda (colspec)
-	 (if (or (string-match "^\\([[:word:]0-9_$]+\\)$" colspec)
-		 (string-match "^'\\(.*\\)'$" colspec)
-		 (string-match "^\"\\(.*\\)\"$" colspec))
-	     ;; just a bare word, it is a key column
-	     (nth (orgtbl-to-aggregated-table-colname-to-int
-		   (match-string 1 colspec)
-		   table)
-		  (car (-appendable-list-get group))) ; any row in group will do
+      (cl-loop
+       for colspec in aggcols
+       collect
+       (if (or (string-match "^\\([[:word:]0-9_$]+\\)$" colspec)
+	       (string-match "^'\\(.*\\)'$" colspec)
+	       (string-match "^\"\\(.*\\)\"$" colspec))
+	   ;; just a bare word, it is a key column
+	   (nth (orgtbl-to-aggregated-table-colname-to-int
+		 (match-string 1 colspec)
+		 table)
+		(car (-appendable-list-get group))) ; any row in group will do
 	   ; otherwise it is a Calc aggregation expression
-	   (orgtbl-to-aggregated-table-do-one-sum colspec group lists table)))
-       aggcols))))
+	 (orgtbl-to-aggregated-table-do-one-sum colspec group lists table))))))
 
 (defun orgtbl-to-aggregated-table-do-one-sum (formula group lists table)
   (string-match "^\\(.*?\\)\\(;\\([^;']*\\)\\)?$" formula)
@@ -497,7 +478,10 @@ been evaluated."
 	  (orgtbl-aggregate-variable-lists lists))
       (setq expression
 	    (replace-regexp-in-string
-	     "\\('[^']*'\\)\\|\\(\"[^\"]*\"\\)\\|\\(\\<[[:word:]]+\\>\\)"
+	     (rx (or
+		  (group ?'  (* (not ?' )) ?')
+		  (group ?\" (* (not ?\")) ?\")
+		  (group bow (+ word)      eow)))
 	     'orgtbl-to-aggregated-table-collect-list
 	     expression)))
     (setq expression
@@ -515,20 +499,21 @@ been evaluated."
 	    (calc-dollar-used 0))
 	(setq
 	 calc-dollar-values
-	 (mapcar
-	  (lambda (ls)
+	 (cl-loop
+	  for ls in calc-dollar-values
+	  collect
+	  (progn
 	    (if (memq nil ls)
 		(setq
 		 ls
 		 (if keep-empty
-		     (mapcar (lambda (x) (or x '(var nan var-nan))) ls)
-		   (cl-mapcan (lambda (x) (if x (list x))) ls))))
+		     (cl-loop for x in ls collect (or x '(var nan var-nan)))
+		   (cl-loop for x in ls nconc (if x (list x))))))
 	    (if numbers
 		(cons (car ls)
-		      (mapcar (lambda (x) (if (math-numberp x) x 0))
-			      (cdr ls)))
-	      ls))
-	  calc-dollar-values))
+		      (cl-loop for x in (cdr ls)
+			       collect (if (math-numberp x) x 0)))
+	      ls))))
 	(let ((ev
 	       (math-format-value
 		(math-simplify
@@ -553,7 +538,11 @@ double quotes and the other way around"
       (setq start (match-end 0))
       (while (and (< start l)
 		  (string-match
-		   "[^ '\"]*\\(\\(\\('[^']*'\\)\\|\\(\"[^\"]*\"\\)\\)[^ '\"]*\\)*"
+		   (rx (* (not (any " '\"")))
+		       (* (or
+			   (group ?'  (* (not ?'))  ?' )
+			   (group ?\" (* (not ?\")) ?\"))
+			  (* (not (any " '\"")))))
 		   string start))
 	(-appendable-list-append result (match-string 0 string))
 	(setq start (match-end 0))
@@ -576,10 +565,9 @@ AGGCOND."
   ;; set to t by orgtbl-to-aggregated-table-colname-to-int
   (let ((groups (-appendable-list-create))
 	(keycols
-	 (mapcar
-	  (lambda (column)
-	    (orgtbl-to-aggregated-table-parse-spec column table))
-	  aggcols))
+	 (cl-loop for column in aggcols
+		  collect
+		  (orgtbl-to-aggregated-table-parse-spec column table)))
 	(b 0)
 	(bs "0")
 	(origtable)
@@ -591,23 +579,22 @@ AGGCOND."
     (if (memq 'hline table)
 	(setq table (cdr (memq 'hline table))))
     ; split table into groups of rows
-    (mapc (lambda (row)
-	    (cond ((equal row 'hline)
-		   (setq b (1+ b)
-			 bs (number-to-string b)))
-		  ((listp row)
-		   (orgtbl-to-aggregated-table-add-group
-		    groups
-		    (cons bs row)
-		    keycols
-		    aggcond))))
-	  table)
+    (cl-loop for row in table
+	     do
+	     (cond ((eq row 'hline)
+		    (setq b (1+ b)
+			  bs (number-to-string b)))
+		   ((listp row)
+		    (orgtbl-to-aggregated-table-add-group
+		     groups
+		     (cons bs row)
+		     keycols
+		     aggcond))))
     ; do the aggregations for each group of rows
     (setq newtable
-	  (mapcar
-	   (lambda (group)
-	     (orgtbl-to-aggregated-table-do-sums group aggcols origtable))
-	   (-appendable-list-get groups)))
+	  (cl-loop for group in (-appendable-list-get groups)
+		   collect
+		   (orgtbl-to-aggregated-table-do-sums group aggcols origtable)))
     (cons aggcols (cons 'hline newtable))))
 
 ;; aggregation in Push mode
@@ -846,42 +833,38 @@ If AGGCOND is nil, all source rows are taken"
       (setq cols (split-string-with-quotes cols)))
   (setq cols
         (if cols
-            (mapcar
-             (lambda (column)
-	       (orgtbl-to-aggregated-table-colname-to-int column table t))
-             cols)
-          (let ((n 0)
-		(head table))
+	    (cl-loop for column in cols
+		     collect
+		     (orgtbl-to-aggregated-table-colname-to-int column table t))
+          (let ((head table))
 	    (while (eq (car head) 'hline)
 	      (setq head (cdr head)))
-            (mapcar
-	     (lambda (x) (setq n (1+ n)))
-	     (car head)))))
+	    (cl-loop for x in (car head)
+		     for i from 1
+		     collect i))))
   (if aggcond
       (setq aggcond (orgtbl-to-aggregated-replace-colnames table aggcond)))
-  (let ((result (mapcar (lambda (x) (list t)) cols))
+  (let ((result (cl-loop for x in cols collect (list t)))
         (nhline 0))
-    (mapc
-     (lambda (row)
-       (if (eq row 'hline)
-	   (setq nhline (1+ nhline))
-	 (setq row (cons nhline row)))
-       (when (or (eq row 'hline) (not aggcond) (eval aggcond))
-	 (let ((r result))
-	   (mapc
-	    (lambda (spec)
-	      (nconc (pop r) (list (if (eq row 'hline) "" (nth spec row)))))
-	    cols))))
-     table)
-    (mapcar
-     (lambda (row)
-       (pop row)
-       (let ((empty t))
-         (mapc
-	  (lambda (x) (if (equal "" x) () (setq empty nil)))
-	  row)
-         (if empty 'hline row)))
-     result)))
+    (cl-loop for row in table
+	     do
+	     (if (eq row 'hline)
+		 (setq nhline (1+ nhline))
+	       (setq row (cons nhline row)))
+	     do
+	     (when (or (eq row 'hline) (not aggcond) (eval aggcond))
+	       (let ((r result))
+		 (cl-loop
+		  for spec in cols
+		  do
+		  (nconc (pop r) (list (if (eq row 'hline) "" (nth spec row))))))))
+    (cl-loop for row in result
+	     do (pop row)
+	     collect
+	     (if (cl-loop for x in row
+			  always (equal "" x))
+		 'hline
+	       row))))
 
 ;;;###autoload
 (defun orgtbl-to-transposed-table (table params)

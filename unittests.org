@@ -45,7 +45,6 @@ All push-mode tests can be re-computed at once by executing:
       (when (save-excursion
 	      (forward-line -1)
 	      (looking-at-p (rx (or "#+begin" "#+orgtbl"))))
-	(org-table-align)
 	(orgtbl-send-table 'maybe)))))
 #+end_src
 

@@ -330,13 +330,7 @@ is a Calc expression, nil is returned."
 	table
 	t)))
 
-(defmacro orgtbl-to-aggregated-table-compare-rows (row1 row2 keycols)
-  "Are two rows from the source table equal regarding the
-aggregation columns ?"
-  `(cl-loop for i in ,keycols
-	   always (or (not i) (equal (nth i ,row1) (nth i ,row2)))))
-
-(defun orgtbl-to-aggregated-table-add-group (groups hgroups row keycols aggcond)
+(defun orgtbl-to-aggregated-table-add-group (groups hgroups row aggcond)
   "Add the source ROW to the GROUPS of rows.
 If ROW fits a group within GROUPS, then it is added at the end
 of this group. Otherwise a new group is added at the end of GROUPS,
@@ -350,18 +344,6 @@ containing this single ROW."
 	   (puthash row gr hgroups)
 	   (-appendable-list-append gr row)
 	   (-appendable-list-append groups gr)))))
-
-;;       (cl-loop for g in (-appendable-list-get groups)
-;;		never
-;;		(when (orgtbl-to-aggregated-table-compare-rows
-;;		       (car (-appendable-list-get g))
-;;		       row
-;;		       keycols)
-;;		  (-appendable-list-append g row)
-;;		  t))
-;;       (let ((g (-appendable-list-create)))
-;;	 (-appendable-list-append g row)
-;;	 (-appendable-list-append groups g))))
 
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
@@ -602,18 +584,18 @@ double quotes and the other way around"
     (cdr result)))
 
 (defun orgtbl-aggregate-hash-test-equal (row1 row2)
-  (orgtbl-to-aggregated-table-compare-rows
-   row1 row2
-   keycols)) ;; keycols provided by (orgtbl-create-table-aggregated)
+  "Are two rows from the source table equal regarding the
+aggregation columns ?"
+  (cl-loop for idx in keycols ;; keycols provided by (orgtbl-create-table-aggregated)
+	   always (string= (nth idx row1) (nth idx row2))))
 
 (defun orgtbl-aggregate-hash-test-hash (row)
   (let ((h 45235))
     ;; keycols provided by (orgtbl-create-table-aggregated)
-    (cl-loop for i in keycols
+    (cl-loop for idx in keycols
 	     do
-	     (if i
-		 (cl-loop for c across (nth i row)
-			  do (setq h (% (* (+ h c) 7777) 76534561)))))
+	     (cl-loop for c across (nth idx row)
+		      do (setq h (% (* (+ h c) 7777) 76534561))))
     h))
 
 (defun orgtbl-create-table-aggregated (table aggcols aggcond)
@@ -636,8 +618,8 @@ AGGCOND."
 	(hgroups (make-hash-table :test 'orgtbl-aggregate-hash-test-name))
 	(keycols ;; beware, needs dynamic binding as provided by (let)
 	 (cl-loop for column in aggcols
-		  collect ;; TODO: filter out nil, and remove tests to nil downstream
-		  (orgtbl-to-aggregated-table-parse-spec column table)))
+		  for idx = (orgtbl-to-aggregated-table-parse-spec column table)
+		  if idx collect idx))
 	(b 0)
 	(bs "0")
 	(origtable)
@@ -659,7 +641,6 @@ AGGCOND."
 		     groups
 		     hgroups
 		     (cons bs row)
-		     keycols
 		     aggcond))))
     ; do the aggregations for each group of rows
     (setq newtable

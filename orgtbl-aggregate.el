@@ -601,16 +601,15 @@ double quotes and the other way around"
 	))
     (cdr result)))
 
-;; list of indexes of key columns
-(setq orgtbl-aggregate-keycols nil)
-
 (defun orgtbl-aggregate-hash-test-equal (row1 row2)
   (orgtbl-to-aggregated-table-compare-rows
-   row1 row2 orgtbl-aggregate-keycols))
+   row1 row2
+   keycols)) ;; keycols provided by (orgtbl-create-table-aggregated)
 
 (defun orgtbl-aggregate-hash-test-hash (row)
   (let ((h 45235))
-    (cl-loop for i in orgtbl-aggregate-keycols
+    ;; keycols provided by (orgtbl-create-table-aggregated)
+    (cl-loop for i in keycols
 	     do
 	     (if i
 		 (cl-loop for c across (nth i row)
@@ -635,7 +634,7 @@ AGGCOND."
     'orgtbl-aggregate-hash-test-hash)
   (let ((groups (-appendable-list-create))
 	(hgroups (make-hash-table :test 'orgtbl-aggregate-hash-test-name))
-	(keycols
+	(keycols ;; beware, needs dynamic binding as provided by (let)
 	 (cl-loop for column in aggcols
 		  collect ;; TODO: filter out nil, and remove tests to nil downstream
 		  (orgtbl-to-aggregated-table-parse-spec column table)))
@@ -643,8 +642,6 @@ AGGCOND."
 	(bs "0")
 	(origtable)
 	(newtable))
-    ;; to pass to hashtable
-    (setq orgtbl-aggregate-keycols keycols)
     ;; remove headers
     (while (eq 'hline (car table))
       (setq table (cdr table)))

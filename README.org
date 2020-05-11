@@ -937,6 +937,8 @@ Contributors
 - =#.NAME:= inside =#.BEGIN:= survives
 - missing input cells handled as empty ones
 - back-port Org Mode =9.4= speed up
+- increase performance when inserting result into the buffer
+- aligned output in push mode
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  Thierry Banel

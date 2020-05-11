@@ -595,8 +595,13 @@ aggregation columns ?"
     (cl-loop for idx in keycols
 	     do
 	     (cl-loop for c across (nth idx row)
-		      do (setq h (% (* (+ h c) 7777) 76534561))))
+		      do (setq h (% (* (+ h c) 127) 4227323))))
     h))
+
+;; for hashes, try to stay within the 2^29 fixnums
+;; see (info "(elisp) Integer Basics")
+;; { prime_next 123 ==> 127 }
+;; { prime_prev ((2^29 - 256) / 127 ) ==> 4227323 }
 
 (defun orgtbl-create-table-aggregated (table aggcols aggcond)
   "Convert the source TABLE, which is a list of lists of cells,

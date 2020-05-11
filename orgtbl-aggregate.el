@@ -153,21 +153,63 @@ names which are not fully alphanumeric are quoted."
       header)))
 
 (defun orgtbl-insert-elisp-table (table)
-  "Insert TABLE, which is a lisp list of lists,
-into the current buffer, at the point location.
-The list may contain the special symbol 'hline
-to mean an horizontal line."
-  (cl-loop for row in table
-	   do
-	   (cond ((consp row)
-		  (cl-loop for field in row
-			   do (insert "| " (or field "")))
-		  (insert "\n"))
-		 ((eq row 'hline)
-		  (insert "|-\n"))
-		 (t (error "bad row in elisp table"))))
-  (delete-char -1)
-  (org-table-align))
+  "Insert TABLE in current buffer at point.
+TABLE is a list of lists of cells.  The list may contain the
+special symbol 'hline to mean an horizontal line."
+  (let* ((nbrows (length table))
+	 (nbcols (cl-loop
+		  for row in table
+		  maximize (if (listp row) (length row) 0)))
+	 (maxwidths  (make-list nbcols 1))
+	 (numbers    (make-list nbcols 0))
+	 (non-empty  (make-list nbcols 0)))
+    ;; remove text properties, compute maxwidths
+    (cl-loop for row in table
+	     do
+	     (cl-loop for cell on row
+		      for mx on maxwidths
+		      for nu on numbers
+		      for ne on non-empty
+		      do
+		      (progn
+			(setcar
+			 cell
+			 (substring-no-properties (or (car cell) "")))
+			(when (string-match-p org-table-number-regexp (car cell))
+			  (cl-incf (car nu)))
+			(unless (equal (car cell) "")
+			  (cl-incf (car ne)))
+			(if (< (car mx) (length (car cell)))
+			    (setcar mx (length (car cell)))))))
+    ;; pad cells with spaces to maxwidths,
+    ;; either left or right according to alignement
+    (cl-loop for row in table
+	     do
+	     (cl-loop for cell on row
+		      for mx in maxwidths
+		      for nu in numbers
+		      for ne in non-empty
+		      do
+		      (let ((pad (- mx (length (car cell)))))
+			(if (> pad 0)
+			    (setcar
+			     cell
+			     (if (< nu (* org-table-number-fraction ne))
+				 (concat (car cell) (make-string pad ? ))
+			       (concat (make-string pad ? ) (car cell))))))))
+    ;; inactivating jit-lock-after-change boosts performance a lot
+    (cl-letf (((symbol-function 'jit-lock-after-change) (lambda (a b c)) ))
+      ;; insert well padded and aligned cells at current buffer position
+      (cl-loop for row in table
+	       do
+	       (if (listp row)
+		   (cl-loop for cell in row
+			    do (insert "| " cell " "))
+		 (let ((bar "|"))
+		   (cl-loop for mx in maxwidths
+			    do (insert bar (make-string (+ mx 2) ?-))
+			    do (setq bar "+"))))
+	       (insert "|\n")))))
 
 (defun org-time-string-to-calc (orgdate)
   "Convert a string in Org-date format to Calc internal representation
@@ -680,14 +722,14 @@ Note:
  To use the 'pull' mode, look at the org-dblock-write:aggregate function.
 "
   (interactive)
-  (orgtbl-to-generic
-   (orgtbl-create-table-aggregated
-    table
-    (plist-get params :cols)
-    (plist-get params :cond))
-   (org-combine-plists
-    (list :sep "|" :hline "|-" :lstart "|" :lend "|")
-    params)))
+  (let ((aggregated-table
+	 (orgtbl-create-table-aggregated
+	  table
+	  (plist-get params :cols)
+	  (plist-get params :cond))))
+    (with-temp-buffer
+      (orgtbl-insert-elisp-table aggregated-table)
+      (buffer-substring-no-properties (point-min) (1- (point-max))))))
 
 ;; aggregation in Pull mode
 
@@ -775,6 +817,7 @@ Note:
       (orgtbl-get-distant-table (plist-get params :table))
       (plist-get params :cols)
       (plist-get params :cond)))
+    (delete-char -1) ;; remove trailing \n which Org Mode will add again
     (when (and content
 	       (string-match "^[ \t]*\\(#\\+tblfm:.*\\)" content))
       (setq tblfm (match-string 1 content)))
@@ -918,14 +961,14 @@ Note:
  To use the 'pull' mode, look at the org-dblock-write:transpose function.
 "
   (interactive)
-  (orgtbl-to-generic
-   (orgtbl-create-table-transposed
-    table
-    (plist-get params :cols)
-    (plist-get params :cond))
-   (org-combine-plists
-    (list :sep "|" :hline "|-" :lstart "|" :lend "|")
-    params)))
+  (let ((transposed-table
+	 (orgtbl-create-table-transposed
+	  table
+	  (plist-get params :cols)
+	  (plist-get params :cond))))
+    (with-temp-buffer
+      (orgtbl-insert-elisp-table transposed-table)
+      (buffer-substring-no-properties (point-min) (1- (point-max))))))
 
 ;;;###autoload
 (defun org-dblock-write:transpose (params)
@@ -983,6 +1026,7 @@ Note:
       (orgtbl-get-distant-table (plist-get params :table))
       (plist-get params :cols)
       (plist-get params :cond)))
+    (delete-char -1) ;; remove trailing \n which Org Mode will add again
     (when (and content
 	       (string-match "^[ \t]*\\(#\\+tblfm:.*\\)" content))
       (setq tblfm (match-string 1 content)))

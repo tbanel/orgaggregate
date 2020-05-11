@@ -336,24 +336,32 @@ aggregation columns ?"
   `(cl-loop for i in ,keycols
 	   always (or (not i) (equal (nth i ,row1) (nth i ,row2)))))
 
-(defun orgtbl-to-aggregated-table-add-group (groups row keycols aggcond)
+(defun orgtbl-to-aggregated-table-add-group (groups hgroups row keycols aggcond)
   "Add the source ROW to the GROUPS of rows.
 If ROW fits a group within GROUPS, then it is added at the end
 of this group. Otherwise a new group is added at the end of GROUPS,
 containing this single ROW."
   (and (or (not aggcond)
 	   (eval aggcond)) ;; this eval need the variable 'row to have a value
-       (cl-loop for g in (-appendable-list-get groups)
-		never
-		(when (orgtbl-to-aggregated-table-compare-rows
-		       (car (-appendable-list-get g))
-		       row
-		       keycols)
-		  (-appendable-list-append g row)
-		  t))
-       (let ((g (-appendable-list-create)))
-	 (-appendable-list-append g row)
-	 (-appendable-list-append groups g))))
+       (let ((gr (gethash row hgroups)))
+	 (if gr
+	     (-appendable-list-append gr row)
+	   (setq gr (-appendable-list-create))
+	   (puthash row gr hgroups)
+	   (-appendable-list-append gr row)
+	   (-appendable-list-append groups gr)))))
+
+;;       (cl-loop for g in (-appendable-list-get groups)
+;;		never
+;;		(when (orgtbl-to-aggregated-table-compare-rows
+;;		       (car (-appendable-list-get g))
+;;		       row
+;;		       keycols)
+;;		  (-appendable-list-append g row)
+;;		  t))
+;;       (let ((g (-appendable-list-create)))
+;;	 (-appendable-list-append g row)
+;;	 (-appendable-list-append groups g))))
 
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
@@ -593,6 +601,22 @@ double quotes and the other way around"
 	))
     (cdr result)))
 
+;; list of indexes of key columns
+(setq orgtbl-aggregate-keycols nil)
+
+(defun orgtbl-aggregate-hash-test-equal (row1 row2)
+  (orgtbl-to-aggregated-table-compare-rows
+   row1 row2 orgtbl-aggregate-keycols))
+
+(defun orgtbl-aggregate-hash-test-hash (row)
+  (let ((h 45235))
+    (cl-loop for i in orgtbl-aggregate-keycols
+	     do
+	     (if i
+		 (cl-loop for c across (nth i row)
+			  do (setq h (% (* (+ h c) 7777) 76534561)))))
+    h))
+
 (defun orgtbl-create-table-aggregated (table aggcols aggcond)
   "Convert the source TABLE, which is a list of lists of cells,
 into an aggregated table compliant with the AGGCOLS columns
@@ -605,15 +629,22 @@ AGGCOND."
 	(setq aggcond (read aggcond)))
     (setq aggcond (orgtbl-to-aggregated-replace-colnames table aggcond)))
   ;; set to t by orgtbl-to-aggregated-table-colname-to-int
+  (define-hash-table-test
+    'orgtbl-aggregate-hash-test-name
+    'orgtbl-aggregate-hash-test-equal
+    'orgtbl-aggregate-hash-test-hash)
   (let ((groups (-appendable-list-create))
+	(hgroups (make-hash-table :test 'orgtbl-aggregate-hash-test-name))
 	(keycols
 	 (cl-loop for column in aggcols
-		  collect
+		  collect ;; TODO: filter out nil, and remove tests to nil downstream
 		  (orgtbl-to-aggregated-table-parse-spec column table)))
 	(b 0)
 	(bs "0")
 	(origtable)
 	(newtable))
+    ;; to pass to hashtable
+    (setq orgtbl-aggregate-keycols keycols)
     ;; remove headers
     (while (eq 'hline (car table))
       (setq table (cdr table)))
@@ -629,6 +660,7 @@ AGGCOND."
 		   ((listp row)
 		    (orgtbl-to-aggregated-table-add-group
 		     groups
+		     hgroups
 		     (cons bs row)
 		     keycols
 		     aggcond))))

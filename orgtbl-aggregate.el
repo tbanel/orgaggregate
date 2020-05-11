@@ -608,6 +608,8 @@ aggregation columns ?"
 into an aggregated table compliant with the AGGCOLS columns
 specifications, ignoring source rows which do not pass the
 AGGCOND."
+  (while (eq 'hline (car table))
+    (setq table (cdr table)))
   (if (stringp aggcols)
       (setq aggcols (split-string-with-quotes aggcols)))
   (when aggcond
@@ -626,17 +628,12 @@ AGGCOND."
 		  for idx = (orgtbl-to-aggregated-table-parse-spec column table)
 		  if idx collect idx))
 	(b 0)
-	(bs "0")
-	(origtable)
-	(newtable))
-    ;; remove headers
-    (while (eq 'hline (car table))
-      (setq table (cdr table)))
-    (setq origtable table)
-    (if (memq 'hline table)
-	(setq table (cdr (memq 'hline table))))
+	(bs "0"))
     ; split table into groups of rows
-    (cl-loop for row in table
+    (cl-loop for row in
+	     (if (memq 'hline table) ;; skip header if any
+		 (cdr (memq 'hline table))
+	       table)
 	     do
 	     (cond ((eq row 'hline)
 		    (setq b (1+ b)
@@ -648,11 +645,13 @@ AGGCOND."
 		     (cons bs row)
 		     aggcond))))
     ; do the aggregations for each group of rows
-    (setq newtable
-	  (cl-loop for group in (-appendable-list-get groups)
-		   collect
-		   (orgtbl-to-aggregated-table-do-sums group aggcols origtable)))
-    (cons aggcols (cons 'hline newtable))))
+    (cons
+     aggcols
+     (cons
+      'hline
+      (cl-loop for group in (-appendable-list-get groups)
+	       collect
+	       (orgtbl-to-aggregated-table-do-sums group aggcols table))))))
 
 ;; aggregation in Push mode
 

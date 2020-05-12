@@ -84,6 +84,40 @@
 ;;; Code:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; The function (org-table-to-lisp) have been greatly enhanced
+;; in Org Mode version 9.4
+;; To benefit from this speedup in older versions of Org Mode,
+;; this function is copied here with a slightly different name
+
+(defun org-table-to-lisp-9-4 (&optional txt)
+  "Convert the table at point to a Lisp structure.
+
+The structure will be a list.  Each item is either the symbol `hline'
+for a horizontal separator line, or a list of field values as strings.
+The table is taken from the parameter TXT, or from the buffer at point."
+  (if txt
+      (with-temp-buffer
+        (insert txt)
+        (goto-char (point-min))
+        (org-table-to-lisp-9-4))
+    (save-excursion
+      (goto-char (org-table-begin))
+      (let ((table nil))
+        (while (re-search-forward "\\=[ \t]*|" nil t)
+	  (let ((row nil))
+	    (if (looking-at "-")
+		(push 'hline table)
+	      (while (not (progn (skip-chars-forward " \t") (eolp)))
+		(push (buffer-substring-no-properties
+		       (point)
+		       (progn (re-search-forward "[ \t]*\\(|\\|$\\)")
+			      (match-beginning 0)))
+		      row))
+	      (push (nreverse row) table)))
+	  (forward-line))
+        (nreverse table)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Here is a bunch of useful utilities,
 ;; generic enough to be detached from the orgtbl-aggregate package.
 ;; For the time being, they are here.
@@ -127,7 +161,7 @@ An horizontal line is translated as the special symbol `hline'."
 	(unless (and (re-search-forward "^\\(\\*+ \\)\\|[ \t]*|" nil t)
 		     (not (match-beginning 1)))
 	  (user-error "Cannot find a table at NAME or ID %s" name-or-id))
-	(org-table-to-lisp)))))
+	(org-table-to-lisp-9-4)))))
 
 (defun orgtbl-get-header-distant-table (table &optional asstring)
   "Return the header of TABLE as a list, or as a string if

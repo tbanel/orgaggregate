@@ -8,6 +8,8 @@ averages, and so on, out of material from the first table.
 This is the third version, allowing non necessarily alphanumeric
 column names (they must be quoted).
 
+Optimization lead to significant speedups.
+
 * Examples
 A very simple example. We have a table of activities and quantities
 (whatever they are) over several days.
@@ -836,50 +838,6 @@ just exchange the =#+NAME:= and =#+BEGIN:= lines:
 The =#.NAME:= line will survive when recomputing the aggregation (as
 =#.TBLFM:= line survives)
 
-* Speeding up
-If you feel that orgaggregate is slow, then you may back-port an
-optimization which appeared in version =9.4= of Org Mode. To know
-which version you are using, execute:
-
-#+begin_src elisp
-(org-release)
-#+end_src
-
-Load this bit of Lisp:
-
-#+begin_src elisp
-(defun org-table-to-lisp (&optional txt)
-  "Convert the table at point to a Lisp structure.
-
-The structure will be a list.  Each item is either the symbol `hline'
-for a horizontal separator line, or a list of field values as strings.
-The table is taken from the parameter TXT, or from the buffer at point."
-  (if txt
-      (with-temp-buffer
-        (insert txt)
-        (goto-char (point-min))
-        (org-table-to-lisp))
-    (save-excursion
-      (goto-char (org-table-begin))
-      (let ((table nil))
-        (while (re-search-forward "\\=[ \t]*|" nil t)
-	  (let ((row nil))
-	    (if (looking-at "-")
-		(push 'hline table)
-	      (while (not (progn (skip-chars-forward " \t") (eolp)))
-		(push (buffer-substring-no-properties
-		       (point)
-		       (progn (re-search-forward "[ \t]*\\(|\\|$\\)")
-			      (match-beginning 0)))
-		      row))
-	      (push (nreverse row) table)))
-	  (forward-line))
-        (nreverse table)))))
-#+end_src
-
-The optimization is relevant for input tables of hundreds or thousands
-of rows.
-
 * Installation
 
 Emacs package on Melpa: add the following lines to your =.emacs= file, and reload it.
@@ -940,6 +898,7 @@ Contributors
 - increase performance when inserting result into the buffer
 - aligned output in push mode
 - added a hashtable to speedup aggregation
+- back-port org-table-to-lisp which is now much faster
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  Thierry Banel

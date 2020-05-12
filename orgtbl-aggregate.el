@@ -330,30 +330,20 @@ is a Calc expression, nil is returned."
 	table
 	t)))
 
-(defmacro orgtbl-to-aggregated-table-compare-rows (row1 row2 keycols)
-  "Are two rows from the source table equal regarding the
-aggregation columns ?"
-  `(cl-loop for i in ,keycols
-	   always (or (not i) (equal (nth i ,row1) (nth i ,row2)))))
-
-(defun orgtbl-to-aggregated-table-add-group (groups row keycols aggcond)
+(defun orgtbl-to-aggregated-table-add-group (groups hgroups row aggcond)
   "Add the source ROW to the GROUPS of rows.
 If ROW fits a group within GROUPS, then it is added at the end
 of this group. Otherwise a new group is added at the end of GROUPS,
 containing this single ROW."
   (and (or (not aggcond)
 	   (eval aggcond)) ;; this eval need the variable 'row to have a value
-       (cl-loop for g in (-appendable-list-get groups)
-		never
-		(when (orgtbl-to-aggregated-table-compare-rows
-		       (car (-appendable-list-get g))
-		       row
-		       keycols)
-		  (-appendable-list-append g row)
-		  t))
-       (let ((g (-appendable-list-create)))
-	 (-appendable-list-append g row)
-	 (-appendable-list-append groups g))))
+       (let ((gr (gethash row hgroups)))
+	 (if gr
+	     (-appendable-list-append gr row)
+	   (setq gr (-appendable-list-create))
+	   (puthash row gr hgroups)
+	   (-appendable-list-append gr row)
+	   (-appendable-list-append groups gr)))))
 
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
@@ -593,11 +583,33 @@ double quotes and the other way around"
 	))
     (cdr result)))
 
+(defun orgtbl-aggregate-hash-test-equal (row1 row2)
+  "Are two rows from the source table equal regarding the
+aggregation columns ?"
+  (cl-loop for idx in keycols ;; keycols provided by (orgtbl-create-table-aggregated)
+	   always (string= (nth idx row1) (nth idx row2))))
+
+(defun orgtbl-aggregate-hash-test-hash (row)
+  (let ((h 45235))
+    ;; keycols provided by (orgtbl-create-table-aggregated)
+    (cl-loop for idx in keycols
+	     do
+	     (cl-loop for c across (nth idx row)
+		      do (setq h (% (* (+ h c) 127) 4227323))))
+    h))
+
+;; for hashes, try to stay within the 2^29 fixnums
+;; see (info "(elisp) Integer Basics")
+;; { prime_next 123 ==> 127 }
+;; { prime_prev ((2^29 - 256) / 127 ) ==> 4227323 }
+
 (defun orgtbl-create-table-aggregated (table aggcols aggcond)
   "Convert the source TABLE, which is a list of lists of cells,
 into an aggregated table compliant with the AGGCOLS columns
 specifications, ignoring source rows which do not pass the
 AGGCOND."
+  (while (eq 'hline (car table))
+    (setq table (cdr table)))
   (if (stringp aggcols)
       (setq aggcols (split-string-with-quotes aggcols)))
   (when aggcond
@@ -605,23 +617,23 @@ AGGCOND."
 	(setq aggcond (read aggcond)))
     (setq aggcond (orgtbl-to-aggregated-replace-colnames table aggcond)))
   ;; set to t by orgtbl-to-aggregated-table-colname-to-int
+  (define-hash-table-test
+    'orgtbl-aggregate-hash-test-name
+    'orgtbl-aggregate-hash-test-equal
+    'orgtbl-aggregate-hash-test-hash)
   (let ((groups (-appendable-list-create))
-	(keycols
+	(hgroups (make-hash-table :test 'orgtbl-aggregate-hash-test-name))
+	(keycols ;; beware, needs dynamic binding as provided by (let)
 	 (cl-loop for column in aggcols
-		  collect
-		  (orgtbl-to-aggregated-table-parse-spec column table)))
+		  for idx = (orgtbl-to-aggregated-table-parse-spec column table)
+		  if idx collect idx))
 	(b 0)
-	(bs "0")
-	(origtable)
-	(newtable))
-    ;; remove headers
-    (while (eq 'hline (car table))
-      (setq table (cdr table)))
-    (setq origtable table)
-    (if (memq 'hline table)
-	(setq table (cdr (memq 'hline table))))
+	(bs "0"))
     ; split table into groups of rows
-    (cl-loop for row in table
+    (cl-loop for row in
+	     (if (memq 'hline table) ;; skip header if any
+		 (cdr (memq 'hline table))
+	       table)
 	     do
 	     (cond ((eq row 'hline)
 		    (setq b (1+ b)
@@ -629,15 +641,17 @@ AGGCOND."
 		   ((listp row)
 		    (orgtbl-to-aggregated-table-add-group
 		     groups
+		     hgroups
 		     (cons bs row)
-		     keycols
 		     aggcond))))
     ; do the aggregations for each group of rows
-    (setq newtable
-	  (cl-loop for group in (-appendable-list-get groups)
-		   collect
-		   (orgtbl-to-aggregated-table-do-sums group aggcols origtable)))
-    (cons aggcols (cons 'hline newtable))))
+    (cons
+     aggcols
+     (cons
+      'hline
+      (cl-loop for group in (-appendable-list-get groups)
+	       collect
+	       (orgtbl-to-aggregated-table-do-sums group aggcols table))))))
 
 ;; aggregation in Push mode
 

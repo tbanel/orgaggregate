@@ -34,7 +34,7 @@ A very simple example. We have a table of activities and quantities
 
 To begin with we want to gather all colors and count how many times
 they appear. We are interested only in the second column named
-"Color".
+="Color"=.
 
 First we give a name to the table through the =#+NAME:=
 or =#+TBLNAME:= tags, just above the table.
@@ -56,14 +56,14 @@ Now typing =C-c C-c= in the dynamic block counts the colors in the original tabl
 #+END:
 #+END_EXAMPLE
 
-Org found two colors, Red and Blue. It found 7 occurrences for
+Org found two colors, =Red= and =Blue=. It found 7 occurrences for
 each.
 
 Now we want to aggregate this table for each day (because several rows
 exist for each day). We want the average value of the Level column for
-each day, and the sum of the Quantity column. We write down the block
-specifying that (later we will see how to automate the creation of
-such a block):
+each day, and the sum of the =Quantity= column. We write down the
+block specifying that (later we will see how to automate the creation
+of such a block):
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
@@ -131,12 +131,12 @@ achieve a similar result:
 
 #+begin_src shell
 datamash -H -g Day mean Level sum Quantity <original.csv
-GroupBy(Day)	mean(Level)	sum(Quantity)
-Monday	27.5	14
-Tuesday	43	45
-Wednesday	18	54
-Thursday	43	83
-Friday	8	22
+GroupBy(Day)  mean(Level)  sum(Quantity)
+Monday        27.5         14
+Tuesday       43           45
+Wednesday     18           54
+Thursday      43           83
+Friday         8           22
 #+end_src
 
 * Key-binding & Wizard
@@ -154,7 +154,7 @@ create dynamic aggregate blocks by typing
 =M-x org-dblock-write:aggregate=.
 
 In the latest releases of Org Mode, there is a similar wizard (thanks
-to Kin stardiviner). Call it with =C-c C-x x=.
+to Kin Stardiviner). Call it with =C-c C-x x=.
 
 But beforehand, you must register the =orgtbl-aggregate= sub-wizard with it.
 To do so, type this somewhere (for instance into your =.emacs= file):
@@ -660,7 +660,7 @@ Examples:
 - =:cols= "=mean('estimated value')="
 - =:cond (equal "true color" "Red")=
 
-Note that in =:cond= lisp expression, only double quotes work. This is
+Note that in =:cond= Lisp expression, only double quotes work. This is
 because single quote in Lisp has a very special meaning.
 
 * Empty and malformed input cells
@@ -716,7 +716,7 @@ aggregation.
 For instance:
 #+BEGIN_EXAMPLE
 (3)                        ;; a constant
-vmean(2*X+1)               ;; aggregate a complex expression
+vmean(2*X+1)               ;; aggregate an expression
 exp(vmean(map(log,N)))     ;; the exponential average
 vsum((X-vmean(X))^2)       ;; X-vmean(X) centers the sample on zero
 #+END_EXAMPLE
@@ -736,7 +736,7 @@ would act as a key grouping column.
 
 * Modifiers and formatters
 An expression may optionally be followed by modifiers and formatters,
-after a semicolon.  Examples:
+after a semicolon. Examples:
 
 #+BEGIN_EXAMPLE
 vsum(X);p20    ;; increase Calc internal precision to 20 digits
@@ -917,7 +917,7 @@ Contributors
 - Dirk Schmitt, surviving =#.NAME:= line
 
 * Changes
-- Wizard now correctly ask for columns with =$1, $2...= names
+- Wizard now correctly asks for columns with =$1, $2...= names
   when table header is missing
 - Handle tables beginning with hlines
 - Handle non-ascii column names
@@ -939,6 +939,7 @@ Contributors
 - back-port Org Mode =9.4= speed up
 - increase performance when inserting result into the buffer
 - aligned output in push mode
+- added a hashtable to speedup aggregation
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  Thierry Banel

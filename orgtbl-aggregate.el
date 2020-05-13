@@ -719,23 +719,151 @@ AGGCOND."
 		     (cons bs row)
 		     aggcond))))
 
-    (let ((ttttt
-	   (cl-loop for column in aggcols
-		    collect
-		    (orgtbl-to-aggregated-replace-colnames-$ table column)
-		    )))
-      (setq aggcols ttttt)
-      (message "expressions = %s" ttttt))
+    ;; inactivating math-read-preprocess-string boosts performance
+    (cl-letf (((symbol-function 'math-read-preprocess-string) #'identity))
       
-    ; do the aggregations for each group of rows
-    (cons
-     aggcols
-     (cons
-      'hline
-      (cl-loop for group in (-appendable-list-get groups)
-	       collect
-	       (orgtbl-to-aggregated-table-do-sums group aggcols table))))))
+      ;; compute sums for each aggregation expression
+      (let ((result			;; pre-allocate all resulting rows
+	     (cl-loop for x in (-appendable-list-get groups)
+		      collect (-appendable-list-create))))
+	(cl-loop for column in aggcols
+		 for formula$ = (orgtbl-to-aggregated-replace-colnames-$ table column)
+		 do
+		 (compute-sums table groups result formula$))
+	(cl-loop for row in result
+		 collect (-appendable-list-get row))
+	))))
 
+(defun compute-sums (table groups result formula$)
+    (string-match "^\\(.*?\\)\\(;\\([^;']*\\)\\)?$" formula$)
+  ;; within this (let), we locally set Calc settings that must be active
+  ;; for the all the calls to Calc:
+  ;; (orgtbl-to-aggregated-table-collect-list) and (math-format-value)
+  (let ((expression (match-string 1 formula$))
+	(fmt        (match-string 3 formula$))
+	(calc-internal-prec (or (cadr (memq 'calc-internal-prec org-calc-default-modes)) calc-internal-prec))
+	(calc-float-format  (or (cadr (memq 'calc-float-format  org-calc-default-modes)) calc-float-format ))
+	(calc-angle-mode    (or (cadr (memq 'calc-angle-mode    org-calc-default-modes)) calc-angle-mode   ))
+	(calc-prefer-frac   (or (cadr (memq 'calc-prefer-frac   org-calc-default-modes)) calc-prefer-frac  ))
+	(calc-symbolic-mode (or (cadr (memq 'calc-symbolic-mode org-calc-default-modes)) calc-symbolic-mode))
+	(calc-date-format   (or (cadr (memq 'calc-date-format org-calc-default-modes))
+				calc-date-format
+				'(YYYY "-" MM "-" DD " " www (" " hh ":" mm))))
+	(calc-display-working-message
+	 (or (cadr (memq 'calc-display-working-message org-calc-default-modes)) calc-display-working-message))
+	(duration-output-format)
+	(duration)
+	(numbers)
+	(literal)
+	(keep-empty)
+	(noeval)
+	(case-fold-search nil))
+    ;; the following sexp was freely borrowed from org-table-eval-formula
+    (when fmt
+      (while (string-match "\\([pnfse]\\)\\(-?[0-9]+\\)" fmt)
+	(let ((c (string-to-char   (match-string 1 fmt)))
+	      (n (string-to-number (match-string 2 fmt))))
+	  (if (= c ?p)
+	      (setq calc-internal-prec n)
+	    (setq calc-float-format
+		  (list (cdr (assoc c '((?n . float) (?f . fix)
+					(?s . sci) (?e . eng))))
+			n)))
+	  (setq fmt (replace-match "" t t fmt))))
+      (if (string-match "T" fmt)
+	  (setq duration t numbers t
+		duration-output-format nil
+		fmt (replace-match "" t t fmt)))
+      (if (string-match "t" fmt)
+	  (setq duration t
+		duration-output-format org-table-duration-custom-format
+		numbers t
+		fmt (replace-match "" t t fmt)))
+      (if (string-match "N" fmt)
+	  (setq numbers t
+		fmt (replace-match "" t t fmt)))
+      (if (string-match "L" fmt)
+	  (setq literal t
+		fmt (replace-match "" t t fmt)))
+      (if (string-match "E" fmt)
+	  (setq keep-empty t
+		fmt (replace-match "" t t fmt)))
+      (while (string-match "[DRFSQ]" fmt)
+	(cl-case (string-to-char (match-string 0 fmt))
+	  (?D (setq calc-angle-mode 'deg))
+	  (?R (setq calc-angle-mode 'rad))
+	  (?F (setq calc-prefer-frac t))
+	  (?S (setq calc-symbolic-mode t))
+	  (?Q (setq noeval t)))
+	(setq fmt (replace-match "" t t fmt)))
+      (unless (string-match "\\S-" fmt)
+	(setq fmt nil)))
+
+    (cl-loop for group in (-appendable-list-get groups)
+	     for row in result
+	     do
+	     (-appendable-list-append row (compute-one-sum table group formula$)))))
+
+(defun compute-one-sum (table group formula$)
+  (if (string-match "^\\$\\([0-9]+\\)$" formula$)
+      (nth (string-to-number (match-string 1 formula$))
+	   (car (-appendable-list-get group)))
+    (setq formula$
+	  (replace-regexp-in-string
+	   "\\<v?count()"
+	   (lambda (var)
+	     (format "%s" (length (-appendable-list-get group))))
+	   formula$))
+    (let ((lists (make-vector (1+ (length (car table))) nil)))
+      (replace-regexp-in-string  ;; TODO replace by a list of integers
+       "\\$\\([0-9]+\\)\\>"
+       (lambda (var)
+	 (let ((i (string-to-number (substring var 1))))
+	   (aset
+	    lists i
+	    (cons 'vec
+		  (cl-loop for row in (-appendable-list-get group)
+			   collect
+			   (orgtbl-aggregate-read-calc-expr (nth i row))))))
+	 var)
+       formula$)
+      (if noeval
+	  formula$
+	(let ((calc-dollar-values (cdr (mapcar #'identity lists)))
+	      (calc-command-flags nil)
+	      (calc-next-why nil)
+	      (calc-language 'flat)
+	      (calc-dollar-used 0))
+	  (setq
+	   calc-dollar-values
+	   (cl-loop
+	    for ls in calc-dollar-values
+	    collect
+	    (progn
+	      (if (memq nil ls)
+		  (setq
+		   ls
+		   (if keep-empty
+		       (cl-loop for x in ls collect (or x '(var nan var-nan)))
+		     (cl-loop for x in ls nconc (if x (list x))))))
+	      (if numbers
+		  (cons (car ls)
+			(cl-loop for x in (cdr ls)
+				 collect (if (math-numberp x) x 0)))
+		ls))))
+	  (let ((ev
+		 (math-format-value
+		  (math-simplify
+		   (calcFunc-expand	; yes, double expansion
+		    (calcFunc-expand ; otherwise it is not fully expanded
+		     (math-read-expr expression))))
+		  1000)))
+	    (if fmt
+		(format fmt (string-to-number ev))
+	      ev)))	
+
+	))))
+    
 ;; aggregation in Push mode
 
 ;;;###autoload

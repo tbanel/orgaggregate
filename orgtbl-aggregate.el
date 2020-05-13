@@ -352,6 +352,46 @@ so, the EXPRESSION is ready to be computed against a table row."
 	  (list 'nth n 'row)
 	expression)))))
 
+
+(defun orgtbl-to-aggregated-replace-colnames-$ (table column)
+  "Replace occurrences of column names in lisp COLUMN with
+$N, N being the numbering of columns in the input table.  Doing
+so, the COLUMN is ready to be computed computed by Calc."
+  (replace-regexp-in-string
+   (rx (or
+	(group ?'  (* (not ?' )) ?')
+	(group ?\" (* (not ?\")) ?\")
+	(group bow (+ word)      eow)))
+   (lambda (var)
+     (cond
+      ;; aggregate functions with or without the leading "v"
+      ;; sum(X) and vsum(X) are equivalent
+      ((member
+	var
+	'("mean" "meane" "gmean" "hmean" "median" "sum" "min" "max"
+	  "prod" "pvar" "sdev" "psdev" "corr" "cov" "pcov"
+	  "count"))
+       (format "v%s" var))
+      ((member
+	var
+	'("vmean" "vmeane" "vgmean" "vhmean" "vmedian" "vsum" "vmin" "vmax"
+	  "vprod" "vpvar" "vsdev" "vpsdev" "vcorr" "vcov" "vpcov"
+	  "vcount"))
+       var)
+      ;; compatibility: list(X) will be obsoleted for (X)
+      ((equal var "list")
+       "")
+      (t ;; replace VAR if it is a column name
+       (save-match-data ;; save because we are called within a replace-regexp
+	 (let ((i (orgtbl-to-aggregated-table-colname-to-int
+		   var
+		   table)))
+	   (if i
+	       (format "$%s" i)
+	     var))))))
+   column))
+
+
 (defun orgtbl-to-aggregated-table-parse-spec (column table)
   "Replace COLUMN name, which is a key-column, with a number
 starting from 1, or 0 for the special 'hline column.  If COLUMN
@@ -678,6 +718,15 @@ AGGCOND."
 		     hgroups
 		     (cons bs row)
 		     aggcond))))
+
+    (let ((ttttt
+	   (cl-loop for column in aggcols
+		    collect
+		    (orgtbl-to-aggregated-replace-colnames-$ table column)
+		    )))
+      (setq aggcols ttttt)
+      (message "expressions = %s" ttttt))
+      
     ; do the aggregations for each group of rows
     (cons
      aggcols

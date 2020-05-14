@@ -727,9 +727,9 @@ AGGCOND."
 	     (cl-loop for x in (-appendable-list-get groups)
 		      collect (-appendable-list-create))))
 	(cl-loop for column in aggcols
-		 for formula$ = (orgtbl-to-aggregated-replace-colnames-$ table column)
+		 for formula$-fmt = (orgtbl-to-aggregated-replace-colnames-$ table column)
 		 do
-		 (compute-sums table groups result formula$))
+		 (compute-sums table groups result formula$-fmt))
 	(cons
 	 aggcols
 	 (cons
@@ -739,12 +739,12 @@ AGGCOND."
 	))))
 
 (defun compute-sums (table groups result formula$)
-    (string-match "^\\(.*?\\)\\(;\\([^;']*\\)\\)?$" formula$)
+    (string-match "^\\(.*?\\)\\(;\\([^;']*\\)\\)?$" formula$-fmt)
   ;; within this (let), we locally set Calc settings that must be active
   ;; for the all the calls to Calc:
   ;; (orgtbl-to-aggregated-table-collect-list) and (math-format-value)
-  (let ((expression (match-string 1 formula$))
-	(fmt        (match-string 3 formula$))
+  (let ((formula$ (match-string 1 formula$-fmt))
+	(fmt      (match-string 3 formula$-fmt))
 	(calc-internal-prec (or (cadr (memq 'calc-internal-prec org-calc-default-modes)) calc-internal-prec))
 	(calc-float-format  (or (cadr (memq 'calc-float-format  org-calc-default-modes)) calc-float-format ))
 	(calc-angle-mode    (or (cadr (memq 'calc-angle-mode    org-calc-default-modes)) calc-angle-mode   ))
@@ -775,13 +775,14 @@ AGGCOND."
 			n)))
 	  (setq fmt (replace-match "" t t fmt))))
       (if (string-match "T" fmt)
-	  (setq duration t numbers t
+	  (setq duration t
+		numbers t
 		duration-output-format nil
 		fmt (replace-match "" t t fmt)))
       (if (string-match "t" fmt)
 	  (setq duration t
-		duration-output-format org-table-duration-custom-format
 		numbers t
+		duration-output-format org-table-duration-custom-format
 		fmt (replace-match "" t t fmt)))
       (if (string-match "N" fmt)
 	  (setq numbers t
@@ -861,14 +862,13 @@ AGGCOND."
 		  (math-simplify
 		   (calcFunc-expand	; yes, double expansion
 		    (calcFunc-expand ; otherwise it is not fully expanded
-		     (math-read-expr expression))))
+		     (math-read-expr formula$))))
 		  1000)))
 	    (if fmt
 		(format fmt (string-to-number ev))
 	      ev)))	
-
 	))))
-    
+
 ;; aggregation in Push mode
 
 ;;;###autoload

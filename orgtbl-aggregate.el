@@ -533,7 +533,8 @@ AGGCOND."
 	(cl-loop for column in aggcols
 		 for formula$-fmt = (orgtbl-to-aggregated-replace-colnames-$ table column)
 		 do
-		 (compute-sums table groups result formula$-fmt))
+		 (orgtbl-to-aggregated-compute-sums-on-one-column
+		  table groups result formula$-fmt))
 	(cons
 	 aggcols
 	 (cons
@@ -542,8 +543,13 @@ AGGCOND."
 		    collect (-appendable-list-get row))))
 	))))
 
-(defun compute-sums (table groups result formula$)
-    (string-match "^\\(.*?\\)\\(;\\([^;']*\\)\\)?$" formula$-fmt)
+(defun orgtbl-to-aggregated-compute-sums-on-one-column (table groups result formula$-fmt)
+  "FORMULA$-FMT is a formula given by the user in :cols, with an optional format
+Input columns names have already been replaced by $3 forms (hence the $ in FORMULA$-FMT
+This function applies the formula over all groups of rows.
+Common Calc settings and formats are pre-computed before actually computing sums,
+because they are the same for all groups"
+  (string-match "^\\(.*?\\)\\(;\\([^;']*\\)\\)?$" formula$-fmt)
   ;; within this (let), we locally set Calc settings that must be active
   ;; for the all the calls to Calc:
   ;; (orgtbl-aggregate-read-calc-expr) and (math-format-value)
@@ -611,9 +617,16 @@ AGGCOND."
     (cl-loop for group in (-appendable-list-get groups)
 	     for row in result
 	     do
-	     (-appendable-list-append row (compute-one-sum table group formula$)))))
+	     (-appendable-list-append
+	      row
+	      (orgtbl-to-aggregated-compute-one-sum table group formula$)))))
 
-(defun compute-one-sum (table group formula$)
+(defun orgtbl-to-aggregated-compute-one-sum (table group formula$)
+  "Apply FORMULA$ to one group of input rows.
+FORMULA$ does not have a format, because format has already been
+parse. Column names in FORMULA$ have been replaced by $3 forms,
+directly understandable by Calc.
+Return an output cell."
   (if (string-match "^\\$\\([0-9]+\\)$" formula$)
       (nth (string-to-number (match-string 1 formula$))
 	   (car (-appendable-list-get group)))

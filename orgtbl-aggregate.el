@@ -730,8 +730,12 @@ AGGCOND."
 		 for formula$ = (orgtbl-to-aggregated-replace-colnames-$ table column)
 		 do
 		 (compute-sums table groups result formula$))
-	(cl-loop for row in result
-		 collect (-appendable-list-get row))
+	(cons
+	 aggcols
+	 (cons
+	  'hlist
+	  (cl-loop for row in result
+		    collect (-appendable-list-get row))))
 	))))
 
 (defun compute-sums (table groups result formula$)
@@ -816,15 +820,16 @@ AGGCOND."
 	   formula$))
     (let ((lists (make-vector (1+ (length (car table))) nil)))
       (replace-regexp-in-string  ;; TODO replace by a list of integers
-       "\\$\\([0-9]+\\)\\>"
+       "\\$[0-9]+\\>"
        (lambda (var)
-	 (let ((i (string-to-number (substring var 1))))
-	   (aset
-	    lists i
-	    (cons 'vec
-		  (cl-loop for row in (-appendable-list-get group)
-			   collect
-			   (orgtbl-aggregate-read-calc-expr (nth i row))))))
+	 (save-match-data
+	   (let ((i (string-to-number (substring var 1))))
+	     (aset
+	      lists i
+	      (cons 'vec
+		    (cl-loop for row in (-appendable-list-get group)
+			     collect
+			     (orgtbl-aggregate-read-calc-expr (nth i row)))))))
 	 var)
        formula$)
       (if noeval

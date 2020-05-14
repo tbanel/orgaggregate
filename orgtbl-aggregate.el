@@ -384,6 +384,30 @@ so, the COLUMN is ready to be computed computed by Calc."
 	     var))))))
    column))
 
+(defun orgtbl-to-aggregated-list-$-as-int (formula$ table)
+  "Parses FORMULA$ looking for $3 style column names
+and return a list of column numbers found.
+Example: \"vmean($3) + 2*vsum($5)\" is converted into '(3 5)"
+  (let ((result)
+	(start 0)
+	(len (length formula$))
+	(nbcols (length (car table)))
+	(number))
+    (while (and (< start len)
+		(string-match "\\$[0-9]+\\>" formula$ start))
+      (setq number
+	    (string-to-number
+	     (substring
+	      formula$
+	      (1+ (match-beginning 0))
+	      (match-end 0))))
+      (if (> number nbcols)
+	  (user-error "$%s is a column outside table with %s columns" number nbcols))
+      (unless (member number result)
+	(push number result))
+      (setq start (match-end 0)))
+    result))
+
 (defun orgtbl-to-aggregated-table-keycols (table aggcols)
   "Return the list of key columns as integers.
 AGGCOLS is a lisp list as given by the user in :cond
@@ -532,9 +556,12 @@ AGGCOND."
 		      collect (-appendable-list-create))))
 	(cl-loop for column in aggcols
 		 for formula$-fmt = (orgtbl-to-aggregated-replace-colnames-$ table column)
+		 for columns-int = (orgtbl-to-aggregated-list-$-as-int formula$-fmt table)
+		 ;; TODO: compute formula$-fmt & columns-int in
+		 ;; orgtbl-to-aggregated-compute-sums-on-one-column
 		 do
 		 (orgtbl-to-aggregated-compute-sums-on-one-column
-		  table groups result formula$-fmt))
+		  table groups result formula$-fmt columns-int))
 	(cons
 	 aggcols
 	 (cons
@@ -543,10 +570,12 @@ AGGCOND."
 		    collect (-appendable-list-get row))))
 	))))
 
-(defun orgtbl-to-aggregated-compute-sums-on-one-column (table groups result formula$-fmt)
-  "FORMULA$-FMT is a formula given by the user in :cols, with an optional format
+(defun orgtbl-to-aggregated-compute-sums-on-one-column
+    (table groups result formula$-fmt columns-int)
+  "FORMULA$-FMT is a formula given by the user in :cols, with an optional format.
 Input columns names have already been replaced by $3 forms (hence the $ in FORMULA$-FMT
 This function applies the formula over all groups of rows.
+COLUMNS-INT is a list of columns numbers used by FORMULA$-FMT.
 Common Calc settings and formats are pre-computed before actually computing sums,
 because they are the same for all groups"
   (string-match "^\\(.*?\\)\\(;\\([^;']*\\)\\)?$" formula$-fmt)
@@ -619,14 +648,17 @@ because they are the same for all groups"
 	     do
 	     (-appendable-list-append
 	      row
-	      (orgtbl-to-aggregated-compute-one-sum table group formula$)))))
+	      (orgtbl-to-aggregated-compute-one-sum table group formula$ columns-int)))))
 
-(defun orgtbl-to-aggregated-compute-one-sum (table group formula$)
+(defun orgtbl-to-aggregated-compute-one-sum (table group formula$ columns-int)
   "Apply FORMULA$ to one group of input rows.
 FORMULA$ does not have a format, because format has already been
 parse. Column names in FORMULA$ have been replaced by $3 forms,
 directly understandable by Calc.
-Return an output cell."
+COLUMNS-INT is a list of columns numbers used by FORMULA$-FMT.
+Return an output cell.
+When FORMULA$ is a key column (just a single input column without
+parenthesis) return a cell from any row in the group."
   (if (string-match "^\\$\\([0-9]+\\)$" formula$)
       (nth (string-to-number (match-string 1 formula$))
 	   (car (-appendable-list-get group)))
@@ -637,19 +669,14 @@ Return an output cell."
 	     (format "%s" (length (-appendable-list-get group))))
 	   formula$))
     (let ((lists (make-vector (1+ (length (car table))) nil)))
-      (replace-regexp-in-string  ;; TODO replace by a list of integers
-       "\\$[0-9]+\\>"
-       (lambda (var)
-	 (save-match-data
-	   (let ((i (string-to-number (substring var 1))))
-	     (aset
-	      lists i
-	      (cons 'vec
-		    (cl-loop for row in (-appendable-list-get group)
-			     collect
-			     (orgtbl-aggregate-read-calc-expr (nth i row)))))))
-	 var)
-       formula$)
+      (cl-loop for i in columns-int
+	       do
+	       (aset
+		lists i
+		(cons 'vec
+		      (cl-loop for row in (-appendable-list-get group)
+			       collect
+			       (orgtbl-aggregate-read-calc-expr (nth i row))))))
       (if noeval
 	  formula$
 	(let ((calc-dollar-values (cdr (mapcar #'identity lists)))

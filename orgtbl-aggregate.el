@@ -245,12 +245,6 @@ special symbol 'hline to mean an horizontal line."
 			    do (setq bar "+"))))
 	       (insert "|\n")))))
 
-(defun org-time-string-to-calc (orgdate)
-  "Convert a string in Org-date format to Calc internal representation
-Returns nil if parameter is not a date."
-  (and (string-match org-ts-regexp0 orgdate)
-       (math-parse-date (replace-regexp-in-string " *[a-z]*[.] *" " " orgdate))))
-
 ;; creating long lists in the right order may be done
 ;; - by (nconc)  but behavior is quadratic
 ;; - by (cons) (nreverse)
@@ -334,7 +328,7 @@ otherwise nil is returned."
 	   err
 	   (user-error "Column %s not found in table" colname))))))
 
-(defun orgtbl-to-aggregated-replace-colnames (table expression)
+(defun orgtbl-to-aggregated-replace-colnames-nth (table expression)
   "Replace occurrences of column names in lisp EXPRESSION with
 forms like (nth N row), N being the numbering of columns.  Doing
 so, the EXPRESSION is ready to be computed against a table row."
@@ -343,7 +337,7 @@ so, the EXPRESSION is ready to be computed against a table row."
     (cons (car expression)
 	  (cl-loop for x in (cdr expression)
 		   collect
-		   (orgtbl-to-aggregated-replace-colnames table x))))
+		   (orgtbl-to-aggregated-replace-colnames-nth table x))))
    ((numberp expression)
     expression)
    (t
@@ -351,7 +345,6 @@ so, the EXPRESSION is ready to be computed against a table row."
       (if n
 	  (list 'nth n 'row)
 	expression)))))
-
 
 (defun orgtbl-to-aggregated-replace-colnames-$ (table column)
   "Replace occurrences of column names in lisp COLUMN with
@@ -391,18 +384,20 @@ so, the COLUMN is ready to be computed computed by Calc."
 	     var))))))
    column))
 
-
-(defun orgtbl-to-aggregated-table-parse-spec (column table)
-  "Replace COLUMN name, which is a key-column, with a number
-starting from 1, or 0 for the special 'hline column.  If COLUMN
-is a Calc expression, nil is returned."
-  (and (or (string-match "^\\([[:word:]0-9_$]+\\)$" column)
-	   (string-match "^'\\(.*\\)'$" column)
-	   (string-match "^\"\\(.*\\)\"$" column))
-       (orgtbl-to-aggregated-table-colname-to-int
-	(match-string 1 column)
-	table
-	t)))
+(defun orgtbl-to-aggregated-table-keycols (table aggcols)
+  "Return the list of key columns as integers.
+AGGCOLS is a lisp list as given by the user in :cond
+Columns which are not pure key columns are ignored"
+  (cl-loop for column in aggcols
+	   for idx
+	   = (and (or (string-match "^\\([[:word:]0-9_$]+\\)$" column)
+		      (string-match "^'\\(.*\\)'$" column)
+		      (string-match "^\"\\(.*\\)\"$" column))
+		  (orgtbl-to-aggregated-table-colname-to-int
+		   (match-string 1 column)
+		   table
+		   t))
+	   if idx collect idx))
 
 (defun orgtbl-to-aggregated-table-add-group (groups hgroups row aggcond)
   "Add the source ROW to the GROUPS of rows.
@@ -421,215 +416,26 @@ containing this single ROW."
 
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
-  (let (date)
-    (cond
-     ;; nil happens when a table is malformed
-     ;; some columns are missing in some rows
-     ((not expr)
-      nil)
-     ;; empty cell returned as nil,
-     ;; to be processed later depending on modifier flags
-     ((equal expr "") nil)
-     ;; the purely numerical cell case arises very often
-     ;; short-circuiting general functions boosts performance (a lot)
-     ((string-match "^[+-]?[0-9]*\.[0-9]\\(e[+-]?[0-9]+\\)?$" expr)
-      (math-read-number expr))
-     ;; a date
-     ((setq date (org-time-string-to-calc expr))
-      date)
-     ;; generic case: symbolic calc expression
-     (t
-      (math-simplify
-       (calcFunc-expand
-	(math-read-expr expr)))))))
-
-(defvar orgtbl-aggregate-variable-table)
-(defvar orgtbl-aggregate-variable-group)
-(defvar orgtbl-aggregate-variable-lists)
-
-(defun orgtbl-to-aggregated-table-collect-list (var)
-  "Replace VAR, which is a column name, with a $N expression.
-If VAR is already in the $N form, VAR is left unchanged.  Collect
-the cells at the crossing of the VAR column and the current GROUP
-of rows, and store it in LISTS.  Assume that
-`orgtbl-aggregate-variable-table',
-`orgtbl-aggregate-variable-group' and
-`orgtbl-aggregate-variable-lists' are bounded before calling this
-function."
   (cond
-   ;; aggregate functions with or without the leading "v"
-   ;; sum(X) and vsum(X) are equivalent
-   ((member
-     var
-     '("mean" "meane" "gmean" "hmean" "median" "sum" "min" "max"
-       "prod" "pvar" "sdev" "psdev" "corr" "cov" "pcov"
-       "count"))
-    (format "v%s" var))
-   ((member
-     var
-     '("vmean" "vmeane" "vgmean" "vhmean" "vmedian" "vsum" "vmin" "vmax"
-       "vprod" "vpvar" "vsdev" "vpsdev" "vcorr" "vcov" "vpcov"
-       "vcount"))
-    var)
-   ;; compatibility: list(X) will be obsoleted for (X)
-   ((equal var "list")
-    "")
-   (t ;; replace VAR if it is a column name
-    (save-match-data ;; save because we are called within a replace-regexp
-      (let ((i (orgtbl-to-aggregated-table-colname-to-int
-		var
-		orgtbl-aggregate-variable-table)))
-	(if i
-	    (progn
-	      (unless (aref orgtbl-aggregate-variable-lists i)
-		(aset orgtbl-aggregate-variable-lists i
-		      (cons 'vec
-			    (cl-loop for row in
-				     (-appendable-list-get
-				      orgtbl-aggregate-variable-group)
-				     collect
-				     (orgtbl-aggregate-read-calc-expr
-				      (nth i row))))))
-	      (format "$%s" i))
-	  var))))))
-
-(defun orgtbl-to-aggregated-table-do-sums (group aggcols table)
-  "Iterate over the expressions in AGGCOLS, evaluating each
-expression with Calc using values found in the rows of the GROUP.
-The result is a row identical to AGGCOLS, except expressions have
-been evaluated."
-  ;; inactivating math-read-preprocess-string boosts performance
-  (cl-letf (((symbol-function 'math-read-preprocess-string) #'identity))
-    (let ((lists (make-vector (1+ (length (car table))) nil)))
-      (cl-loop
-       for colspec in aggcols
-       collect
-       (if (or (string-match "^\\([[:word:]0-9_$]+\\)$" colspec)
-	       (string-match "^'\\(.*\\)'$" colspec)
-	       (string-match "^\"\\(.*\\)\"$" colspec))
-	   ;; just a bare word, it is a key column
-	   (nth (orgtbl-to-aggregated-table-colname-to-int
-		 (match-string 1 colspec)
-		 table)
-		(car (-appendable-list-get group))) ; any row in group will do
-	   ; otherwise it is a Calc aggregation expression
-	 (orgtbl-to-aggregated-table-do-one-sum colspec group lists table))))))
-
-(defun orgtbl-to-aggregated-table-do-one-sum (formula group lists table)
-  (string-match "^\\(.*?\\)\\(;\\([^;']*\\)\\)?$" formula)
-  ;; within this (let), we locally set Calc settings that must be active
-  ;; for the all the calls to Calc:
-  ;; (orgtbl-to-aggregated-table-collect-list) and (math-format-value)
-  (let ((expression (match-string 1 formula))
-	(fmt        (match-string 3 formula))
-	(calc-internal-prec (or (cadr (memq 'calc-internal-prec org-calc-default-modes)) calc-internal-prec))
-	(calc-float-format  (or (cadr (memq 'calc-float-format  org-calc-default-modes)) calc-float-format ))
-	(calc-angle-mode    (or (cadr (memq 'calc-angle-mode    org-calc-default-modes)) calc-angle-mode   ))
-	(calc-prefer-frac   (or (cadr (memq 'calc-prefer-frac   org-calc-default-modes)) calc-prefer-frac  ))
-	(calc-symbolic-mode (or (cadr (memq 'calc-symbolic-mode org-calc-default-modes)) calc-symbolic-mode))
-	(calc-date-format   (or (cadr (memq 'calc-date-format org-calc-default-modes))
-				calc-date-format
-				'(YYYY "-" MM "-" DD " " www (" " hh ":" mm))))
-	(calc-display-working-message
-	 (or (cadr (memq 'calc-display-working-message org-calc-default-modes)) calc-display-working-message))
-	(duration-output-format)
-	(duration)
-	(numbers)
-	(literal)
-	(keep-empty)
-	(noeval)
-	(case-fold-search nil))
-    ;; the following sexp was freely borrowed from org-table-eval-formula
-    (when fmt
-      (while (string-match "\\([pnfse]\\)\\(-?[0-9]+\\)" fmt)
-	(let ((c (string-to-char   (match-string 1 fmt)))
-	      (n (string-to-number (match-string 2 fmt))))
-	  (if (= c ?p)
-	      (setq calc-internal-prec n)
-	    (setq calc-float-format
-		  (list (cdr (assoc c '((?n . float) (?f . fix)
-					(?s . sci) (?e . eng))))
-			n)))
-	  (setq fmt (replace-match "" t t fmt))))
-      (if (string-match "T" fmt)
-	  (setq duration t numbers t
-		duration-output-format nil
-		fmt (replace-match "" t t fmt)))
-      (if (string-match "t" fmt)
-	  (setq duration t
-		duration-output-format org-table-duration-custom-format
-		numbers t
-		fmt (replace-match "" t t fmt)))
-      (if (string-match "N" fmt)
-	  (setq numbers t
-		fmt (replace-match "" t t fmt)))
-      (if (string-match "L" fmt)
-	  (setq literal t
-		fmt (replace-match "" t t fmt)))
-      (if (string-match "E" fmt)
-	  (setq keep-empty t
-		fmt (replace-match "" t t fmt)))
-      (while (string-match "[DRFSQ]" fmt)
-	(cl-case (string-to-char (match-string 0 fmt))
-	  (?D (setq calc-angle-mode 'deg))
-	  (?R (setq calc-angle-mode 'rad))
-	  (?F (setq calc-prefer-frac t))
-	  (?S (setq calc-symbolic-mode t))
-	  (?Q (setq noeval t)))
-	(setq fmt (replace-match "" t t fmt)))
-      (unless (string-match "\\S-" fmt)
-	(setq fmt nil)))
-    (let ((orgtbl-aggregate-variable-table table)
-	  (orgtbl-aggregate-variable-group group)
-	  (orgtbl-aggregate-variable-lists lists))
-      (setq expression
-	    (replace-regexp-in-string
-	     (rx (or
-		  (group ?'  (* (not ?' )) ?')
-		  (group ?\" (* (not ?\")) ?\")
-		  (group bow (+ word)      eow)))
-	     'orgtbl-to-aggregated-table-collect-list
-	     expression)))
-    (setq expression
-	  (replace-regexp-in-string
-	   "\\<v?count()"
-	   (lambda (var)
-	     (format "%s" (length (-appendable-list-get group))))
-	   expression))
-    (if noeval
-	expression
-      (let ((calc-dollar-values (cdr (mapcar #'identity lists)))
-	    (calc-command-flags nil)
-	    (calc-next-why nil)
-	    (calc-language 'flat)
-	    (calc-dollar-used 0))
-	(setq
-	 calc-dollar-values
-	 (cl-loop
-	  for ls in calc-dollar-values
-	  collect
-	  (progn
-	    (if (memq nil ls)
-		(setq
-		 ls
-		 (if keep-empty
-		     (cl-loop for x in ls collect (or x '(var nan var-nan)))
-		   (cl-loop for x in ls nconc (if x (list x))))))
-	    (if numbers
-		(cons (car ls)
-		      (cl-loop for x in (cdr ls)
-			       collect (if (math-numberp x) x 0)))
-	      ls))))
-	(let ((ev
-	       (math-format-value
-		(math-simplify
-		 (calcFunc-expand     ; yes, double expansion
-		  (calcFunc-expand    ; otherwise it is not fully expanded
-		   (math-read-expr expression))))
-		1000)))
-	  (if fmt
-	      (format fmt (string-to-number ev))
-	    ev))))))
+   ;; nil happens when a table is malformed
+   ;; some columns are missing in some rows
+   ((not expr)
+    nil)
+   ;; empty cell returned as nil,
+   ;; to be processed later depending on modifier flags
+   ((equal expr "") nil)
+   ;; the purely numerical cell case arises very often
+   ;; short-circuiting general functions boosts performance (a lot)
+   ((string-match "^[+-]?[0-9]*\.[0-9]\\(e[+-]?[0-9]+\\)?$" expr)
+    (math-read-number expr))
+   ;; Convert a string in Org-date format to Calc internal representation
+   ((string-match org-ts-regexp0 expr)
+    (math-parse-date (replace-regexp-in-string " *[a-z]*[.] *" " " expr)))
+   ;; generic case: symbolic calc expression
+   (t
+    (math-simplify
+     (calcFunc-expand
+      (math-read-expr expr))))))
 
 (defun split-string-with-quotes (string)
   "Like `split-string', but also allows single or double quotes
@@ -689,7 +495,7 @@ AGGCOND."
   (when aggcond
     (if (stringp aggcond)
 	(setq aggcond (read aggcond)))
-    (setq aggcond (orgtbl-to-aggregated-replace-colnames table aggcond)))
+    (setq aggcond (orgtbl-to-aggregated-replace-colnames-nth table aggcond)))
   ;; set to t by orgtbl-to-aggregated-table-colname-to-int
   (define-hash-table-test
     'orgtbl-aggregate-hash-test-name
@@ -698,9 +504,7 @@ AGGCOND."
   (let ((groups (-appendable-list-create))
 	(hgroups (make-hash-table :test 'orgtbl-aggregate-hash-test-name))
 	(keycols ;; beware, needs dynamic binding as provided by (let)
-	 (cl-loop for column in aggcols
-		  for idx = (orgtbl-to-aggregated-table-parse-spec column table)
-		  if idx collect idx))
+	 (orgtbl-to-aggregated-table-keycols table aggcols))
 	(b 0)
 	(bs "0"))
     ; split table into groups of rows
@@ -742,7 +546,7 @@ AGGCOND."
     (string-match "^\\(.*?\\)\\(;\\([^;']*\\)\\)?$" formula$-fmt)
   ;; within this (let), we locally set Calc settings that must be active
   ;; for the all the calls to Calc:
-  ;; (orgtbl-to-aggregated-table-collect-list) and (math-format-value)
+  ;; (orgtbl-aggregate-read-calc-expr) and (math-format-value)
   (let ((formula$ (match-string 1 formula$-fmt))
 	(fmt      (match-string 3 formula$-fmt))
 	(calc-internal-prec (or (cadr (memq 'calc-internal-prec org-calc-default-modes)) calc-internal-prec))
@@ -1116,7 +920,7 @@ If AGGCOND is nil, all source rows are taken"
 		     for i from 1
 		     collect i))))
   (if aggcond
-      (setq aggcond (orgtbl-to-aggregated-replace-colnames table aggcond)))
+      (setq aggcond (orgtbl-to-aggregated-replace-colnames-nth table aggcond)))
   (let ((result (cl-loop for x in cols collect (list t)))
         (nhline 0))
     (cl-loop for row in table

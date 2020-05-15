@@ -431,26 +431,24 @@ containing this single ROW."
   (and (or (not aggcond)
 	   (eval aggcond)) ;; this eval need the variable 'row to have a value
        (let ((gr (gethash row hgroups)))
-	 (if gr
-	     (-appendable-list-append gr row)
+	 (unless gr
 	   (setq gr (-appendable-list-create))
 	   (puthash row gr hgroups)
-	   (-appendable-list-append gr row)
-	   (-appendable-list-append groups gr)))))
+	   (-appendable-list-append groups gr))
+	 (-appendable-list-append gr row))))
 
 (defun orgtbl-aggregate-read-calc-expr (expr)
   "Interpret a string as either an org date or a calc expression"
   (cond
    ;; nil happens when a table is malformed
    ;; some columns are missing in some rows
-   ((not expr)
-    nil)
+   ((not expr) nil)
    ;; empty cell returned as nil,
    ;; to be processed later depending on modifier flags
    ((equal expr "") nil)
    ;; the purely numerical cell case arises very often
    ;; short-circuiting general functions boosts performance (a lot)
-   ((string-match "^[+-]?[0-9]*\.[0-9]\\(e[+-]?[0-9]+\\)?$" expr)
+   ((string-match "^[+-]?[0-9]*\\.[0-9]\\(:?e[+-]?[0-9]+\\)?$" expr)
     (math-read-number expr))
    ;; Convert a string in Org-date format to Calc internal representation
    ((string-match org-ts-regexp0 expr)
@@ -551,45 +549,39 @@ AGGCOND."
     (cl-letf (((symbol-function 'math-read-preprocess-string) #'identity))
       
       ;; compute sums for each aggregation expression
-      (let ((result			;; pre-allocate all resulting rows
+      (let ((result ;; pre-allocate all resulting rows
 	     (cl-loop for x in (-appendable-list-get groups)
 		      collect (-appendable-list-create))))
 	(cl-loop for column in aggcols
-		 for formula$-fmt = (orgtbl-to-aggregated-replace-colnames-$ table column)
-		 for columns-int = (orgtbl-to-aggregated-list-$-as-int formula$-fmt table)
-		 ;; TODO: compute formula$-fmt & columns-int in
-		 ;; orgtbl-to-aggregated-compute-sums-on-one-column
 		 do
 		 (orgtbl-to-aggregated-compute-sums-on-one-column
-		  table groups result formula$-fmt columns-int))
+		  table groups result column))
 	(cons
 	 aggcols
 	 (cons
 	  'hlist
 	  (cl-loop for row in result
-		    collect (-appendable-list-get row))))
-	))))
+		   collect (-appendable-list-get row))))))))
 
-(defun orgtbl-to-aggregated-compute-sums-on-one-column
-    (table groups result formula$-fmt columns-int)
-  "FORMULA$-FMT is a formula given by the user in :cols, with an optional format.
-Input columns names have already been replaced by $3 forms (hence the $ in FORMULA$-FMT
+(defun orgtbl-to-aggregated-compute-sums-on-one-column (table groups result formula)
+  "FORMULA is a formula given by the user in :cols, with an optional format.
 This function applies the formula over all groups of rows.
-COLUMNS-INT is a list of columns numbers used by FORMULA$-FMT.
 Common Calc settings and formats are pre-computed before actually computing sums,
-because they are the same for all groups"
-  (string-match "^\\(.*?\\)\\(;\\([^;']*\\)\\)?$" formula$-fmt)
+because they are the same for all groups.
+RESULT is the list of expected resulting rows. At the beginning, all rows are
+empty lists. A cell is appended to every rows at each call of this function."
+  (string-match "^\\(.*?\\)\\(:?;\\([^;'\"]*\\)\\)?$" formula)
   ;; within this (let), we locally set Calc settings that must be active
   ;; for the all the calls to Calc:
   ;; (orgtbl-aggregate-read-calc-expr) and (math-format-value)
-  (let ((formula$ (match-string 1 formula$-fmt))
-	(fmt      (match-string 3 formula$-fmt))
+  (let ((fmt     (match-string 3 formula))
+	(formula (match-string 1 formula))
 	(calc-internal-prec (or (cadr (memq 'calc-internal-prec org-calc-default-modes)) calc-internal-prec))
 	(calc-float-format  (or (cadr (memq 'calc-float-format  org-calc-default-modes)) calc-float-format ))
 	(calc-angle-mode    (or (cadr (memq 'calc-angle-mode    org-calc-default-modes)) calc-angle-mode   ))
 	(calc-prefer-frac   (or (cadr (memq 'calc-prefer-frac   org-calc-default-modes)) calc-prefer-frac  ))
 	(calc-symbolic-mode (or (cadr (memq 'calc-symbolic-mode org-calc-default-modes)) calc-symbolic-mode))
-	(calc-date-format   (or (cadr (memq 'calc-date-format org-calc-default-modes))
+	(calc-date-format   (or (cadr (memq 'calc-date-format   org-calc-default-modes))
 				calc-date-format
 				'(YYYY "-" MM "-" DD " " www (" " hh ":" mm))))
 	(calc-display-working-message
@@ -601,8 +593,8 @@ because they are the same for all groups"
 	(keep-empty)
 	(noeval)
 	(case-fold-search nil))
-    ;; the following sexp was freely borrowed from org-table-eval-formula
     (when fmt
+      ;; the following regexp was freely borrowed from org-table-eval-formula
       (while (string-match "\\([pnfse]\\)\\(-?[0-9]+\\)" fmt)
 	(let ((c (string-to-char   (match-string 1 fmt)))
 	      (n (string-to-number (match-string 2 fmt))))
@@ -643,65 +635,46 @@ because they are the same for all groups"
       (unless (string-match "\\S-" fmt)
 	(setq fmt nil)))
 
-    (cl-loop for group in (-appendable-list-get groups)
-	     for row in result
-	     do
-	     (-appendable-list-append
-	      row
-	      (orgtbl-to-aggregated-compute-one-sum table group formula$ columns-int)))))
+    ;; replace columns names by $3 forms
+    ;; and get a list of all column numbers
+    (let* ((formula$ (orgtbl-to-aggregated-replace-colnames-$ table formula))
+	   (columns-int (orgtbl-to-aggregated-list-$-as-int formula$ table)))
+      (cl-loop for group in (-appendable-list-get groups)
+	       for row in result
+	       do
+	       (-appendable-list-append
+		row
+		(orgtbl-to-aggregated-compute-one-sum
+		 table group formula$ columns-int))))))
 
 (defun orgtbl-to-aggregated-compute-one-sum (table group formula$ columns-int)
   "Apply FORMULA$ to one group of input rows.
 FORMULA$ does not have a format, because format has already been
 parse. Column names in FORMULA$ have been replaced by $3 forms,
 directly understandable by Calc.
-COLUMNS-INT is a list of columns numbers used by FORMULA$-FMT.
+COLUMNS-INT is a list of columns numbers used by FORMULA$.
 Return an output cell.
 When FORMULA$ is a key column (just a single input column without
 parenthesis) return a cell from any row in the group."
   (if (string-match "^\\$\\([0-9]+\\)$" formula$)
       (nth (string-to-number (match-string 1 formula$))
 	   (car (-appendable-list-get group)))
-    (setq formula$
-	  (replace-regexp-in-string
-	   "\\<v?count()"
-	   (lambda (var)
-	     (format "%s" (length (-appendable-list-get group))))
-	   formula$))
-    (let ((lists (make-vector (1+ (length (car table))) nil)))
-      (cl-loop for i in columns-int
-	       do
-	       (aset
-		lists i
-		(cons 'vec
-		      (cl-loop for row in (-appendable-list-get group)
-			       collect
-			       (orgtbl-aggregate-read-calc-expr (nth i row))))))
-      (if noeval
-	  formula$
-	(let ((calc-dollar-values (cdr (mapcar #'identity lists)))
-	      (calc-command-flags nil)
-	      (calc-next-why nil)
-	      (calc-language 'flat)
-	      (calc-dollar-used 0))
-	  (setq
-	   calc-dollar-values
-	   (cl-loop
-	    for ls in calc-dollar-values
-	    collect
-	    (progn
-	      (if (memq nil ls)
-		  (setq
-		   ls
-		   (if keep-empty
-		       (cl-loop for x in ls collect (or x '(var nan var-nan)))
-		     (cl-loop for x in ls nconc (if x (list x))))))
-	      (if numbers
-		  (cons (car ls)
-			(cl-loop for x in (cdr ls)
-				 collect (if (math-numberp x) x 0)))
-		ls))))
-	  (let ((ev
+    (if noeval
+	formula$
+      (if (string-match-p "\\<v?count()" formula$)
+	  (setq formula$
+		(replace-regexp-in-string
+		 "\\<v?count()"
+		 (lambda (var)
+		   (format "%s" (length (-appendable-list-get group))))
+		 formula$)))
+      (let ((calc-dollar-values
+	     (orgtbl-to-aggregated-make-calc-$-list table columns-int group))
+	    (calc-command-flags nil)
+	    (calc-next-why nil)
+	    (calc-language 'flat)
+	    (calc-dollar-used 0))
+	(let ((ev
 		 (math-format-value
 		  (math-simplify
 		   (calcFunc-expand	; yes, double expansion
@@ -710,8 +683,38 @@ parenthesis) return a cell from any row in the group."
 		  1000)))
 	    (if fmt
 		(format fmt (string-to-number ev))
-	      ev)))	
-	))))
+	      ev))))))
+
+(defun orgtbl-to-aggregated-make-calc-$-list (table columns-int group)
+  "Prepare a list of vectors that Calc will use to replace $N variables.
+Calc will replace $1 by the first element of list, $2 by the second an so on.
+Ths vectors follow the Calc syntax: (vec a b c ...). They contain values
+extracted from rows of the current GROUP. Vectors are created only for
+column numbers in COLUMNS-INT."
+  (let ((lists (make-vector (length (car table)) nil)))
+    (cl-loop
+     for i in columns-int
+     do (aset
+	 lists (1- i)
+	 (cons 'vec
+	       (cl-loop for row in (-appendable-list-get group)
+			collect
+			(orgtbl-aggregate-read-calc-expr (nth i row))))))
+    (cl-loop
+     for ls across lists
+     collect
+     (progn
+       (if (memq nil ls)
+	   (setq
+	    ls
+	    (if keep-empty
+		(cl-loop for x in ls collect (or x '(var nan var-nan)))
+	      (cl-loop for x in ls nconc (if x (list x))))))
+       (if numbers
+	   (cons (car ls)
+		 (cl-loop for x in (cdr ls)
+			  collect (if (math-numberp x) x 0)))
+	 ls)))))
 
 ;; aggregation in Push mode
 

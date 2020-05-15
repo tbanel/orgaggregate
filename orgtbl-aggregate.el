@@ -448,7 +448,13 @@ containing this single ROW."
    ((equal expr "") nil)
    ;; the purely numerical cell case arises very often
    ;; short-circuiting general functions boosts performance (a lot)
-   ((string-match "^[+-]?[0-9]*\\.[0-9]\\(:?e[+-]?[0-9]+\\)?$" expr)
+   ((string-match
+     (rx bol
+	 (? (any "+-")) (* (any "0-9"))
+	 (? "." (* (any "0-9")))
+	 (? "e" (? (any "+-")) (+ (any "0-9")))
+	 eol)
+     expr)
     (math-read-number expr))
    ;; Convert a string in Org-date format to Calc internal representation
    ((string-match org-ts-regexp0 expr)

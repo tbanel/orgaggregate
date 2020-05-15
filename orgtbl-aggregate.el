@@ -893,7 +893,9 @@ Note:
 	(content (plist-get params :content))
 	(tblfm nil))
     (when (and content
-	       (string-match "^[ \t]*\\(#\\+\\(tbl\\)?name:.*\\)" content))
+	       (string-match
+		(rx bos (* (any " \t")) (group "#+" (? "tbl") "name:" (* any)))
+		content))
       (insert (match-string 1 content) "\n"))
     (orgtbl-insert-elisp-table
      (orgtbl-create-table-aggregated

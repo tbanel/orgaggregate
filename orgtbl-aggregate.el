@@ -1,4 +1,5 @@
 ;; -*- coding:utf-8;-*-
+
 ;;; orgtbl-aggregate.el --- Create an aggregated Org table from another one
 
 ;; Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  Thierry Banel
@@ -408,20 +409,26 @@ Example: \"vmean($3) + 2*vsum($5)\" is converted into '(3 5)"
       (setq start (match-end 0)))
     result))
 
+;; dynamic binding
+(defvar orgtbl-aggregate-var-keycols)
+
 (defun orgtbl-to-aggregated-table-keycols (table aggcols)
-  "Return the list of key columns as integers.
+  "Sets the global variable orgtbl-aggregate-var-keycols
+to thye list of key columns as integers.
 AGGCOLS is a lisp list as given by the user in :cond
 Columns which are not pure key columns are ignored"
-  (cl-loop for column in aggcols
-	   for idx
-	   = (and (or (string-match "^\\([[:word:]0-9_$]+\\)$" column)
-		      (string-match "^'\\(.*\\)'$" column)
-		      (string-match "^\"\\(.*\\)\"$" column))
-		  (orgtbl-to-aggregated-table-colname-to-int
-		   (match-string 1 column)
-		   table
-		   t))
-	   if idx collect idx))
+  (setq
+   orgtbl-aggregate-var-keycols
+   (cl-loop for column in aggcols
+	    for idx
+	    = (and (or (string-match "^\\([[:word:]0-9_$]+\\)$" column)
+		       (string-match "^'\\(.*\\)'$" column)
+		       (string-match "^\"\\(.*\\)\"$" column))
+		   (orgtbl-to-aggregated-table-colname-to-int
+		    (match-string 1 column)
+		    table
+		    t))
+	    if idx collect idx)))
 
 (defun orgtbl-to-aggregated-table-add-group (groups hgroups row aggcond)
   "Add the source ROW to the GROUPS of rows.
@@ -494,13 +501,12 @@ double quotes and the other way around"
 (defun orgtbl-aggregate-hash-test-equal (row1 row2)
   "Are two rows from the source table equal regarding the
 aggregation columns ?"
-  (cl-loop for idx in keycols ;; keycols provided by (orgtbl-create-table-aggregated)
+  (cl-loop for idx in orgtbl-aggregate-var-keycols
 	   always (string= (nth idx row1) (nth idx row2))))
 
 (defun orgtbl-aggregate-hash-test-hash (row)
   (let ((h 45235))
-    ;; keycols provided by (orgtbl-create-table-aggregated)
-    (cl-loop for idx in keycols
+    (cl-loop for idx in orgtbl-aggregate-var-keycols
 	     do
 	     (cl-loop for c across (nth idx row)
 		      do (setq h (% (* (+ h c) 127) 4227323))))
@@ -531,10 +537,9 @@ AGGCOND."
     'orgtbl-aggregate-hash-test-hash)
   (let ((groups (-appendable-list-create))
 	(hgroups (make-hash-table :test 'orgtbl-aggregate-hash-test-name))
-	(keycols ;; beware, needs dynamic binding as provided by (let)
-	 (orgtbl-to-aggregated-table-keycols table aggcols))
 	(b 0)
 	(bs "0"))
+    (orgtbl-to-aggregated-table-keycols table aggcols)
     ; split table into groups of rows
     (cl-loop for row in
 	     (if (memq 'hline table) ;; skip header if any
@@ -651,14 +656,18 @@ empty lists. A cell is appended to every rows at each call of this function."
 	       (-appendable-list-append
 		row
 		(orgtbl-to-aggregated-compute-one-sum
-		 table group formula$ columns-int))))))
+		 table group formula$ columns-int fmt keep-empty noeval numbers))))))
 
-(defun orgtbl-to-aggregated-compute-one-sum (table group formula$ columns-int)
+(defun orgtbl-to-aggregated-compute-one-sum
+    (table group formula$ columns-int fmt keep-empty noeval numbers)
   "Apply FORMULA$ to one group of input rows.
 FORMULA$ does not have a format, because format has already been
 parse. Column names in FORMULA$ have been replaced by $3 forms,
 directly understandable by Calc.
 COLUMNS-INT is a list of columns numbers used by FORMULA$.
+FMT is the rest of the user format not already parsed.
+KEEP-EMPTY is a flag to tell whether an empty cell should be converted to
+NAN or ignored.
 Return an output cell.
 When FORMULA$ is a key column (just a single input column without
 parenthesis) return a cell from any row in the group."
@@ -675,7 +684,8 @@ parenthesis) return a cell from any row in the group."
 		   (format "%s" (length (-appendable-list-get group))))
 		 formula$)))
       (let ((calc-dollar-values
-	     (orgtbl-to-aggregated-make-calc-$-list table columns-int group))
+	     (orgtbl-to-aggregated-make-calc-$-list
+	      table columns-int group keep-empty numbers))
 	    (calc-command-flags nil)
 	    (calc-next-why nil)
 	    (calc-language 'flat)
@@ -691,12 +701,14 @@ parenthesis) return a cell from any row in the group."
 		(format fmt (string-to-number ev))
 	      ev))))))
 
-(defun orgtbl-to-aggregated-make-calc-$-list (table columns-int group)
+(defun orgtbl-to-aggregated-make-calc-$-list (table columns-int group keep-empty numbers)
   "Prepare a list of vectors that Calc will use to replace $N variables.
 Calc will replace $1 by the first element of list, $2 by the second an so on.
 Ths vectors follow the Calc syntax: (vec a b c ...). They contain values
 extracted from rows of the current GROUP. Vectors are created only for
-column numbers in COLUMNS-INT."
+column numbers in COLUMNS-INT.
+KEEP-EMPTY is a flag to tell whether an empty cell should be converted to
+NAN or ignored."
   (let ((lists (make-vector (length (car table)) nil)))
     (cl-loop
      for i in columns-int

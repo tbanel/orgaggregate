@@ -216,22 +216,7 @@ special symbol 'hline to mean an horizontal line."
 			  (cl-incf (car ne)))
 			(if (< (car mx) (length (car cell)))
 			    (setcar mx (length (car cell)))))))
-    ;; pad cells with spaces to maxwidths,
-    ;; either left or right according to alignement
-    (cl-loop for row in table
-	     do
-	     (cl-loop for cell on row
-		      for mx in maxwidths
-		      for nu in numbers
-		      for ne in non-empty
-		      do
-		      (let ((pad (- mx (length (car cell)))))
-			(if (> pad 0)
-			    (setcar
-			     cell
-			     (if (< nu (* org-table-number-fraction ne))
-				 (concat (car cell) (make-string pad ? ))
-			       (concat (make-string pad ? ) (car cell))))))))
+
     ;; inactivating jit-lock-after-change boosts performance a lot
     (cl-letf (((symbol-function 'jit-lock-after-change) (lambda (a b c)) ))
       ;; insert well padded and aligned cells at current buffer position
@@ -239,12 +224,24 @@ special symbol 'hline to mean an horizontal line."
 	       do
 	       (if (listp row)
 		   (cl-loop for cell in row
-			    do (insert "| " cell " "))
+			    for mx in maxwidths
+			    for nu in numbers
+			    for ne in non-empty
+			    for pad = (- mx (length cell))
+			    do (cond ((<= pad 0)
+				      ;; no alignment
+				      (insert "| " cell " "))
+				     ((< nu (* org-table-number-fraction ne))
+				      ;; left alignment
+				      (insert "| " cell (make-string pad ? ) " "))
+				     (t
+				      ;; right alignment
+				      (insert "| " (make-string pad ? ) cell " "))))
 		 (let ((bar "|"))
 		   (cl-loop for mx in maxwidths
 			    do (insert bar (make-string (+ mx 2) ?-))
 			    do (setq bar "+"))))
-	       (insert "|\n")))))
+	       do (insert "|\n")))))
 
 ;; creating long lists in the right order may be done
 ;; - by (nconc)  but behavior is quadratic

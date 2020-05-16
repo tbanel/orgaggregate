@@ -5,9 +5,6 @@
 Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the first table.
 
-This is the third version, allowing non necessarily alphanumeric
-column names (they must be quoted).
-
 Optimization lead to significant speedups.
 
 * Examples
@@ -322,77 +319,208 @@ many other aggregations. They are based on functions provided by Calc:
     with a parameter, empty cells are not counted
     (except with the =E= modifier)..
 
-- =sum= or =vsum=
+- =sum(X)= or =vsum(X)=
   + in Calc: =`u +' (`calc-vector-sum') [`vsum']=
   + computes the sum of elements being aggregated
 
-- =max= or =vmax=
+- =max(X)= or =vmax(X)=
   + in Calc: =`u X' (`calc-vector-max') [`vmax']=
   + gives the largest of the elements being aggregated
 
-- =min= or =vmin=
+- =min(X)= or =vmin(X)=
   + in Calc: =`u N' (`calc-vector-min') [`vmin']=
   + gives the smallest of the elements being aggregated
 
-- =mean= or =vmean=
+- =mean(X)= or =vmean(X)=
   + in Calc: =`u M' (`calc-vector-mean') [`vmean']=
   + computes the average (arithmetic mean) of elements being aggregated
 
-- =meane= or =vmeane=
+- =meane(X)= or =vmeane(X)=
   + in Calc: =`I u M' (`calc-vector-mean-error') [`vmeane']=
   + computes the average (as mean) along with the estimated error of elements being aggregated
 
-- =median= or =vmedian=
+- =median(X)= or =vmedian(X)=
   + in Calc: =`H u M' (`calc-vector-median') [`vmedian']=
   + computes the median of elements being aggregated, by taken the middle element after sorting them
 
-- =hmean= or =vhmean=
+- =hmean(X)= or =vhmean(X)=
   + in Calc: =`H I u M' (`calc-vector-harmonic-mean') [`vhmean']=
   + computes the harmonic mean of elements being aggregated
  
-- =gmean= or =vgmean=
+- =gmean(X)= or =vgmean(X)=
   + in Calc: =`u G' (`calc-vector-geometric-mean') [`vgmean']=
   + computes the geometric mean of elements being aggregated
 
-- =sdev= or =vsdev=
+- =sdev(X)= or =vsdev(X)=
   + in Calc: =`u S' (`calc-vector-sdev') [`vsdev']=
   + computes the standard deviation of elements being aggregated
 
-- =psdev= or =vpsdev=
+- =psdev(X)= or =vpsdev(X)=
   + in Calc: =`I u S' (`calc-vector-pop-sdev') [`vpsdev']=
   + computes the population standard deviation (divide by N instead of N-1)
 
-- =var= or =vvar=
+- =var(X)= or =vvar(X)=
   + in Calc: =`H u S' (`calc-vector-variance') [`vvar']=
   + computes the variance of elements being aggregated
 
-- =pvar= or =vpvar=
+- =pvar(X)= or =vpvar(X)=
   + in Calc: =`H u S' (`calc-vector-variance') [`vpvar']=
   + computes the population variance of elements being aggregated
 
-- =pcov= or =vpcov=
+- =pcov(X,Y)= or =vpcov(X,Y)=
   + in Calc: =`I u C' (`calc-vector-pop-covariance') [`vpcov']=
   + computes the population covariance of elements being aggregated from two columns (divides by N)
 
-- =cov= or =vcov=
+- =cov(X,Y)= or =vcov(X,Y)=
   + in Calc: =`u C' (`calc-vector-covariance') [`vcov']=
   + computes the sample covariance of elements being aggregated from two columns (divides by N-1)
 
-- =corr= or =vcorr=
+- =corr(X,Y)= or =vcorr(X,Y)=
   + in Calc: =`H u C' (`calc-vector-correlation') [`vcorr']=
   + computes the linear correlation coefficient of elements being aggregated in two columns
 
-- =prod= or =vprod=
+- =prod(X)= or =vprod(X)=
   + in Calc: =`u *' (`calc-vector-product') [`vprod']=
   + computes the product of elements being aggregated
 
-- =list= or =(X)=
-  + gives the list of elements being aggregated, without aggregation
+- =vlist(X)= or =list(X)=
+  + gives the list of =X= being aggregated, verbatim, without aggregation.
+
+- =(X)= or =X= in a formula
+  + return the list of =X= being aggregation, without aggregation,
+    passed through Calc interpretation.
 
 The aggregation functions may be written with or without a leading
 =v=. =sum= and =vsum= are equivalent.  The =v= form should be
 preferred, as it is the one used in the Org table spreadsheet, and in
 Calc.  The non-v names may be dropped in the future.
+
+* Were Calc interpretation happens?
+
+*Calc* is the standard Emacs desktop calculator. Actual mathematical
+computations are handled through Calc. This offers a lot of
+flexibility.
+
+Example of input table. Besides numbers, there are cells with
+mathematical expressions like =20*30=, or just labels as =Red&Green=
+without any mathematical meaning.
+
+#+BEGIN_EXAMPLE
+#+name: to_Calc_or_not_to_Calc
+| Day       | Color      | Level  |
+|-----------+------------+--------|
+| Monday    | Red        | 20*30  |
+| Monday    | Blue       | 55+45  |
+| Tuesday   | Red        | 1      |
+| Tuesday   | Red&Green  | 2      |
+| Tuesday   | Blue+Green | 3      |
+| Wednesday | Red        | (27)   |
+| Wednesday | Red        | (12+1) |
+| Wednesday | Green      | [15]   |
+#+END_EXAMPLE
+
+Basically, Calc operates twice. For example in the formula
+=vsum(Level*10)=:
+- Calc computes =Level= for every input cell in the =Level= column,
+- then Calc computes =vsum()= applied to the resulting list.
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day vsum(Level)"
+| Day       | vsum(Level) |
+|-----------+-------------|
+| Monday    |         700 |
+| Tuesday   |           6 |
+| Wednesday |          55 |
+#+END:
+#+END_EXAMPLE
+
+There are a few occasions were Calc computation does not happen: =vcount()= and =vlist(X)=.
+
+The =vcount()= sub-formula is evaluated as the number of input rows in
+each group, without Calc intervention. However, later on Calc can
+handle this number in a formula as this one: =vsum(Level)/vcount()=
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day vcount() vsum(Level)/vcount()"
+| Day       | vcount() | vsum(Level)/vcount() |
+|-----------+----------+----------------------|
+| Monday    |        2 |                  350 |
+| Tuesday   |        3 |                    2 |
+| Wednesday |        3 |            18.333333 |
+#+END:
+#+END_EXAMPLE
+
+And of course when input cells do not have a mathematical meaning, the result is non-sens:
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day vsum(Color)"
+| Day       | vsum(Color)                                    |
+|-----------+------------------------------------------------|
+| Monday    | Red + Blue                                     |
+| Tuesday   | Red + error(3, '"Syntax error") + Blue + Green |
+| Wednesday | 2 Red + Green                                  |
+#+END:
+#+END_EXAMPLE
+
+The =vlist(X)= formula is not handled by Calc at all. This formula
+must appear alone (not embedded as part of a bigger formula). The cells
+=X= are not interpreted by Calc. As a result, =vlist(X)= produces a
+cell which concatenates input cells verbatim. For instance, the input
+cell =20*30= is left as-is.
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day vlist(Color) vlist(Level)"
+| Day       | vlist(Color)               | vlist(Level)       |
+|-----------+----------------------------+--------------------|
+| Monday    | Red, Blue                  | 20*30, 55+45       |
+| Tuesday   | Red, Red&Green, Blue+Green | 1, 2, 3            |
+| Wednesday | Red, Red, Green            | (27), (12+1), [15] |
+#+END:
+#+END_EXAMPLE
+
+As a contrast, the formula =(Level)= yields a list processed through Calc. For instance, the =20*30= formula is replaced by =600=.
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day (Color) (Level)"
+| Day       | (Color)                                        | (Level)        |
+|-----------+------------------------------------------------+----------------|
+| Monday    | [Red, Blue]                                    | [600, 100]     |
+| Tuesday   | [Red, error(3, '"Syntax error"), Blue + Green] | [1, 2, 3]      |
+| Wednesday | [Red, Red, Green]                              | [27, 13, [15]] |
+#+END:
+#+END_EXAMPLE
+
+Here we used parenthesis in =(Color)= and =(Level)= because otherwise
+they would have been /key columns/. Instead of parenthesis, we can
+embed such expressions in formulas, like =Level+1=:
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day Level+1"
+| Day       | Level+1        |
+|-----------+----------------|
+| Monday    | [601, 101]     |
+| Tuesday   | [2, 3, 4]      |
+| Wednesday | [28, 14, [16]] |
+#+END:
+#+END_EXAMPLE
+
+To summarize, a column name embedded in a formula is evaluated as the
+list of input cells, processed by Calc. Except for the =vlist(Column)=
+formula where input cells are kept verbatim.
+
+By the way, what is the meaning of the expression =Level*Level=? For
+=Monday=, it is =[600,100]*[600,100]=. Then Calc simplifies that as a
+/vector product/: sum of individual products. =600^2+100^2=
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day Level*Level Level+Level"
+| Day       | Level*Level | Level+Level    |
+|-----------+-------------+----------------|
+| Monday    |      370000 | [1200, 200]    |
+| Tuesday   |          14 | [2, 4, 6]      |
+| Wednesday |        1123 | [54, 26, [30]] |
+#+END:
+#+END_EXAMPLE
 
 * The :cond filtering
 
@@ -899,6 +1027,7 @@ Contributors
 - aligned output in push mode
 - added a hashtable to speedup aggregation
 - back-port org-table-to-lisp which is now much faster
+- =vlist(X)= now yields input cells verbatim were =(X)= yields Calc processed input cells
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  Thierry Banel

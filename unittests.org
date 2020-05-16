@@ -857,3 +857,32 @@ Missing cells are handled as though they were empty
 | Thursday  |       3 |            83 |
 | Friday    |       2 |            14 |
 #+END:
+* Test vlist($) vs. ($)
+
+#+name: suitableforlist
+| Day       | Color      | Level |
+|-----------+------------+-------|
+| Monday    | Red        | 20*30 |
+| Monday    | Blue       | 55+25 |
+| Tuesday   | Red        |    51 |
+| Tuesday   | Red        |    45 |
+| Tuesday   | Blue       |    33 |
+| Wednesday | Red        |    27 |
+| Wednesday | Blue       |    12 |
+| Wednesday | Green      |    15 |
+| Thursday  | Red        |    39 |
+| Thursday  | Red        |    41 |
+| Thursday  | Red+Green  |    49 |
+| Friday    | Blue       |   (7) |
+| Friday    | Blue       | (6+1) |
+| Friday    | Blue&Green |  [11] |
+
+#+BEGIN: aggregate :table "suitableforlist" :cols "Day vlist(Color) (Color) vlist(Level) (Level) Level*100 Level^2"
+| Day       | vlist(Color)           | (Color)                                 | vlist(Level)     | (Level)      | Level*100          | Level^2 |
+|-----------+------------------------+-----------------------------------------+------------------+--------------+--------------------+---------|
+| Monday    | Red, Blue              | [Red, Blue]                             | 20*30, 55+25     | [600, 80]    | [60000, 8000]      |  366400 |
+| Tuesday   | Red, Red, Blue         | [Red, Red, Blue]                        | 51, 45, 33       | [51, 45, 33] | [5100, 4500, 3300] |    5715 |
+| Wednesday | Red, Blue, Green       | [Red, Blue, Green]                      | 27, 12, 15       | [27, 12, 15] | [2700, 1200, 1500] |    1098 |
+| Thursday  | Red, Red, Red+Green    | [Red, Red, Red + Green]                 | 39, 41, 49       | [39, 41, 49] | [3900, 4100, 4900] |    5603 |
+| Friday    | Blue, Blue, Blue&Green | [Blue, Blue, error(4, '"Syntax error")] | (7), (6+1), [11] | [7, 7, [11]] | [700, 700, [1100]] |     219 |
+#+END:

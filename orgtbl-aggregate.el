@@ -372,9 +372,6 @@ so, the COLUMN is ready to be computed computed by Calc."
 	  "vprod" "vpvar" "vsdev" "vpsdev" "vcorr" "vcov" "vpcov"
 	  "vcount"))
        var)
-      ;; compatibility: list(X) will be obsoleted for (X)
-      ((equal var "list")
-       "")
       (t ;; replace VAR if it is a column name
        (save-match-data ;; save because we are called within a replace-regexp
 	 (let ((i (orgtbl-to-aggregated-table-colname-to-int
@@ -671,35 +668,54 @@ NAN or ignored.
 Return an output cell.
 When FORMULA$ is a key column (just a single input column without
 parenthesis) return a cell from any row in the group."
-  (if (string-match "^\\$\\([0-9]+\\)$" formula$)
-      (nth (string-to-number (match-string 1 formula$))
-	   (car (-appendable-list-get group)))
-    (if noeval
-	formula$
-      (if (string-match-p "\\<v?count()" formula$)
-	  (setq formula$
-		(replace-regexp-in-string
-		 "\\<v?count()"
-		 (lambda (var)
-		   (format "%s" (length (-appendable-list-get group))))
-		 formula$)))
-      (let ((calc-dollar-values
-	     (orgtbl-to-aggregated-make-calc-$-list
-	      table columns-int group keep-empty numbers))
-	    (calc-command-flags nil)
-	    (calc-next-why nil)
-	    (calc-language 'flat)
-	    (calc-dollar-used 0))
-	(let ((ev
-		 (math-format-value
-		  (math-simplify
-		   (calcFunc-expand	; yes, double expansion
-		    (calcFunc-expand ; otherwise it is not fully expanded
-		     (math-read-expr formula$))))
-		  1000)))
-	    (if fmt
-		(format fmt (string-to-number ev))
-	      ev))))))
+  (cond
+   ;; key column: $3 alone, without parenthesis or other decoration
+   ((string-match "^\\$\\([0-9]+\\)$" formula$)
+    (nth (string-to-number (match-string 1 formula$))
+	 (car (-appendable-list-get group))))
+   ;; do not evaluate
+   (noeval
+    formula$)
+   ;; vlist($3) alone, without parenthesis or other decoration
+   ((string-match
+     (rx bos (? ?v) "list"
+	 (* (any " \t")) "(" (* (any " \t"))
+	 "$" (group (+ (any "0-9")))
+	 (* (any " \t")) ")" (* (any " \t")) eos)
+     formula$)
+    (mapconcat
+     #'identity
+     (cl-loop with i = (string-to-number (match-string 1 formula$))
+	      for row in (-appendable-list-get group)
+	      collect (nth i row))
+     ", "))
+   (t
+    ;; vcount() embedded in the formula$: replace it with a number
+    (if (string-match-p "\\<v?count()" formula$)
+	(setq formula$
+	      (replace-regexp-in-string
+	       "\\<v?count()"
+	       (lambda (var)
+		 (format "%s" (length (-appendable-list-get group))))
+	       formula$)))
+    ;; all other cases: handle them to Calc
+    (let ((calc-dollar-values
+	   (orgtbl-to-aggregated-make-calc-$-list
+	    table columns-int group keep-empty numbers))
+	  (calc-command-flags nil)
+	  (calc-next-why nil)
+	  (calc-language 'flat)
+	  (calc-dollar-used 0))
+      (let ((ev
+	     (math-format-value
+	      (math-simplify
+	       (calcFunc-expand	      ; yes, double expansion
+		(calcFunc-expand  ; otherwise it is not fully expanded
+		 (math-read-expr formula$))))
+	      1000)))
+	(if fmt
+	    (format fmt (string-to-number ev))
+	  ev))))))
 
 (defun orgtbl-to-aggregated-make-calc-$-list (table columns-int group keep-empty numbers)
   "Prepare a list of vectors that Calc will use to replace $N variables.

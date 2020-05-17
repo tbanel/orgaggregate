@@ -574,22 +574,18 @@ empty lists. A cell is appended to every rows at each call of this function."
   ;; (orgtbl-aggregate-read-calc-expr) and (math-format-value)
   (let ((fmt     (match-string 3 formula))
 	(formula (match-string 1 formula))
-	(calc-internal-prec (or (cadr (memq 'calc-internal-prec org-calc-default-modes)) calc-internal-prec))
-	(calc-float-format  (or (cadr (memq 'calc-float-format  org-calc-default-modes)) calc-float-format ))
-	(calc-angle-mode    (or (cadr (memq 'calc-angle-mode    org-calc-default-modes)) calc-angle-mode   ))
-	(calc-prefer-frac   (or (cadr (memq 'calc-prefer-frac   org-calc-default-modes)) calc-prefer-frac  ))
-	(calc-symbolic-mode (or (cadr (memq 'calc-symbolic-mode org-calc-default-modes)) calc-symbolic-mode))
-	(calc-date-format   (or (cadr (memq 'calc-date-format   org-calc-default-modes))
+	(calc-internal-prec (or (plist-get org-calc-default-modes 'calc-internal-prec) calc-internal-prec))
+	(calc-float-format  (or (plist-get org-calc-default-modes 'calc-float-format ) calc-float-format ))
+	(calc-angle-mode    (or (plist-get org-calc-default-modes 'calc-angle-mode   ) calc-angle-mode   ))
+	(calc-prefer-frac   (or (plist-get org-calc-default-modes 'calc-prefer-frac  ) calc-prefer-frac  ))
+	(calc-symbolic-mode (or (plist-get org-calc-default-modes 'calc-symbolic-mode) calc-symbolic-mode))
+	(calc-date-format   (or (plist-get org-calc-default-modes 'calc-date-format  )
 				calc-date-format
 				'(YYYY "-" MM "-" DD " " www (" " hh ":" mm))))
 	(calc-display-working-message
-	 (or (cadr (memq 'calc-display-working-message org-calc-default-modes)) calc-display-working-message))
-	(duration-output-format)
-	(duration)
-	(numbers)
-	(literal)
-	(keep-empty)
-	(noeval)
+	 (or (plist-get org-calc-default-modes 'calc-display-working-message)
+	     calc-display-working-message))
+	(fmt-settings (plist-put () :fmt nil))
 	(case-fold-search nil))
     (when fmt
       ;; the following code was freely borrowed from org-table-eval-formula
@@ -604,50 +600,50 @@ empty lists. A cell is appended to every rows at each call of this function."
 					(?s . sci) (?e . eng))))
 			n)))
 	  (setq fmt (replace-match "" t t fmt))))
-      (if (string-match "T" fmt)
-	  (setq duration t
-		numbers t
-		duration-output-format nil
-		fmt (replace-match "" t t fmt)))
-      (if (string-match "t" fmt)
-	  (setq duration t
-		numbers t
-		duration-output-format org-table-duration-custom-format
-		fmt (replace-match "" t t fmt)))
-      (if (string-match "N" fmt)
-	  (setq numbers t
-		fmt (replace-match "" t t fmt)))
-      (if (string-match "L" fmt)
-	  (setq literal t
-		fmt (replace-match "" t t fmt)))
-      (if (string-match "E" fmt)
-	  (setq keep-empty t
-		fmt (replace-match "" t t fmt)))
+      (when (string-match "T" fmt)
+	(plist-put fmt-settings :duration t)
+	(plist-put fmt-settings :numbers  t)
+	(plist-put fmt-settings :duration-output-format nil)
+	(setq fmt (replace-match "" t t fmt)))
+      (when (string-match "t" fmt)
+	(plist-put fmt-settings :duration t)
+	(plist-put fmt-settings :numbers  t)
+	(plist-put fmt-settings :duration-output-format org-table-duration-custom-format)
+	(setq fmt (replace-match "" t t fmt)))
+      (when (string-match "N" fmt)
+	(plist-put fmt-settings :numbers  t)
+	(setq fmt (replace-match "" t t fmt)))
+      (when (string-match "L" fmt)
+	(plist-put fmt-settings :literal t)
+	(setq fmt (replace-match "" t t fmt)))
+      (when (string-match "E" fmt)
+	(plist-put fmt-settings :keep-empty t)
+	(setq fmt (replace-match "" t t fmt)))
       (while (string-match "[DRFSQ]" fmt)
 	(cl-case (string-to-char (match-string 0 fmt))
 	  (?D (setq calc-angle-mode 'deg))
 	  (?R (setq calc-angle-mode 'rad))
 	  (?F (setq calc-prefer-frac t))
 	  (?S (setq calc-symbolic-mode t))
-	  (?Q (setq noeval t)))
+	  (?Q (plist-put fmt-settings :noeval t)))
 	(setq fmt (replace-match "" t t fmt)))
-      (unless (string-match "\\S-" fmt)
-	(setq fmt nil)))
+      (when (string-match "\\S-" fmt)
+	(plist-put fmt-settings :fmt fmt)))
 
     ;; replace columns names by $3 forms
     ;; and get a list of all column numbers
-    (let* ((formula$ (orgtbl-to-aggregated-replace-colnames-$ table formula))
-	   (columns-int (orgtbl-to-aggregated-list-$-as-int formula$ table)))
+    (let* ((formula$ (orgtbl-to-aggregated-replace-colnames-$ table formula)))
+      (plist-put fmt-settings :columns-int
+		 (orgtbl-to-aggregated-list-$-as-int formula$ table))
       (cl-loop for group in (-appendable-list-get groups)
 	       for row in result
 	       do
 	       (-appendable-list-append
 		row
 		(orgtbl-to-aggregated-compute-one-sum
-		 table group formula$ columns-int fmt keep-empty noeval numbers))))))
+		 table group formula$ fmt-settings))))))
 
-(defun orgtbl-to-aggregated-compute-one-sum
-    (table group formula$ columns-int fmt keep-empty noeval numbers)
+(defun orgtbl-to-aggregated-compute-one-sum (table group formula$ fmt-settings)
   "Apply FORMULA$ to one group of input rows.
 FORMULA$ does not have a format, because format has already been
 parse. Column names in FORMULA$ have been replaced by $3 forms,
@@ -665,7 +661,7 @@ parenthesis) return a cell from any row in the group."
     (nth (string-to-number (match-string 1 formula$))
 	 (car (-appendable-list-get group))))
    ;; do not evaluate
-   (noeval
+   ((plist-get fmt-settings :noeval)
     formula$)
    ;; vlist($3) alone, without parenthesis or other decoration
    ((string-match
@@ -691,8 +687,7 @@ parenthesis) return a cell from any row in the group."
 	       formula$)))
     ;; all other cases: handle them to Calc
     (let ((calc-dollar-values
-	   (orgtbl-to-aggregated-make-calc-$-list
-	    table columns-int group keep-empty numbers))
+	   (orgtbl-to-aggregated-make-calc-$-list table group fmt-settings))
 	  (calc-command-flags nil)
 	  (calc-next-why nil)
 	  (calc-language 'flat)
@@ -704,11 +699,11 @@ parenthesis) return a cell from any row in the group."
 		(calcFunc-expand  ; otherwise it is not fully expanded
 		 (math-read-expr formula$))))
 	      1000)))
-	(if fmt
-	    (format fmt (string-to-number ev))
+	(if (plist-get fmt-settings :fmt)
+	    (format (plist-get fmt-settings :fmt) (string-to-number ev))
 	  ev))))))
 
-(defun orgtbl-to-aggregated-make-calc-$-list (table columns-int group keep-empty numbers)
+(defun orgtbl-to-aggregated-make-calc-$-list (table group fmt-settings)
   "Prepare a list of vectors that Calc will use to replace $N variables.
 Calc will replace $1 by the first element of list, $2 by the second an so on.
 Ths vectors follow the Calc syntax: (vec a b c ...). They contain values
@@ -718,7 +713,7 @@ KEEP-EMPTY is a flag to tell whether an empty cell should be converted to
 NAN or ignored."
   (let ((lists (make-vector (length (car table)) nil)))
     (cl-loop
-     for i in columns-int
+     for i in (plist-get fmt-settings :columns-int)
      do (aset
 	 lists (1- i)
 	 (cons 'vec
@@ -731,11 +726,11 @@ NAN or ignored."
      (if (memq nil ls)
 	 (setq
 	  ls
-	  (if keep-empty
+	  (if (plist-get fmt-settings :keep-empty)
 	      (cl-loop for x in ls collect (or x '(var nan var-nan)))
 	    (cl-loop for x in ls nconc (if x (list x))))))
      collect
-     (if numbers
+     (if (plist-get fmt-settings :numbers)
 	 (cons (car ls)
 	       (cl-loop for x in (cdr ls)
 			collect (if (math-numberp x) x 0)))

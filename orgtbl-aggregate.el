@@ -205,17 +205,14 @@ special symbol 'hline to mean an horizontal line."
 		      for mx on maxwidths
 		      for nu on numbers
 		      for ne on non-empty
-		      do
-		      (progn
-			(setcar
-			 cell
-			 (substring-no-properties (or (car cell) "")))
-			(when (string-match-p org-table-number-regexp (car cell))
-			  (cl-incf (car nu)))
-			(unless (equal (car cell) "")
-			  (cl-incf (car ne)))
-			(if (< (car mx) (length (car cell)))
-			    (setcar mx (length (car cell)))))))
+		      for cellnp = (substring-no-properties (or (car cell) ""))
+		      do (setcar cell cellnp)
+		      do (when (string-match-p org-table-number-regexp cellnp)
+			   (cl-incf (car nu)))
+		      do (unless (equal cellnp "")
+			   (cl-incf (car ne)))
+		      do (if (< (car mx) (length cellnp))
+			    (setcar mx (length cellnp)))))
 
     ;; inactivating jit-lock-after-change boosts performance a lot
     (cl-letf (((symbol-function 'jit-lock-after-change) (lambda (a b c)) ))
@@ -237,10 +234,10 @@ special symbol 'hline to mean an horizontal line."
 				     (t
 				      ;; right alignment
 				      (insert "| " (make-string pad ? ) cell " "))))
-		 (let ((bar "|"))
-		   (cl-loop for mx in maxwidths
-			    do (insert bar (make-string (+ mx 2) ?-))
-			    do (setq bar "+"))))
+		 (cl-loop with bar = "|"
+			  for mx in maxwidths
+			  do (insert bar (make-string (+ mx 2) ?-))
+			  do (setq bar "+")))
 	       do (insert "|\n")))))
 
 ;; creating long lists in the right order may be done
@@ -408,21 +405,20 @@ Example: \"vmean($3) + 2*vsum($5)\" is converted into '(3 5)"
 
 (defun orgtbl-to-aggregated-table-keycols (table aggcols)
   "Sets the global variable orgtbl-aggregate-var-keycols
-to thye list of key columns as integers.
+to the list of key columns as integers.
 AGGCOLS is a lisp list as given by the user in :cond
 Columns which are not pure key columns are ignored"
   (setq
    orgtbl-aggregate-var-keycols
    (cl-loop for column in aggcols
-	    for idx
-	    = (and (or (string-match "^\\([[:word:]0-9_$]+\\)$" column)
-		       (string-match "^'\\(.*\\)'$" column)
-		       (string-match "^\"\\(.*\\)\"$" column))
-		   (orgtbl-to-aggregated-table-colname-to-int
-		    (match-string 1 column)
-		    table
-		    t))
-	    if idx collect idx)))
+	    if (or (string-match "^\\([[:word:]0-9_$]+\\)$" column)
+		   (string-match "^'\\(.*\\)'$" column)
+		   (string-match "^\"\\(.*\\)\"$" column))
+	    collect 
+	    (orgtbl-to-aggregated-table-colname-to-int
+	     (match-string 1 column)
+	     table
+	     t))))
 
 (defun orgtbl-to-aggregated-table-add-group (groups hgroups row aggcond)
   "Add the source ROW to the GROUPS of rows.
@@ -450,11 +446,11 @@ containing this single ROW."
    ;; the purely numerical cell case arises very often
    ;; short-circuiting general functions boosts performance (a lot)
    ((string-match
-     (rx bol
+     (rx bos
 	 (? (any "+-")) (* (any "0-9"))
 	 (? "." (* (any "0-9")))
 	 (? "e" (? (any "+-")) (+ (any "0-9")))
-	 eol)
+	 eos)
      expr)
     (math-read-number expr))
    ;; Convert a string in Org-date format to Calc internal representation
@@ -564,7 +560,7 @@ AGGCOND."
 	(cons
 	 aggcols
 	 (cons
-	  'hlist
+	  'hline
 	  (cl-loop for row in result
 		   collect (-appendable-list-get row))))))))
 
@@ -706,7 +702,7 @@ parenthesis) return a cell from any row in the group."
       (let ((ev
 	     (math-format-value
 	      (math-simplify
-	       (calcFunc-expand	      ; yes, double expansion
+	       (calcFunc-expand	  ; yes, double expansion
 		(calcFunc-expand  ; otherwise it is not fully expanded
 		 (math-read-expr formula$))))
 	      1000)))
@@ -733,19 +729,19 @@ NAN or ignored."
 			(orgtbl-aggregate-read-calc-expr (nth i row))))))
     (cl-loop
      for ls across lists
+     do
+     (if (memq nil ls)
+	 (setq
+	  ls
+	  (if keep-empty
+	      (cl-loop for x in ls collect (or x '(var nan var-nan)))
+	    (cl-loop for x in ls nconc (if x (list x))))))
      collect
-     (progn
-       (if (memq nil ls)
-	   (setq
-	    ls
-	    (if keep-empty
-		(cl-loop for x in ls collect (or x '(var nan var-nan)))
-	      (cl-loop for x in ls nconc (if x (list x))))))
-       (if numbers
-	   (cons (car ls)
-		 (cl-loop for x in (cdr ls)
-			  collect (if (math-numberp x) x 0)))
-	 ls)))))
+     (if numbers
+	 (cons (car ls)
+	       (cl-loop for x in (cdr ls)
+			collect (if (math-numberp x) x 0)))
+       ls))))
 
 ;; aggregation in Push mode
 
@@ -972,7 +968,7 @@ Note:
       (nconc params (list :cond (read aggcond))))
     (org-create-dblock params)
     (org-update-dblock)))
-  
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Transposition package
 
@@ -1006,11 +1002,11 @@ If AGGCOND is nil, all source rows are taken"
 	       (setq row (cons nhline row)))
 	     do
 	     (when (or (eq row 'hline) (not aggcond) (eval aggcond))
-	       (let ((r result))
-		 (cl-loop
-		  for spec in cols
-		  do
-		  (nconc (pop r) (list (if (eq row 'hline) "" (nth spec row))))))))
+	       (cl-loop
+		for spec in cols
+		for r in result
+		do
+		(nconc r (list (if (eq row 'hline) "" (nth spec row)))))))
     (cl-loop for row in result
 	     do (pop row)
 	     collect
@@ -1129,7 +1125,9 @@ Note:
 	(content (plist-get params :content))
 	(tblfm nil))
     (when (and content
-	       (string-match "^[ \t]*\\(#\\+\\(tbl\\)?name:.*\\)" content))
+	       (string-match
+		(rx bos (* (any " \t")) (group "#+" (? "tbl") "name:" (* any)))
+		content))
       (insert (match-string 1 content) "\n"))
     (orgtbl-insert-elisp-table
      (orgtbl-create-table-transposed

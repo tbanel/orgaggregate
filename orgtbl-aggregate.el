@@ -490,22 +490,23 @@ double quotes and the other way around"
 
 (defun orgtbl-aggregate-hash-test-equal (row1 row2)
   "Are two rows from the source table equal regarding the
-aggregation columns ?"
+key columns ?"
   (cl-loop for idx in orgtbl-aggregate-var-keycols
 	   always (string= (nth idx row1) (nth idx row2))))
 
+;; for hashes, try to stay within the 2^29 fixnums
+;; see (info "(elisp) Integer Basics")
+;; { prime_next 123 ==> 127 }
+;; { prime_prev ((2^29 - 256) / 127 ) ==> 4227323 }
+
 (defun orgtbl-aggregate-hash-test-hash (row)
+  "Compute a hash code from key columns."
   (let ((h 45235))
     (cl-loop for idx in orgtbl-aggregate-var-keycols
 	     do
 	     (cl-loop for c across (nth idx row)
 		      do (setq h (% (* (+ h c) 127) 4227323))))
     h))
-
-;; for hashes, try to stay within the 2^29 fixnums
-;; see (info "(elisp) Integer Basics")
-;; { prime_next 123 ==> 127 }
-;; { prime_prev ((2^29 - 256) / 127 ) ==> 4227323 }
 
 (defun orgtbl-create-table-aggregated (table aggcols aggcond)
   "Convert the source TABLE, which is a list of lists of cells,
@@ -526,15 +527,14 @@ AGGCOND."
     'orgtbl-aggregate-hash-test-equal
     'orgtbl-aggregate-hash-test-hash)
   (let ((groups (-appendable-list-create))
-	(hgroups (make-hash-table :test 'orgtbl-aggregate-hash-test-name))
-	(b 0)
-	(bs "0"))
+	(hgroups (make-hash-table :test 'orgtbl-aggregate-hash-test-name)))
     (orgtbl-to-aggregated-table-keycols table aggcols)
     ; split table into groups of rows
-    (cl-loop for row in
-	     (if (memq 'hline table) ;; skip header if any
-		 (cdr (memq 'hline table))
-	       table)
+    (cl-loop with b = 0
+	     with bs = "0"
+	     for row in
+	     (or (cdr (memq 'hline table)) ;; skip header if any
+		 table)
 	     do
 	     (cond ((eq row 'hline)
 		    (setq b (1+ b)
@@ -545,7 +545,7 @@ AGGCOND."
 		     hgroups
 		     (cons bs row)
 		     aggcond))))
-
+    
     ;; inactivating math-read-preprocess-string boosts performance
     (cl-letf (((symbol-function 'math-read-preprocess-string) #'identity))
       
@@ -557,12 +557,9 @@ AGGCOND."
 		 do
 		 (orgtbl-to-aggregated-compute-sums-on-one-column
 		  table groups result column))
-	(cons
-	 aggcols
-	 (cons
-	  'hline
-	  (cl-loop for row in result
-		   collect (-appendable-list-get row))))))))
+	(cl-loop for row on result
+		 do (setcar row (-appendable-list-get (car row))))
+	(cons aggcols (cons 'hline result))))))
 
 (defun orgtbl-to-aggregated-compute-sums-on-one-column (table groups result formula)
   "FORMULA is a formula given by the user in :cols, with an optional format.
@@ -595,7 +592,8 @@ empty lists. A cell is appended to every rows at each call of this function."
 	(noeval)
 	(case-fold-search nil))
     (when fmt
-      ;; the following regexp was freely borrowed from org-table-eval-formula
+      ;; the following code was freely borrowed from org-table-eval-formula
+      ;; not all settings extracted from fmt are used
       (while (string-match "\\([pnfse]\\)\\(-?[0-9]+\\)" fmt)
 	(let ((c (string-to-char   (match-string 1 fmt)))
 	      (n (string-to-number (match-string 2 fmt))))

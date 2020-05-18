@@ -24,8 +24,8 @@ this is optional
 (save-excursion
   (goto-char (point-min))
   (replace-regexp
-   (rx (group bol "#+BEGIN" (* any) "\n")
-       (* "|" (* any) "\n"))
+   (rx (group bol "#+BEGIN" (* not-newline) "\n")
+       (* "|" (* not-newline) "\n"))
    "\\1"))
 #+end_src
 

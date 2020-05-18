@@ -348,8 +348,8 @@ $N, N being the numbering of columns in the input table.  Doing
 so, the COLUMN is ready to be computed computed by Calc."
   (replace-regexp-in-string
    (rx (or
-	(group ?'  (* (not ?' )) ?')
-	(group ?\" (* (not ?\")) ?\")
+	(group ?'  (* (not (any ?' ))) ?')
+	(group ?\" (* (not (any ?\"))) ?\")
 	(group bow (+ word)      eow)))
    (lambda (var)
      (cond
@@ -478,8 +478,8 @@ double quotes and the other way around"
 		  (string-match
 		   (rx (* (not (any " '\"")))
 		       (* (or
-			   (group ?'  (* (not ?'))  ?' )
-			   (group ?\" (* (not ?\")) ?\"))
+			   (group ?'  (* (not (any ?')))  ?' )
+			   (group ?\" (* (not (any ?\"))) ?\"))
 			  (* (not (any " '\"")))))
 		   string start))
 	(-appendable-list-append result (match-string 0 string))
@@ -723,19 +723,19 @@ NAN or ignored."
 			(orgtbl-aggregate-read-calc-expr (nth i row))))))
     (cl-loop
      for ls across lists
+     if (memq nil ls)
      do
-     (if (memq nil ls)
-	 (setq
-	  ls
-	  (if (plist-get fmt-settings :keep-empty)
-	      (cl-loop for x in ls collect (or x '(var nan var-nan)))
-	    (cl-loop for x in ls nconc (if x (list x))))))
-     collect
-     (if (plist-get fmt-settings :numbers)
-	 (cons (car ls)
-	       (cl-loop for x in (cdr ls)
-			collect (if (math-numberp x) x 0)))
-       ls))))
+     (if (plist-get fmt-settings :keep-empty)
+	 (cl-loop for x on (cdr ls)
+		  unless (car x)
+		  do (setcar x '(var nan var-nan)))
+       (delq nil ls))
+     if (plist-get fmt-settings :numbers)
+     do
+     (cl-loop for x on (cdr ls)
+	      unless (math-numberp (car x))
+	      do (setcar x 0))
+     collect ls)))
 
 ;; aggregation in Push mode
 
@@ -909,7 +909,7 @@ Note:
 	(tblfm nil))
     (when (and content
 	       (string-match
-		(rx bos (* (any " \t")) (group "#+" (? "tbl") "name:" (* any)))
+		(rx bos (* (any " \t")) (group "#+" (? "tbl") "name:" (* not-newline)))
 		content))
       (insert (match-string 1 content) "\n"))
     (orgtbl-insert-elisp-table
@@ -1120,7 +1120,7 @@ Note:
 	(tblfm nil))
     (when (and content
 	       (string-match
-		(rx bos (* (any " \t")) (group "#+" (? "tbl") "name:" (* any)))
+		(rx bos (* (any " \t")) (group "#+" (? "tbl") "name:" (* not-newline)))
 		content))
       (insert (match-string 1 content) "\n"))
     (orgtbl-insert-elisp-table

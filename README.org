@@ -752,31 +752,60 @@ noise_between_0_and_2=.
 
 * Dates
 
-Some (limited) aggregation is possible on dates.
-
-Example. Here is a source table containing dates:
+Some aggregations are possible on dates. Example. Here is a source
+table containing dates:
 
 #+BEGIN_EXAMPLE
 #+tblname: datetable
-| Date                    |
-|-------------------------|
-| [2013-12-22 dim. 09:01] |
-| [2013-11-23 sam. 13:04] |
-| [2011-09-24 sam. 13:54] |
-| [2013-09-25 mer. 03:54] |
-| [2014-02-26 mer. 16:11] |
-| [2014-01-18 sam. 03:51] |
-| [2013-12-25 mer. 00:00] |
-| [2012-12-25 mar. 00:00] |
+| Date                   |
+|------------------------|
+| [2035-12-22 Sat 09:01] |
+| [2034-11-24 Fri 13:04] |
+| [2030-09-24 Tue 13:54] |
+| [2027-09-25 Sat 03:54] |
+| [2023-02-26 Sun 16:11] |
+| [2020-03-17 Tue 03:51] |
+| [2018-08-21 Tue 00:00] |
+| [2012-12-25 Tue 00:00] |
 #+END_EXAMPLE
+
+Here are the earliest and the latest dates, along with the average of
+all input dates:
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table datetable :cols "vmin(Date) vmax(Date) vmean(Date)"
-| vmin(Date)                 | vmax(Date)                 |   vmean(Date) |
-|----------------------------+----------------------------+---------------|
-| <2011-09-24 sat. 13:54:00> | <2014-02-26 wed. 16:11:00> | 735074.937066 |
+| vmin(Date)             | vmax(Date)             | vmean(Date) |
+|------------------------+------------------------+-------------|
+| <2012-12-25 Tue 00:00> | <2035-12-22 Sat 09:01> |   739448.44 |
 #+END:
 #+END_EXAMPLE
+
+The average of all dates is a number? Actually, it is a date expressed
+as the number of days since =[0000-12-31 Sun 00:00]=. To force a
+number of days to be interpreted as a date, use the =date()= function:
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table datetable :cols "date(vmean(Date))"
+| date(vmean(Date))      |
+|------------------------|
+| <2025-07-16 Wed 10:29> |
+#+END:
+#+END_EXAMPLE
+
+With the =date()= function in mind, all kinds of dates handling can be
+done. Example: the average of earliest and the latest dates is
+different from the average of all dates:
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table datetable :cols "date(vmean(vmin(Date),vmax(Date))) date(vmean(Date))"
+| date(vmean(vmin(Date),vmax(Date))) | date(vmean(Date))      |
+|------------------------------------+------------------------|
+| <2024-06-23 Sun 16:30>             | <2025-07-16 Wed 10:29> |
+#+END:
+#+END_EXAMPLE
+
+Note that =date()= is not special to orgaggregate. It can be used in
+Org Mode spreadsheet formulas.
 
 * Arbitrary column names
 Column names are not necessarily alphanumeric words. They may contain
@@ -1028,6 +1057,7 @@ Contributors
 - added a hashtable to speedup aggregation
 - back-port org-table-to-lisp which is now much faster
 - =vlist(X)= now yields input cells verbatim were =(X)= yields Calc processed input cells
+- document dates handling and the =date()= function
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  Thierry Banel

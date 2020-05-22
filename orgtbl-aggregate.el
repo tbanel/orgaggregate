@@ -199,6 +199,7 @@ special symbol 'hline to mean an horizontal line."
 	 (maxwidths  (make-list nbcols 1))
 	 (numbers    (make-list nbcols 0))
 	 (non-empty  (make-list nbcols 0)))
+
     ;; remove text properties, compute maxwidths
     (cl-loop for row in table
 	     do
@@ -208,39 +209,56 @@ special symbol 'hline to mean an horizontal line."
 		      for ne on non-empty
 		      for cellnp = (substring-no-properties (or (car cell) ""))
 		      do (setcar cell cellnp)
-		      do (when (string-match-p org-table-number-regexp cellnp)
-			   (cl-incf (car nu)))
-		      do (unless (equal cellnp "")
-			   (cl-incf (car ne)))
-		      do (if (< (car mx) (length cellnp))
-			    (setcar mx (length cellnp)))))
+		      if (string-match-p org-table-number-regexp cellnp)
+		      do (setcar nu (1+ (car nu)))
+		      unless (equal cellnp "")
+		      do (setcar ne (1+ (car ne)))
+		      if (< (car mx) (length cellnp))
+		      do (setcar mx (length cellnp))))
+
+    ;; change meaning of numbers from quantity of cells with numbers
+    ;; to flags saying whether alignment should be left (number alignment)
+    (cl-loop for nu on numbers
+	     for ne in non-empty
+	     do
+	     (setcar nu (< (car nu) (* org-table-number-fraction ne))))
 
     ;; inactivating jit-lock-after-change boosts performance a lot
     (cl-letf (((symbol-function 'jit-lock-after-change) (lambda (a b c)) ))
       ;; insert well padded and aligned cells at current buffer position
       (cl-loop for row in table
 	       do
-	       (if (listp row)
-		   (cl-loop for cell in row
+	       ;; time optimization: surprisingly,
+	       ;; (insert (concat a b c)) is faster than
+	       ;; (insert a b c)
+	       (insert
+		(concat
+		 (if (listp row)
+		     (cl-loop for cell in row
+			      for mx in maxwidths
+			      for nu in numbers
+			      for pad = (- mx (length cell))
+			      concat "| "
+			      ;; no alignment
+			      if (<= pad 0)
+			      concat cell
+			      ;; left alignment
+			      else if nu
+			      concat cell and
+			      concat (make-string pad ? )
+			      ;; right alignment
+			      else
+			      concat (make-string pad ? ) and
+			      concat cell
+			      concat " ")
+		   (cl-loop with bar = "|"
 			    for mx in maxwidths
-			    for nu in numbers
-			    for ne in non-empty
-			    for pad = (- mx (length cell))
-			    do (cond ((<= pad 0)
-				      ;; no alignment
-				      (insert "| " cell " "))
-				     ((< nu (* org-table-number-fraction ne))
-				      ;; left alignment
-				      (insert "| " cell (make-string pad ? ) " "))
-				     (t
-				      ;; right alignment
-				      (insert "| " (make-string pad ? ) cell " "))))
-		 (cl-loop with bar = "|"
-			  for mx in maxwidths
-			  do (insert bar (make-string (+ mx 2) ?-))
-			  do (setq bar "+")))
-	       do (insert "|\n")))))
+			    concat bar
+			    concat (make-string (+ mx 2) ?-)
+			    do (setq bar "+")))
+		 "|\n"))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; creating long lists in the right order may be done
 ;; - by (nconc)  but behavior is quadratic
 ;; - by (cons) (nreverse)

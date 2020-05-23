@@ -959,7 +959,7 @@ Note:
   "Wizard to interactively insert an aggregate dynamic block."
   (interactive)
   (let* ((table
-	  (org-icompleting-read "Table name: " (orgtbl-list-local-tables)))
+	  (icompleting-read "Table name: " (orgtbl-list-local-tables)))
 	 (header (orgtbl-get-header-distant-table table t))
 	 (aggcols
 	  (replace-regexp-in-string
@@ -1168,7 +1168,7 @@ Note:
   "Wizard to interactively insert a transpose dynamic block."
   (interactive)
   (let* ((table
-	  (org-icompleting-read "Table name: " (orgtbl-list-local-tables)))
+	  (completing-read "Table name: " (orgtbl-list-local-tables)))
          (header (orgtbl-get-header-distant-table table t))
 	 (aggcols
 	  (replace-regexp-in-string

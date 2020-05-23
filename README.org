@@ -387,7 +387,7 @@ many other aggregations. They are based on functions provided by Calc:
   + gives the list of =X= being aggregated, verbatim, without aggregation.
 
 - =(X)= or =X= in a formula
-  + return the list of =X= being aggregation, without aggregation,
+  + return the list of =X= being aggregated, without aggregation,
     passed through Calc interpretation.
 
 The aggregation functions may be written with or without a leading

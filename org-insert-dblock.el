@@ -1,5 +1,5 @@
-;; -*- coding:utf-8;-*-
 ;;; org-inset-dblock.el --- Wizzard to insert a dynamic block
+;; -*- coding:utf-8;-*-
 
 ;; Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  Thierry Banel
 
@@ -33,6 +33,7 @@
 ;;   org-insert-dblock:invoice
 ;;   org-insert-dblock:aggregate
 ;;   org-insert-dblock:transpose
+;;   org-insert-dblock:join
 ;;
 ;; The top-level wizards extends the C-c C-x i key-binding.
 ;; (The C-c C-x i binding was limited to org-insert-columns-dblock,
@@ -57,20 +58,22 @@
 
 ;;;###autoload
 (defun org-insert-dblock:columnview ()
+  "Adapter function for inserting a column view."
   (interactive)
-  (if (fboundp 'org-columns-insert-dblock)
+  (if (functionp 'org-columns-insert-dblock)
       (org-columns-insert-dblock)
-    ;; fall back to obsolete name
-    (if (fboundp 'org-insert-columns-dblock)
-	(org-insert-columns-dblock))))
+    ;; compatibility for Org Mode older than 9.0
+    (funcall (intern "org-insert-columns-dblock"))))
 
 ;;;###autoload
 (defun org-insert-dblock:clocktable ()
+  "Adapter function to insert a clock-table."
   (interactive)
   (org-clock-report))
 
 ;;;###autoload
 (defun org-insert-dblock:propview ()
+  "Adapter function to insert a property view."
   (interactive)
   (org-create-dblock
    (list
@@ -88,6 +91,7 @@
 
 ;;;###autoload
 (defun org-insert-dblock:invoice ()
+  "Adapter function to insert an invoce block."
   (interactive)
   (org-create-dblock
    (list
@@ -104,7 +108,7 @@
 
 ;;;###autoload
 (defun org-insert-dblock ()
-  "Inserts an org table dynamic block.
+  "Insert an org table dynamic block.
 This is a dispatching function which prompts for the type
 of dynamic block to insert. It dispatches to functions
 which names matches the pattern `org-insert-dblock:*'"
@@ -112,8 +116,8 @@ which names matches the pattern `org-insert-dblock:*'"
   (let ((fun
 	 (intern
 	  (format
-	   "org-insert-dblock:%s" 
-	   (org-icompleting-read
+	   "org-insert-dblock:%s"
+	   (completing-read
 	    "Kind of dynamic block: "
 	    (mapcar (lambda (x)
 		      (replace-regexp-in-string
@@ -131,6 +135,10 @@ which names matches the pattern `org-insert-dblock:*'"
 
 ;;;###autoload
 (defun org-insert-dblock-bindings ()
+  "Setup key-binding.
+This function can be called in your .emacs. It will extend the
+C-c C-x i key-binding for inserting any dynamic block, not only
+`org-insert-columns-dblock'"
   (org-defkey org-mode-map "\C-c\C-xi" 'org-insert-dblock)
   (easy-menu-add-item
    org-org-menu '()

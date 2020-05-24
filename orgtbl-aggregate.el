@@ -959,7 +959,7 @@ Note:
   "Wizard to interactively insert an aggregate dynamic block."
   (interactive)
   (let* ((table
-	  (icompleting-read "Table name: " (orgtbl-list-local-tables)))
+	  (completing-read "Table name: " (orgtbl-list-local-tables)))
 	 (header (orgtbl-get-header-distant-table table t))
 	 (aggcols
 	  (replace-regexp-in-string

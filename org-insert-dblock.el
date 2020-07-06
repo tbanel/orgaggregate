@@ -1,4 +1,4 @@
-;;; org-inset-dblock.el --- Wizzard to insert a dynamic block
+;;; org-insert-dblock.el --- Wizzard to insert a dynamic block
 ;; -*- coding:utf-8;-*-
 
 ;; Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  Thierry Banel
@@ -155,5 +155,5 @@ C-c C-x i key-binding for inserting any dynamic block, not only
 	      (if (boundp 'org-load-hook)
 		  org-load-hook))))
 
-(provide 'org-inset-dblock)
-;;; org-inset-dblock.el ends here
+(provide 'org-insert-dblock)
+;;; org-insert-dblock.el ends here

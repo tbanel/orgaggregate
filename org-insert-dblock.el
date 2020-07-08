@@ -1,5 +1,4 @@
-;;; org-insert-dblock.el --- Wizzard to insert a dynamic block
-;; -*- coding:utf-8;-*-
+;;; org-insert-dblock.el --- Wizzard to insert a dynamic block  -*- coding:utf-8;-*-
 
 ;; Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  Thierry Banel
 

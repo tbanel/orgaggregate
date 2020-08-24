@@ -141,11 +141,12 @@ An horizontal line is translated as the special symbol `hline'."
   (let (buffer loc)
     (save-excursion
       (goto-char (point-min))
-      (if (re-search-forward
-	   (concat "^[ \t]*#\\+\\(tbl\\)?name:[ \t]*"
-		   (regexp-quote name-or-id)
-		   "[ \t]*$")
-	   nil t)
+      (if (let ((case-fold-search t))
+	    (re-search-forward
+	     (concat "^[ \t]*#\\+\\(tbl\\)?name:[ \t]*"
+		     (regexp-quote name-or-id)
+		     "[ \t]*$")
+	     nil t))
 	  (setq buffer (current-buffer)
 		loc (match-beginning 0))
 	(let ((id-loc (org-id-find name-or-id 'marker)))

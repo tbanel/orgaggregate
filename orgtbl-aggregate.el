@@ -128,7 +128,8 @@ The table is taken from the parameter TXT, or from the buffer at point."
   (let ((tables))
     (save-excursion
       (goto-char (point-min))
-      (while (re-search-forward "^[ \t]*#\\+\\(tbl\\)?name:[ \t]*\\(.*\\)" nil t)
+      (while (let ((case-fold-search t))
+	       (re-search-forward "^[ \t]*#\\+\\(tbl\\)?name:[ \t]*\\(.*\\)" nil t))
 	(push (match-string-no-properties 2) tables)))
     tables))
 

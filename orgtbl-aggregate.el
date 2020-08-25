@@ -926,9 +926,10 @@ Note:
 	(content (plist-get params :content))
 	(tblfm nil))
     (when (and content
-	       (string-match
-		(rx bos (* (any " \t")) (group "#+" (? "tbl") "name:" (* not-newline)))
-		content))
+	       (let ((case-fold-search t))
+		 (string-match
+		  (rx bos (* (any " \t")) (group "#+" (? "tbl") "name:" (* not-newline)))
+		  content)))
       (insert (match-string 1 content) "\n"))
     (orgtbl-insert-elisp-table
      (orgtbl-create-table-aggregated
@@ -937,7 +938,8 @@ Note:
       (plist-get params :cond)))
     (delete-char -1) ;; remove trailing \n which Org Mode will add again
     (when (and content
-	       (string-match "^[ \t]*\\(#\\+tblfm:.*\\)" content))
+	       (let ((case-fold-search t))
+		 (string-match "^[ \t]*\\(#\\+tblfm:.*\\)" content)))
       (setq tblfm (match-string 1 content)))
     (when (stringp formula)
       (if tblfm
@@ -1137,9 +1139,10 @@ Note:
 	(content (plist-get params :content))
 	(tblfm nil))
     (when (and content
-	       (string-match
-		(rx bos (* (any " \t")) (group "#+" (? "tbl") "name:" (* not-newline)))
-		content))
+	       (let ((case-fold-search t))
+		 (string-match
+		  (rx bos (* (any " \t")) (group "#+" (? "tbl") "name:" (* not-newline)))
+		  content)))
       (insert (match-string 1 content) "\n"))
     (orgtbl-insert-elisp-table
      (orgtbl-create-table-transposed
@@ -1148,7 +1151,8 @@ Note:
       (plist-get params :cond)))
     (delete-char -1) ;; remove trailing \n which Org Mode will add again
     (when (and content
-	       (string-match "^[ \t]*\\(#\\+tblfm:.*\\)" content))
+	       (let ((case-fold-search t))
+		 (string-match "^[ \t]*\\(#\\+tblfm:.*\\)" content)))
       (setq tblfm (match-string 1 content)))
     (when (stringp formula)
       (if tblfm

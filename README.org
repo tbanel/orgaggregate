@@ -32,8 +32,7 @@ A very simple example. We have a table of activities and quantities
 #+END_EXAMPLE
 
 To begin with we want to gather all colors and count how many times
-they appear. We are interested only in the second column named
-="Color"=.
+they appear. We are interested only in the second column named =Color=.
 
 First we give a name to the table through the =#+NAME:=
 or =#+TBLNAME:= tags, just above the table.
@@ -819,6 +818,16 @@ Examples:
 - =:cols= "=mean('estimated value')="
 - =:cond (equal "true color" "Red")=
 
+Quoting is not required for
+- ascii letters
+- numbers
+- underscore _, dollar $, dot .
+- accented letters like à é
+- greek letters like α, Ω
+- northen letters like ø
+- russian letters like й
+- esperanto letters like ŭ
+
 Note that in =:cond= Lisp expression, only double quotes work. This is
 because single quote in Lisp has a very special meaning.
 
@@ -1030,6 +1039,8 @@ Contributors
 - Peking Duck, fixed obsolete letf function
 - Bill Hunker, discovered =\_{}= escape
 - Dirk Schmitt, surviving =#.NAME:= line
+- Dale Sedivec, case insensitive =#+NAME:= tags
+- falloutphil, underscore in column names
 
 * Changes
 - Wizard now correctly asks for columns with =$1, $2...= names

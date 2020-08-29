@@ -785,7 +785,7 @@ Name of columns are not unnecessarily alphanumeric words.
 They need to be single or double quoted in formulas.
 In a :cond lisp formula, only double quotes work.
 
-** Source table
+** Quoted names
 
 #+NAME: funnynames
 | first column | observed;number | computed/expected |
@@ -823,6 +823,40 @@ In a :cond lisp formula, only double quotes work.
 | computed/expected |   |          2.4 |         12.1 |          6.9 |    0.0 |    3.4 |    2.9 |    0 |
 | observed;number   |   |          2.3 |         15.4 |          8.2 |  -98.7 |    4.5 |    2.2 |    0 |
 #+END:
+
+** Non alphanumeric names
+Accepted column names which do not require quoting:
+- ascii letters
+- numbers
+- underscore _, dollar $, dot .
+- accented letters like à é
+- greek letters like α, Ω
+- northen letters like ø
+- russian letters like й
+- esperanto letters like ŭ
+
+#+NAME: non_alphanum
+| _key.$ | v_A$4lé.à.α | on.eüΩ.øйŭ | 3.14 |
+|--------+-------------+------------+------|
+| a      |         2.2 |          1 |   10 |
+| a      |         4.9 |          1 |   11 |
+| b      |         7.7 |          1 |   12 |
+| b      |         2.8 |          0 |   13 |
+| b      |         9.3 |          0 |   14 |
+| c      |         6.5 |          0 |   15 |
+| a      |         8.4 |          0 |   16 |
+| a      |         1.9 |          0 |   17 |
+| b      |         5.6 |          0 |   18 |
+| c      |         7.2 |          0 |   19 |
+
+#+BEGIN: aggregate :table "non_alphanum" :cols "_key.$ vsum(v_A$4lé.à.α) vsum(on.eüΩ.øйŭ*10) vlist(on.eüΩ.øйŭ) vmean(3.14*1000)"
+| _key.$ | vsum(v_A$4lé.à.α) | vsum(on.eüΩ.øйŭ*10) | vlist(on.eüΩ.øйŭ) | vmean(3.14*1000) |
+|--------+-------------------+---------------------+-------------------+------------------|
+| a      |              17.4 |                  20 | 1, 1, 0, 0        |            13500 |
+| b      |              25.4 |                  10 | 1, 0, 0, 0        |            14250 |
+| c      |              13.7 |                   0 | 0, 0              |            17000 |
+#+END:
+
 * Test malformed tables
 Some columns are missing in some rows
 This is on purpose

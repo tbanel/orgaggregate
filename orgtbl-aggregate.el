@@ -178,7 +178,7 @@ names which are not fully alphanumeric are quoted."
 	 (if (memq 'hline table)
 	     (cl-loop for x in (car table)
 		      collect
-		      (if (string-match "^[[:word:]0-9_$]+$" x)
+		      (if (string-match "^[[:word:]_$.]+$" x)
 			  x
 			(format "\"%s\"" x)))
 	   (cl-loop for x in (car table)
@@ -368,7 +368,7 @@ so, the COLUMN is ready to be computed computed by Calc."
    (rx (or
 	(group ?'  (* (not (any ?' ))) ?')
 	(group ?\" (* (not (any ?\"))) ?\")
-	(group bow (+ word)      eow)))
+	(group (+ (any word "_$.")))))
    (lambda (var)
      (cond
       ;; aggregate functions with or without the leading "v"
@@ -430,7 +430,7 @@ Columns which are not pure key columns are ignored"
   (setq
    orgtbl-aggregate-var-keycols
    (cl-loop for column in aggcols
-	    if (or (string-match "^\\([[:word:]0-9_$]+\\)$" column)
+	    if (or (string-match "^\\([[:word:]_$.]+\\)$" column)
 		   (string-match "^'\\(.*\\)'$" column)
 		   (string-match "^\"\\(.*\\)\"$" column))
 	    collect 

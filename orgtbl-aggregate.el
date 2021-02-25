@@ -475,6 +475,19 @@ containing this single ROW."
    ;; Convert a string in Org-date format to Calc internal representation
    ((string-match org-ts-regexp0 expr)
     (math-parse-date (replace-regexp-in-string " *[a-z]*[.] *" " " expr)))
+   ;; Convert a duration into a number of seconds
+   ((string-match
+     (rx bos
+	 (group (any "0-9") (any "0-9"))
+	 ":"
+	 (group (any "0-9") (any "0-9"))
+	 (? ":" (group (any "0-9") (any "0-9")))
+	 eos)
+     expr)
+    (+
+     (* 3600 (string-to-number (match-string 1 expr)))
+     (*   60 (string-to-number (match-string 2 expr)))
+     (if (match-string 3 expr) (string-to-number (match-string 3 expr)) 0)))
    ;; generic case: symbolic calc expression
    (t
     (math-simplify
@@ -629,6 +642,11 @@ empty lists. A cell is appended to every rows at each call of this function."
 	(plist-put fmt-settings :numbers  t)
 	(plist-put fmt-settings :duration-output-format org-table-duration-custom-format)
 	(setq fmt (replace-match "" t t fmt)))
+      (when (string-match "U" fmt)
+	(plist-put fmt-settings :duration t)
+	(plist-put fmt-settings :numbers  t)
+	(plist-put fmt-settings :duration-output-format 'hh:mm)
+	(setq fmt (replace-match "" t t fmt)))
       (when (string-match "N" fmt)
 	(plist-put fmt-settings :numbers  t)
 	(setq fmt (replace-match "" t t fmt)))
@@ -718,9 +736,15 @@ parenthesis) return a cell from any row in the group."
 		(calcFunc-expand  ; otherwise it is not fully expanded
 		 (math-read-expr formula$))))
 	      1000)))
-	(if (plist-get fmt-settings :fmt)
-	    (format (plist-get fmt-settings :fmt) (string-to-number ev))
-	  ev))))))
+	(cond
+	 ((plist-get fmt-settings :fmt)
+	  (setq ev (format (plist-get fmt-settings :fmt) (string-to-number ev))))
+	 ((plist-get fmt-settings :duration)
+	  (setq ev
+		(org-table-time-seconds-to-string
+		 (string-to-number ev)
+		 (plist-get fmt-settings :duration-output-format)))))
+	ev)))))
 
 (defun orgtbl-to-aggregated-make-calc-$-list (table group fmt-settings)
   "Prepare a list of vectors that Calc will use to replace $N variables.

@@ -15,10 +15,18 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+* How to run?
+** Running tests should leave the file unchanged
+Running all the tests should not change anything to this
+page. Therefore the suggested workflow is:
+- make a temporary copy of this file, then on this copy:
+- optionaly clean the computed tables
+- run all pull-mode tests
+- run all push-mode test
+- compare the copy and the original, there should be no difference
+  (=M-x compare-windows= is handy)
 
-Running all the tests should not change anything to this page.
-
-Old resulting tables can be cleaned prior to running tests
+** Old resulting tables can be cleaned prior to running tests
 this is optional
 #+begin_src elisp :results none
 (save-excursion
@@ -29,14 +37,14 @@ this is optional
    "\\1"))
 #+end_src
 
-All pull-mode tests can be re-computed at once by executing:
+** All pull-mode tests can be re-computed at once by executing:
 #+begin_src elisp :results none
 (let ((org-calc-default-modes
        (cons 'calc-float-format (cons '(float 12) org-calc-default-modes))))
   (org-update-all-dblocks))
 #+end_src
 
-All push-mode tests can be re-computed at once by executing:
+** All push-mode tests can be re-computed at once by executing:
 #+begin_src elisp :results none
 (let ((org-calc-default-modes
        (cons 'calc-float-format (cons '(float 12) org-calc-default-modes))))
@@ -385,7 +393,7 @@ Then columns should be named =$1=, =$2=, =$3= and so on.
 |     0 |  5 | a / 2 + b / 2 + 1.5 | 10 a + b^2 |
 #+END
 
-* Test hline
+* Test hline grouping
 Horizontal lines naturally create groups withing the source table.
 Those groups can be accessed through the =hline= virtual column.
 
@@ -425,7 +433,7 @@ The =hline= column groups data
 | b |     3 |        2 |
 #+END
 
-* Test dates
+* Test dates [YYYY-MM-DD day. HH:MM] style
 Some (limited) handling of dates is available.
 
 ** Source table
@@ -448,6 +456,41 @@ Some (limited) handling of dates is available.
 |------------------------+------------------------+--------+--------+---------------|
 | <2011-09-24 Sat 13:54> | <2014-02-26 Wed 16:11> |      1 |      8 | 735073.937066 |
 #+END
+
+* Test durations HH:MM:SS style
+
+** Source table
+#+name: some_durations
+|      dur |
+|----------|
+| 07:45:30 |
+|    13:55 |
+|    17:12 |
+
+** Aggregated table
+
+Test T, U, t formatters 
+
+#+BEGIN: aggregate :table "some_durations" :cols "vmean(dur) vmean(dur);T vmean(dur);t vmean(dur);U"
+| vmean(dur) | vmean(dur);T | vmean(dur);t | vmean(dur);U |
+|------------+--------------+--------------+--------------|
+|      46650 |     12:57:30 |        12.96 |        12:57 |
+#+END:
+
+* Test durations HH@ MM' SS" style
+
+#+name: calc_durations
+| dur        |
+|------------|
+| 07@ 45' 30 |
+| 13@ 55'    |
+| 17@ 12'    |
+
+#+BEGIN: aggregate :table "calc_durations" :cols "vmean(dur)"
+| vmean(dur)   |
+|--------------|
+| 12@ 57' 30." |
+#+END:
 
 * Test symbolic
 The Emacs Calc symbolic calculator is used by the aggregate package.

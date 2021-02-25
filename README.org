@@ -58,7 +58,7 @@ Org found two colors, =Red= and =Blue=. It found 7 occurrences for
 each.
 
 Now we want to aggregate this table for each day (because several rows
-exist for each day). We want the average value of the Level column for
+exist for each day). We want the average value of the =Level= column for
 each day, and the sum of the =Quantity= column. We write down the
 block specifying that (later we will see how to automate the creation
 of such a block):
@@ -72,13 +72,13 @@ Typing =C-c C-c= in the dynamic block computes the aggregation:
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
-| Day       | mean(Level) | sum(Quantity) |
-|-----------+-------------+---------------|
-| Monday    |        27.5 |            14 |
-| Tuesday   |          43 |            45 |
-| Wednesday |          18 |            54 |
-| Thursday  |          43 |            83 |
-| Friday    |           8 |            22 |
+| Day       | vmean(Level) | vsum(Quantity) |
+|-----------+--------------+----------------|
+| Monday    |         27.5 |             14 |
+| Tuesday   |           43 |             45 |
+| Wednesday |           18 |             54 |
+| Thursday  |           43 |             83 |
+| Friday    |            8 |             22 |
 #+END
 #+END_EXAMPLE
 
@@ -124,7 +124,7 @@ aggregate (original$Quantity, list(Day=day_factor), sum )
 
 * Datamash equivalent
 
-The command line Datamash software operates on CSV files and can
+The command-line Datamash software operates on CSV files and can
 achieve a similar result:
 
 #+begin_src shell
@@ -151,8 +151,8 @@ If for any reason you do not want to load this file, you can still
 create dynamic aggregate blocks by typing
 =M-x org-dblock-write:aggregate=.
 
-In the latest releases of Org Mode, there is a similar wizard (thanks
-to Kin Stardiviner). Call it with =C-c C-x x=.
+In the latest releases of Org Mode (9.4), there is a similar wizard
+(thanks to Kin Stardiviner). Call it with =C-c C-x x=.
 
 But beforehand, you must register the =orgtbl-aggregate= sub-wizard with it.
 To do so, type this somewhere (for instance into your =.emacs= file):
@@ -322,6 +322,11 @@ many other aggregations. They are based on functions provided by Calc:
   + in Calc: =`u +' (`calc-vector-sum') [`vsum']=
   + computes the sum of elements being aggregated
 
+- =cnorm(X)=
+  + in Calc: =`v N' (calc-cnorm') [`cnorm']=
+  + like =vsum(X)=, compute the sum of values, but first replacing negative
+    values by their opposite
+
 - =max(X)= or =vmax(X)=
   + in Calc: =`u X' (`calc-vector-max') [`vmax']=
   + gives the largest of the elements being aggregated
@@ -329,6 +334,16 @@ many other aggregations. They are based on functions provided by Calc:
 - =min(X)= or =vmin(X)=
   + in Calc: =`u N' (`calc-vector-min') [`vmin']=
   + gives the smallest of the elements being aggregated
+
+- =vspan(X)=
+  + in Calc: =`v :' (`calc-set-span') [`vspan']=
+  + summarizes values to be aggregated into an interval =[MIN..MAX]=
+    where =MIN= and =MAX= are the minimal and maximal values to be aggregated
+
+- =rnorm(X)=
+  + in Calc: =`v n' (`calc-rnorm) [`rnorm']=
+  + like =vmax(X)=, gives the maximum of values, but first replacing negative
+    values by their opposite
 
 - =mean(X)= or =vmean(X)=
   + in Calc: =`u M' (`calc-vector-mean') [`vmean']=
@@ -386,8 +401,62 @@ many other aggregations. They are based on functions provided by Calc:
   + gives the list of =X= being aggregated, verbatim, without aggregation.
 
 - =(X)= or =X= in a formula
-  + return the list of =X= being aggregated, without aggregation,
+  + returns the list of =X= being aggregated, without aggregation,
     passed through Calc interpretation.
+
+- =sort(X)=
+  + in Calc: =`v S' (`calc-sort) [`sort']=
+  + sorts elements to be aggregated in ascending order;
+    only works on numerical values
+
+- =rsort(X)=
+  + in Calc: =`I v S' (`calc-sort) [`sort']=
+  + sorts elements to be aggregated in descending order;
+    only works on numerical values
+
+- =rev(X)=
+  + in Calc: =`' (`calc-reverse-vector') [`rev']=
+  + returns the list of values to be aggregated in reverse order
+
+- =subvec(X,from)=, =subvec(X,from,to)=
+  + in Calc: =`v s' (`calcFunc-subvec') [`subvec']=
+  + extracts a sub-list from =X= starting at =from= and ending at =to= excluded
+    (or up to the end if =to= is not given).
+    The first value is numbered =1=. So for instance
+    =subvec(X,1,3)= extracts the first two values
+
+- =vmask(M,X)=
+  + in Calc: =`v m' (`calcFunc-vmask') [`vmask']=
+  + extracts a sub-list from =X=, keeping only values for which correponding values in
+    =M= (the mask) are not zero
+
+- =head(X)=
+  + in Calc: =`v h' (`calc-head') [`head']=
+  + returns the first value to be aggregated
+
+- =rtail(X)=
+  + in Calc: =`H I v h' (`calc-head') [`rtail']=
+  + returns the last value to be aggregated
+
+- =find(X,val)=
+  + in Calc: =`v f' (`calc-vector-find') [`find']=
+  + returns the index of =val= in the list of values to be aggregated, or =0=
+    if =val= is not found. Index starts from =1=
+
+- =rdup(X)=
+  + in Calc: =`v +' (`calc-remove-duplicates') [`rdup']=
+  + remove duplicates from =X= and returns remaining values sorted in
+    ascending order
+
+- =grade(X)=
+  + in Calc: =`v G' (`calc-grade') [`grade']=
+  + returns a list of index of values to be aggregated: the index of the lowest value,
+    then the second lowest value, and so on up to the index of the highest value.
+    Indexes start from =1=
+
+- =rgrade(X)=
+  + in Calc: =`I v G' (`calc-grade') [`rgrade']=
+  + Like =grade= in reverse order
 
 The aggregation functions may be written with or without a leading
 =v=. =sum= and =vsum= are equivalent.  The =v= form should be
@@ -806,6 +875,59 @@ different from the average of all dates:
 Note that =date()= is not special to orgaggregate. It can be used in
 Org Mode spreadsheet formulas.
 
+* Durations
+In Org Mode spreadsheet, durations have the forms =HH:MM= or
+=HH:MM:SS=. In orgaggregate, when an input cell have one of those two
+forms, it is converted into a number of seconds. For instance, =01:00=
+is converted into =3600= and =00:00:07= is converted into =7=.
+
+To output such a form, use a formatter: =;T=; =;t=, =,U=. For example, we
+have 3 durations as input, and we want the average of them:
+
+#+BEGIN_EXAMPLE
+#+name: some_durations
+|      dur |
+|----------|
+| 07:45:30 |
+|    13:55 |
+|    17:12 |
+#+END_EXAMPLE
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table "some_durations" :cols "vmean(dur) vmean(dur);T vmean(dur);t vmean(dur);U"
+| vmean(dur) | vmean(dur);T | vmean(dur);t | vmean(dur);U |
+|------------+--------------+--------------+--------------|
+|      46650 |     12:57:30 |        12.96 |        12:57 |
+#+END:
+#+END_EXAMPLE
+
+- With no formatter, we get a number of seconds
+- The =T= formatter outputs the result as =HH:MM:SS=
+- The =U= formatter outputs the result as =HH:MM=
+- The =t= formatter converts the result into a number of hours (it
+  divides the number of seconds by 3600, and displays only two digits
+  after dot)
+
+The Calc syntax for durations is also recognized:
+=HH@ MM'= or =HH@ MM' SS"=. Example:
+
+#+BEGIN_EXAMPLE
+#+name: calc_durations
+| dur        |
+|------------|
+| 07@ 45' 30 |
+| 13@ 55'    |
+| 17@ 12'    |
+#+END_EXAMPLE
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table "calc_durations" :cols "vmean(dur)"
+| vmean(dur)   |
+|--------------|
+| 12@ 57' 30." |
+#+END:
+#+END_EXAMPLE
+
 * Arbitrary column names
 Column names are not necessarily alphanumeric words. They may contain
 any characters, including spaces, quotes, +, -, whatever. They must
@@ -913,7 +1035,7 @@ vsum(X);%.3f   ;; output the result with 3 digits after the decimal dot
 #+END_EXAMPLE
 
 The modifiers and formatters are fully compatible with those of the
-Org spreadsheet.
+Org Mode spreadsheet.
 
 * Post-aggregation spreadsheet formulas
 
@@ -1004,6 +1126,61 @@ just exchange the =#+NAME:= and =#+BEGIN:= lines:
 The =#.NAME:= line will survive when recomputing the aggregation (as
 =#.TBLFM:= line survives)
 
+* Tricks
+This chapter collects some tricks that may be useful.
+
+** Sorting
+#+name: trick_table_1
+| column |
+|--------|
+|    677 |
+|    713 |
+|    459 |
+|    537 |
+|    881 |
+
+When a column needs to be sorted, the Calc =calc-sort()= function is handy:
+
+#+BEGIN: aggregate :table "trick_table_1" :cols "(column) sort(column)"
+| (column)                  | sort(column)              |
+|---------------------------+---------------------------|
+| [677, 713, 459, 537, 881] | [459, 537, 677, 713, 881] |
+#+END:
+
+- =(column)= gives the list of values to aggregate, without aggregating them.
+- =sort(column)= gives the same list sorted in ascending ordrer.
+
+** A few lowest or highest values
+
+Used with =subvec()=, =sort()= can retrieve the two lowest or the two highest values:
+
+#+BEGIN: aggregate :table "trick_table_1" :cols "subvec(sort(column),1,3) subvec(sort(column),count()-1)"
+| subvec(sort(column),1,3) | subvec(sort(column),count()-1) |
+|--------------------------+--------------------------------|
+| [459, 537]               | [713, 881]                     |
+#+END:
+
+- =subvec(...,1,3)= extracts the two first values: from =1= to =3= excluded.
+- =subvec(...,count()-1)= extracts the two last values, numbered =count()-1= and =count()=
+
+And of course we may retrieve the average of the two first and the two last values:
+
+#+BEGIN: aggregate :table "trick_table_1" :cols "vmean(subvec(sort(column),1,3)) vmean(subvec(sort(column),count()-1))"
+| vmean(subvec(sort(column),1,3)) | vmean(subvec(sort(column),count()-1)) |
+|---------------------------------+---------------------------------------|
+|                             498 |                                   797 |
+#+END:
+
+** Span of values
+
+=vmin()= and =vmax()= can compute the span of aggregated values:
+
+#+BEGIN: aggregate :table "trick_table_1" :cols "vmin(column) vmax(column) vmax(column)-vmin(column)"
+| vmin(column) | vmax(column) | vmax(column)-vmin(column) |
+|--------------+--------------+---------------------------|
+|          459 |          881 |                       422 |
+#+END:
+
 * Installation
 
 Emacs package on Melpa: add the following lines to your =.emacs= file, and reload it.
@@ -1041,6 +1218,7 @@ Contributors
 - Dirk Schmitt, surviving =#.NAME:= line
 - Dale Sedivec, case insensitive =#+NAME:= tags
 - falloutphil, underscore in column names
+- Baudilio Tejerina, t, T, U formatters
 
 * Changes
 - Wizard now correctly asks for columns with =$1, $2...= names
@@ -1069,6 +1247,7 @@ Contributors
 - back-port org-table-to-lisp which is now much faster
 - =vlist(X)= now yields input cells verbatim were =(X)= yields Calc processed input cells
 - document dates handling and the =date()= function
+- implement =HH:MM:SS= durations and =T=, =t=, =U= formatters
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  Thierry Banel

@@ -233,7 +233,7 @@ If a single string is used, it is split by spaces. Thus, a given
 formula, including its semicolon and modifiers, must not contain any
 space. If spaces are required within a formula, then use the
 parenthesis list. If a column name has spaces, quote it like this:
-'yellow submarine'.
+='yellow submarine'=.
 
 * Grouping specifications in :cols
 
@@ -463,7 +463,7 @@ The aggregation functions may be written with or without a leading
 preferred, as it is the one used in the Org table spreadsheet, and in
 Calc.  The non-v names may be dropped in the future.
 
-* Were Calc interpretation happens?
+* Where Calc interpretation happens?
 
 *Calc* is the standard Emacs desktop calculator. Actual mathematical
 computations are handled through Calc. This offers a lot of
@@ -604,6 +604,10 @@ Examples of useful expressions includes:
   + note the call to =string-to-number=; without this call, =Quantity= would be used as a string
 - =:cond (> (* (string-to-number Level) 2.5) (string-to-number Quantity))=
   + to keep only rows for which =2.5*Level > Quantity=
+
+Beware with this example: =:cond (equal Color "Red")=. The input table
+should not have a column named ="Red"=, otherwised the condition will mean:
+/"keep only rows with the same value in columns =Color= and =Red="/
 
 * Pull & Push
 

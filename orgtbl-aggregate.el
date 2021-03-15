@@ -324,7 +324,9 @@ otherwise nil is returned."
   ;; skip first hlines if any
   (while (not (listp (car table)))
     (setq table (cdr table)))
-  (cond ((equal colname "hline")
+  (cond ((equal colname "")
+	 (and err (user-error "Empty column name")))
+	((equal colname "hline")
 	 0)
 	((string-match "^\\$\\([0-9]+\\)$" colname)
 	 (let ((n (string-to-number (match-string 1 colname))))

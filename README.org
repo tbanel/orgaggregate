@@ -1229,6 +1229,7 @@ Contributors
 - Dale Sedivec, case insensitive =#+NAME:= tags
 - falloutphil, underscore in column names
 - Baudilio Tejerina, t, T, U formatters
+- Marco Pas, bug comparing empty string
 
 * Changes
 - Wizard now correctly asks for columns with =$1, $2...= names

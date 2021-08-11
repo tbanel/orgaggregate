@@ -472,9 +472,9 @@ Some (limited) handling of dates is available.
 Test T, U, t formatters 
 
 #+BEGIN: aggregate :table "some_durations" :cols "vmean(dur) vmean(dur);T vmean(dur);t vmean(dur);U"
-| vmean(dur) | vmean(dur);T | vmean(dur);t | vmean(dur);U |
-|------------+--------------+--------------+--------------|
-|      46650 |     12:57:30 |        12.96 |        12:57 |
+| vmean(dur) | vmean(dur) | vmean(dur) | vmean(dur) |
+|------------+------------+------------+------------|
+|      46650 |   12:57:30 |      12.96 |      12:57 |
 #+END:
 
 * Test durations HH@ MM' SS" style
@@ -643,7 +643,7 @@ value with zero.
 #+END:
 
 #+BEGIN: aggregate :table "emptyinput" :cols "T corr(Q,R);EN cov(Q,R);EN pcov(Q,R);EN"
-| T                |                corr(Q,R);EN |   cov(Q,R);EN |  pcov(Q,R);EN |
+| T                |                   corr(Q,R) |      cov(Q,R) |     pcov(Q,R) |
 |------------------+-----------------------------+---------------+---------------|
 | no-blank         |                           1 |            10 | 6.66666666667 |
 | 1-left-blank     |              0.625543242171 |           25. |         18.75 |
@@ -676,15 +676,15 @@ value with zero.
 |  4 |
 
 #+BEGIN: aggregate :table "nonnumeric" :cols "(X) (X);E (X);N (X);EN"
-| (X)           | (X);E              | (X);N        | (X);EN          |
+| (X)           | (X)                | (X)          | (X)             |
 |---------------+--------------------+--------------+-----------------|
 | [1, 2, aa, 4] | [1, 2, aa, nan, 4] | [1, 2, 0, 4] | [1, 2, 0, 0, 4] |
 #+END:
 
 #+BEGIN: aggregate :table "nonnumeric" :cols "mean(X) mean(X);E mean(X);N mean(X);EN"
-| mean(X)       | mean(X);E | mean(X);N | mean(X);EN |
-|---------------+-----------+-----------+------------|
-| aa / 4 + 1.75 |       nan |      1.75 |        1.4 |
+| mean(X)       | mean(X) | mean(X) | mean(X) |
+|---------------+---------+---------+---------|
+| aa / 4 + 1.75 |     nan |    1.75 |     1.4 |
 #+END:
 
 Comparison with the spreadsheet:
@@ -743,17 +743,17 @@ Comparison with the spreadsheet:
 | bb | 2*t+1 |                   6 |
 
 #+BEGIN: aggregate :table "bigprec" :cols "A sum(Q) mean(Q);FS (Q)"
-| A  | sum(Q)   | mean(Q);FS   | (Q)                |
+| A  | sum(Q)   | mean(Q)      | (Q)                |
 |----+----------+--------------+--------------------|
 | a  | t + 13   | t / 2 + 13:2 | [12, t + 1]        |
 | bb | 4 t + 78 | 4:3 t + 26   | [77, 2 t, 2 t + 1] |
 #+END:
 
 #+BEGIN: aggregate :table "bigprec" :cols "A sum(N);p20f18 sum(N);%.5f mean(N);f15 (N);f3"
-| A  |         sum(N);p20f18 | sum(N);%.5f |        mean(N);f15 | (N);f3        |
-|----+-----------------------+-------------+--------------------+---------------|
-| a  | 23.000000000000007000 |    23.00000 | 11.500000000000000 | [20, 3.000]   |
-| bb | 15.123456789876543210 |    15.12346 |  5.041152263290000 | [4, 5.123, 6] |
+| A  |                sum(N) |   sum(N) |            mean(N) | (N)           |
+|----+-----------------------+----------+--------------------+---------------|
+| a  | 23.000000000000007000 | 23.00000 | 11.500000000000000 | [20, 3.000]   |
+| bb | 15.123456789876543210 | 15.12346 |  5.041152263290000 | [4, 5.123, 6] |
 #+END:
 * Test chaining
 
@@ -842,17 +842,17 @@ In a :cond lisp formula, only double quotes work.
 | zero         |               0 |                 0 |
 
 #+BEGIN: aggregate :table "funnynames" :cols "\"first column\" mean('observed;number');%.3f mean('computed/expected');%.4f" :cond (and (>= (string-to-number "observed;number") 0) (not (equal "first column" "zero")))
-| "first column" | mean('observed;number');%.3f | mean('computed/expected');%.4f |
-|----------------+------------------------------+--------------------------------|
-| a/experiment   |                        8.633 |                         7.1333 |
-| b/test         |                        3.350 |                         3.1500 |
+| "first column" | mean('observed;number') | mean('computed/expected') |
+|----------------+-------------------------+---------------------------|
+| a/experiment   |                   8.633 |                    7.1333 |
+| b/test         |                   3.350 |                    3.1500 |
 #+END:
 
 #+BEGIN: aggregate :table "funnynames" :cols ("'first column'" "mean('observed;number');%.3f" "mean('computed/expected');%.4f") :cond "(and (>= (string-to-number \"observed;number\") 0) (not (equal \"first column\" \"zero\")))" 
-| 'first column' | mean('observed;number');%.3f | mean('computed/expected');%.4f |
-|----------------+------------------------------+--------------------------------|
-| a/experiment   |                        8.633 |                         7.1333 |
-| b/test         |                        3.350 |                         3.1500 |
+| 'first column' | mean('observed;number') | mean('computed/expected') |
+|----------------+-------------------------+---------------------------|
+| a/experiment   |                   8.633 |                    7.1333 |
+| b/test         |                   3.350 |                    3.1500 |
 #+END:
 
 #+BEGIN: transpose :table "funnynames" :cols ("first column" "computed/expected" "observed;number")
@@ -963,3 +963,140 @@ Missing cells are handled as though they were empty
 | Thursday  | Red, Red, Red+Green    | [Red, Red, Red + Green]                 | 39, 41, 49       | [39, 41, 49] | [3900, 4100, 4900] |    5603 |
 | Friday    | Blue, Blue, Blue&Green | [Blue, Blue, error(4, '"Syntax error")] | (7), (6+1), [11] | [7, 7, [11]] | [700, 700, [1100]] |     219 |
 #+END:
+
+* Test sorting key alpha & numeric
+
+#+NAME: unsortedtable
+| p | q |    x | Day       | Color | Level | date                   |
+|---+---+------+-----------+-------+-------+------------------------|
+| 1 | b | 12.3 | Monday    | Red   |  2*30 | [2024-12-23 Mon 09:01] |
+| 3 | b | 12.8 | Monday    | Blue  |  5+25 | [2019-11-24 Sun 13:04] |
+| 1 | a |  3.5 | Tuesday   | Red   |    51 | [2029-09-25 Tue 13:54] |
+| 2 | a |  3.9 | Tuesday   | Red   |    45 | [2033-09-26 Mon 03:55] |
+| 3 | a |  3.5 | Tuesday   | Blue  |    33 | [2015-02-27 Fri 16:11] |
+| 3 | a |  5.7 | Wednesday | Red   |    97 | [2001-01-19 Fri 03:49] |
+| 1 | a |  5.1 | Wednesday | Blue  |    52 | [2035-12-26 Wed 00:00] |
+|---+---+------+-----------+-------+-------+------------------------|
+| 2 | b |  9.3 | Tuesday   | Red   |    39 | [2035-12-26 Wed 00:00] |
+| 3 | b |  9.3 | Thursday  | Red   |    41 | [2002-01-19 Sat 23:22] |
+| 4 | a |  1.4 | Friday    | Blue  |    79 | [2026-08-01 Sat 17:27] |
+| 5 | a |  7.5 | Friday    | Blue  |   8+9 | [2020-09-15 Tue 13:07] |
+| 4 | b |  8.2 | Thursday  | Red   |    41 | [2040-10-27 Sat 09:12] |
+|---+---+------+-----------+-------+-------+------------------------|
+| 5 | b |  1.1 | Wednesday | Red   |    62 | [2011-01-29 Sat 15:06] |
+
+#+BEGIN: aggregate :table "unsortedtable" :cols "p;^n Day;^a"
+| p | Day       |
+|---+-----------|
+| 1 | Monday    |
+| 1 | Tuesday   |
+| 1 | Wednesday |
+| 2 | Tuesday   |
+| 3 | Monday    |
+| 3 | Thursday  |
+| 3 | Tuesday   |
+| 3 | Wednesday |
+| 4 | Friday    |
+| 4 | Thursday  |
+| 5 | Friday    |
+| 5 | Wednesday |
+#+END:
+
+* Test sorting numeric expression
+
+#+BEGIN: aggregate :table "unsortedtable" :cols "Day count();^N"
+| Day       | count() |
+|-----------+---------|
+| Tuesday   |       4 |
+| Wednesday |       3 |
+| Monday    |       2 |
+| Thursday  |       2 |
+| Friday    |       2 |
+#+END:
+
+#+BEGIN: aggregate :table "unsortedtable" :cols "Day vsum(Level);^n"
+| Day       | vsum(Level) |
+|-----------+-------------|
+| Thursday  |          82 |
+| Monday    |          90 |
+| Friday    |          96 |
+| Tuesday   |         168 |
+| Wednesday |         211 |
+#+END:
+
+* Test sorting hline
+
+#+BEGIN: aggregate :table "unsortedtable" :cols "hline;^N q;^a count()"
+| hline | q | count() |
+|-------+---+---------|
+|     2 | b |       1 |
+|     1 | a |       2 |
+|     1 | b |       3 |
+|     0 | a |       5 |
+|     0 | b |       2 |
+#+END:
+
+* Test sorting dates-times
+
+#+BEGIN: aggregate :table "unsortedtable" :cols "date;^T count()"
+| date                   | count() |
+|------------------------+---------|
+| [2040-10-27 Sat 09:12] |       1 |
+| [2035-12-26 Wed 00:00] |       2 |
+| [2033-09-26 Mon 03:55] |       1 |
+| [2029-09-25 Tue 13:54] |       1 |
+| [2026-08-01 Sat 17:27] |       1 |
+| [2024-12-23 Mon 09:01] |       1 |
+| [2020-09-15 Tue 13:07] |       1 |
+| [2019-11-24 Sun 13:04] |       1 |
+| [2015-02-27 Fri 16:11] |       1 |
+| [2011-01-29 Sat 15:06] |       1 |
+| [2002-01-19 Sat 23:22] |       1 |
+| [2001-01-19 Fri 03:49] |       1 |
+#+END:
+
+* Test sorting major-minor columns
+
+#+BEGIN: aggregate :table "unsortedtable" :cols "date;^t3 Color;^a2 x;^n1"
+| date                   | Color |    x |
+|------------------------+-------+------|
+| [2011-01-29 Sat 15:06] | Red   |  1.1 |
+| [2026-08-01 Sat 17:27] | Blue  |  1.4 |
+| [2015-02-27 Fri 16:11] | Blue  |  3.5 |
+| [2029-09-25 Tue 13:54] | Red   |  3.5 |
+| [2033-09-26 Mon 03:55] | Red   |  3.9 |
+| [2035-12-26 Wed 00:00] | Blue  |  5.1 |
+| [2001-01-19 Fri 03:49] | Red   |  5.7 |
+| [2020-09-15 Tue 13:07] | Blue  |  7.5 |
+| [2040-10-27 Sat 09:12] | Red   |  8.2 |
+| [2002-01-19 Sat 23:22] | Red   |  9.3 |
+| [2035-12-26 Wed 00:00] | Red   |  9.3 |
+| [2024-12-23 Mon 09:01] | Red   | 12.3 |
+| [2019-11-24 Sun 13:04] | Blue  | 12.8 |
+#+END:
+
+* Test sorting push
+
+#+ORGTBL: SEND sortag1 orgtbl-to-aggregated-table :cols "cölØr vsum(vâluε);^N count();^N vmean('ra;han');f3"
+| cölØr  | vâluε | ra;han |
+|--------+-------+--------|
+| Red    |   1.3 |     41 |
+| Red    |   3.5 |     35 |
+| Yellow |   9.1 |     95 |
+| Red    |   2.6 |     84 |
+| Blue   |   8.7 |     52 |
+| Blue   |   7.0 |     29 |
+| Yellow |   5.4 |     17 |
+| Blue   |   4.9 |     64 |
+| Red    |   3.9 |     51 |
+| Yellow |   2.4 |     55 |
+| Yellow |   6.6 |     34 |
+| Red    |   1.1 |     58 |
+
+#+BEGIN RECEIVE ORGTBL sortag1
+| cölØr  | vsum(vâluε) | count() | vmean('ra;han') |
+|--------+-------------+---------+-----------------|
+| Yellow |        23.5 |       4 |          50.250 |
+| Blue   |        20.6 |       3 |          48.333 |
+| Red    |        12.4 |       5 |          53.800 |
+#+END RECEIVE ORGTBL sortag1

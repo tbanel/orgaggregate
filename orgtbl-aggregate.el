@@ -318,8 +318,14 @@ an error is generated if ERR optional parameter is true
 otherwise nil is returned."
   (if (symbolp colname)
       (setq colname (symbol-name colname)))
-  (if (or (string-match "^'\\(.*\\)'$" colname)
-	  (string-match "^\"\\(.*\\)\"$" colname))
+  (if (string-match
+       (rx
+	bol
+	(or
+	 (seq ?'  (group-n 1 (* (not (any ?' )))) ?' )
+	 (seq ?\" (group-n 1 (* (not (any ?\")))) ?\"))
+	eol)
+       colname)
       (setq colname (match-string 1 colname)))
   ;; skip first hlines if any
   (while (not (listp (car table)))
@@ -365,7 +371,7 @@ so, the EXPRESSION is ready to be computed against a table row."
 (defun orgtbl-to-aggregated-replace-colnames-$ (table column)
   "Replace occurrences of column names in lisp COLUMN with
 $N, N being the numbering of columns in the input table.  Doing
-so, the COLUMN is ready to be computed computed by Calc."
+so, the COLUMN is ready to be computed by Calc."
   (replace-regexp-in-string
    (rx (or
 	(group ?'  (* (not (any ?' ))) ?')
@@ -432,9 +438,17 @@ Columns which are not pure key columns are ignored"
   (setq
    orgtbl-aggregate-var-keycols
    (cl-loop for column in aggcols
-	    if (or (string-match "^\\([[:word:]_$.]+\\)$" column)
-		   (string-match "^'\\(.*\\)'$" column)
-		   (string-match "^\"\\(.*\\)\"$" column))
+	    if (string-match
+		(rx
+		 bol
+		 (group
+		  (or (seq "'"  (* (not "'" )) "'" )
+		      (seq "\"" (* (not "\"")) "\"")
+		      (+ (any word "_$."))))
+		 (? ";"  (* (not (any "^;'\""))))
+		 (? ";^" (* (not (any "^;'\""))))
+		 eol)
+		column)
 	    collect 
 	    (orgtbl-to-aggregated-table-colname-to-int
 	     (match-string 1 column)
@@ -542,6 +556,9 @@ key columns ?"
 		      do (setq h (% (* (+ h c) 127) 4227323))))
     h))
 
+;; dynamic binding
+(defvar orgtbl-aggregate-colums-sorting)
+
 (defun orgtbl-create-table-aggregated (table aggcols aggcond)
   "Convert the source TABLE, which is a list of lists of cells,
 into an aggregated table compliant with the AGGCOLS columns
@@ -586,27 +603,117 @@ AGGCOND."
       ;; compute sums for each aggregation expression
       (let ((result ;; pre-allocate all resulting rows
 	     (cl-loop for x in (-appendable-list-get groups)
-		      collect (-appendable-list-create))))
+		      collect (-appendable-list-create)))
+	    ;; a global variable, passed to the sort predicate
+	    (orgtbl-aggregate-colums-sorting (-appendable-list-create)))
 	(cl-loop for column in aggcols
+		 for colnum from 0
 		 do
 		 (orgtbl-to-aggregated-compute-sums-on-one-column
-		  table groups result column))
+		  table groups result column colnum))
 	(cl-loop for row on result
 		 do (setcar row (-appendable-list-get (car row))))
-	(cons aggcols (cons 'hline result))))))
+	(setq result (orgtbl-aggregate-sort-table result))
+	;; add a header to the resulting table with column names
+	;; as they appear in :cols but without decorations
+	(cons
+	 (cl-loop for column in aggcols
+		  collect
+		  (if (string-match
+		       (rx
+			bol
+			(group
+			 (*
+			  (or (seq "'"  (* (not "'" )) "'" )
+			      (seq "\"" (* (not "\"")) "\"")
+			      (not (any ";'\"")))))
+			(? ";" (* not-newline))
+			eol)
+		       column)
+		      (match-string 1 column)
+		    ""))
+	 (cons 'hline result))
+	))))
 
-(defun orgtbl-to-aggregated-compute-sums-on-one-column (table groups result formula)
+(defun orgtbl-aggregate-sort-table (result)
+  "Sort RESULT (which is an Org Table) according to columns
+described in orgtbl-aggregate-colums-sorting"
+  (setq orgtbl-aggregate-colums-sorting
+	(sort (-appendable-list-get orgtbl-aggregate-colums-sorting)
+	      (lambda (a b)
+		(if (null (car a))
+		    (and (null (car b))
+			 (< (cadr a) (cadr b)))
+		  (or (null (car b))
+		      (< (car a) (car b))
+		      (and (= (car a) (car b))
+			   (< (cadr a) (cadr b))))))))
+  ;; do nothing if there are no sorting instructions
+  (if orgtbl-aggregate-colums-sorting
+      (sort result #'orgtbl-aggregate-predicate)
+    result))
+
+;; return 3 possible values
+;; nil if equal
+;; t if less
+;; 'h if more
+(defun orgtbl-aggregate-predicate-sub (col linea lineb)
+  "Compare LINEA & LINEB (which are Org Mode table rows)
+according to COL specification for a single column."
+  (let ((colnum  (car   col))
+	(desc    (cadr  col))
+	(extract (caddr col))
+	(compare (cdddr col)))
+    (let ((cola (funcall extract (nth colnum (if desc lineb linea))))
+	  (colb (funcall extract (nth colnum (if desc linea lineb)))))
+      (if (funcall compare cola colb)
+	  t
+	(if (funcall compare colb cola)
+	    'h
+	  nil)))))
+
+(defun orgtbl-aggregate-predicate (linea lineb)
+  "Compares LINEA & LINEB (which are Org Mode table rows)
+according to orgtbl-aggregate-colums-sorting instructions.
+Return nil if LINEA already comes before LINEB."
+  (cl-loop for col in orgtbl-aggregate-colums-sorting
+	   for c = (orgtbl-aggregate-predicate-sub (cdr col) linea lineb)
+	   if (eq c t) return t
+	   if (eq c 'h) return nil))
+
+(defun orgtbl-aggregate-string-to-time (f)
+  "Borrowed from org-table.el"
+  (cond ((string-match org-ts-regexp-both f)
+	 (float-time
+	  (org-time-string-to-time (match-string 0 f))))
+	((org-duration-p f) (org-duration-to-minutes f))
+	((string-match "\\<[0-9]+:[0-9]\\{2\\}\\>" f)
+	 (org-duration-to-minutes (match-string 0 f)))
+	(t 0)))
+
+(defun orgtbl-to-aggregated-compute-sums-on-one-column (table groups result formula colnum)
   "FORMULA is a formula given by the user in :cols, with an optional format.
 This function applies the formula over all groups of rows.
 Common Calc settings and formats are pre-computed before actually computing sums,
 because they are the same for all groups.
 RESULT is the list of expected resulting rows. At the beginning, all rows are
 empty lists. A cell is appended to every rows at each call of this function."
-  (string-match "^\\(.*?\\)\\(:?;\\([^;'\"]*\\)\\)?$" formula)
+  (string-match
+   (rx bol
+       (group-n 1 (*
+		   (or (seq "'"  (* (not "'" )) "'" )
+		       (seq "\"" (* (not "\"")) "\"")
+		       (not (any ";'\"")))))
+       (? ";"  (group-n 2 (* (not (any "^;'\"")))) )
+       (? ";^" (group-n 3 (* (not (any "^;'\"")))) )
+       eol)
+   formula)
+
   ;; within this (let), we locally set Calc settings that must be active
   ;; for the all the calls to Calc:
   ;; (orgtbl-aggregate-read-calc-expr) and (math-format-value)
-  (let ((fmt     (match-string 3 formula))
+  (let ((fmt     (match-string 2 formula))
+	(sorting (match-string 3 formula))
 	(formula (match-string 1 formula))
 	(calc-internal-prec (or (plist-get org-calc-default-modes 'calc-internal-prec) calc-internal-prec))
 	(calc-float-format  (or (plist-get org-calc-default-modes 'calc-float-format ) calc-float-format ))
@@ -621,6 +728,26 @@ empty lists. A cell is appended to every rows at each call of this function."
 	     calc-display-working-message))
 	(fmt-settings (plist-put () :fmt nil))
 	(case-fold-search nil))
+    (when sorting
+      (unless (string-match (rx bol (group (any "aAnNtTfF")) (group (* (any num))) eol) sorting)
+	(user-error "Bad sorting specification: ^%s, expecting a/A/n/N/t/T and an optional number" sorting))
+      (-appendable-list-append
+       orgtbl-aggregate-colums-sorting
+       (cons
+	(if (equal (match-string 2 sorting) "")
+	    nil
+	  (string-to-number (match-string 2 sorting)))
+	(cons
+	 colnum
+	 (pcase (match-string 1 sorting)
+	   ("a" (cons nil (cons 'identity                        'string-lessp)))
+	   ("A" (cons t   (cons 'identity                        'string-lessp)))
+	   ("n" (cons nil (cons 'string-to-number                '<           )))
+	   ("N" (cons t   (cons 'string-to-number                '<           )))
+	   ("t" (cons nil (cons 'orgtbl-aggregate-string-to-time '<           )))
+	   ("T" (cons t   (cons 'orgtbl-aggregate-string-to-time '<           )))
+	   ((or "f" "F") (user-error "f/F sorting specification not (yet) implemented"))
+	   (_ (user-error "Bad sorting specification ^%s" sorting)))))))
     (when fmt
       ;; the following code was freely borrowed from org-table-eval-formula
       ;; not all settings extracted from fmt are used
@@ -751,7 +878,7 @@ parenthesis) return a cell from any row in the group."
 (defun orgtbl-to-aggregated-make-calc-$-list (table group fmt-settings)
   "Prepare a list of vectors that Calc will use to replace $N variables.
 Calc will replace $1 by the first element of list, $2 by the second an so on.
-Ths vectors follow the Calc syntax: (vec a b c ...). They contain values
+The vectors follow the Calc syntax: (vec a b c ...). They contain values
 extracted from rows of the current GROUP. Vectors are created only for
 column numbers in COLUMNS-INT.
 KEEP-EMPTY is a flag to tell whether an empty cell should be converted to
@@ -962,6 +1089,7 @@ Note:
       (orgtbl-get-distant-table (plist-get params :table))
       (plist-get params :cols)
       (plist-get params :cond)))
+
     (delete-char -1) ;; remove trailing \n which Org Mode will add again
     (when (and content
 	       (let ((case-fold-search t))

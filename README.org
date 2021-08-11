@@ -5,7 +5,7 @@
 Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the first table.
 
-Optimization lead to significant speedups.
+New: sort output.
 
 * Examples
 A very simple example. We have a table of activities and quantities
@@ -112,7 +112,7 @@ group by Day;
 
 * R equivalent
 
-If you are familiar with the R statistical package, you would get a
+If you are familiar with the R statistical language, you would get a
 similar result with =factor= and =aggregate= functions:
 
 #+begin_src R
@@ -1041,6 +1041,73 @@ vsum(X);%.3f   ;; output the result with 3 digits after the decimal dot
 The modifiers and formatters are fully compatible with those of the
 Org Mode spreadsheet.
 
+* Sorting
+In this example, the output table is sorted numerically on its second
+column (look at the =^n= specification):
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table "original" :cols "Day vsum(Quantity);^n"
+| Day       | vsum(Quantity);^n |
+|-----------+-------------------|
+| Monday    |                14 |
+| Friday    |                22 |
+| Tuesday   |                45 |
+| Wednesday |                54 |
+| Thursday  |                83 |
+#+END:
+#+END_EXAMPLE
+
+The rows of the resulting table may be sorted on any combination of
+its columns.
+
+By default, no sorting is done. The output rows follows the ordering
+of the input rows.
+
+Any column specification in the =:cols= parameter may be followed by a
+semicolon and a caret characters, and an ordering.
+
+The specification for the ordering are the same as in Org Mode:
+- =a=: ascending alphabetical sort
+- =A=: descending alphabetical sort
+- =n=: ascending numerical sort
+- =N=: descending numerical sort
+- =t=: ascending date, time, or duration sort
+- =T=: descending date, time, or duration sort
+- =f= & =F= specifications are not (yet) implemented
+
+Several columns may get a sorting specification. The major column is
+used for sorting. Only when two rows are equal regarding the major
+column, the second major column is compared. And if the two rows are
+still equal on this second column, the third is used, and so on.
+
+The first sorted column in the =:cols= parameter is the major one. To
+declare another one as the major, follow it with a number, for
+instance =1=. Columns without a number are minor ones.
+
+Example:
+#+begin_example
+:cols "AAA;^a BBB;^N2 CCC DDD;^t1"
+#+end_example
+
+- Column =DDD= is sorted in ascending dates or times (=t=
+  specification). It is the major sorting column (because of its =1=
+  numbering).
+- Column =BBB= sorts rows which compare equal on column =DDD= (because of
+  its =2= numbering). This column is assumed to contain numerical
+  values, and it is sorted in descending order (=N= specification).
+- Column =AAA= is used to sort rows which compare equal regarding =DDD=
+  and =BBB=. It is sorted in ascending alphabetical order (=a=
+  specification).
+
+Both a format and a sorting instruction may be given. Example:
+#+begin_example
+:cols "EXPR:f3:^n"
+#+end_example
+
+The =EXPR= column is
+- formatted with 3 digits after dot (=f3=)
+- sorted numerically in ascending order (=^n=).
+
 * Post-aggregation spreadsheet formulas
 
 Additional columns can be specified for the resulting table.  With a
@@ -1234,6 +1301,7 @@ Contributors
 - falloutphil, underscore in column names
 - Baudilio Tejerina, t, T, U formatters
 - Marco Pas, bug comparing empty string
+- wuqui, sorting output table
 
 * Changes
 - Wizard now correctly asks for columns with =$1, $2...= names
@@ -1263,6 +1331,7 @@ Contributors
 - =vlist(X)= now yields input cells verbatim were =(X)= yields Calc processed input cells
 - document dates handling and the =date()= function
 - implement =HH:MM:SS= durations and =T=, =t=, =U= formatters
+- sort output
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  Thierry Banel

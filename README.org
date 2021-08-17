@@ -5,7 +5,7 @@
 Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the first table.
 
-New: sort output.
+New: sort output, hlines on output.
 
 * Examples
 A very simple example. We have a table of activities and quantities
@@ -246,7 +246,9 @@ horizontal lines should be grouped.
 Key columns and =hline= are used to group rows of the source
 table with unique combinations of those columns.
 
-* hline example
+* hlines in the input table
+
+hline = "horizontal line"
 
 Here is a source table containing 3 blocks separated by horizontal
 lines:
@@ -302,6 +304,187 @@ If we want additional details with the =Color= column, we just name it:
 
 There is an ugly value, =35.6666666667=, in the middle of the
 table. See later how to format it.
+
+* hlines in the output table
+
+Example of an input table containing 3 hlines:
+
+#+begin_example
+#+name: withhline
+| cölØr  | vâluε | ra;han |
+|--------+-------+--------|
+| Red    |   1.3 |     41 |
+| Red    |   3.5 |     35 |
+| Yellow |   9.1 |     95 |
+| Red    |   2.6 |     84 |
+|--------+-------+--------|
+| Blue   |   8.7 |     52 |
+| Blue   |   7.0 |     29 |
+| Yellow |   5.4 |     17 |
+|--------+-------+--------|
+| Blue   |   4.9 |     64 |
+| Red    |   3.9 |     51 |
+| Yellow |   2.4 |     55 |
+| Yellow |   6.6 |     34 |
+|--------+-------+--------|
+| Red    |   1.1 |     58 |
+| Yellow |   3.4 |     51 |
+#+end_example
+
+With the =:hline 1= parameter, we get back the original hlines. Without
+this parameter, the resulting table would have no hlines.
+
+#+begin_example
+#+BEGIN: aggregate :table "withhline" :cols "cölØr vâluε 'ra;han'" :hline 1
+| cölØr  | vâluε | 'ra;han' |
+|--------+-------+----------|
+| Red    |   1.3 |       41 |
+| Red    |   3.5 |       35 |
+| Yellow |   9.1 |       95 |
+| Red    |   2.6 |       84 |
+|--------+-------+----------|
+| Blue   |   8.7 |       52 |
+| Blue   |   7.0 |       29 |
+| Yellow |   5.4 |       17 |
+|--------+-------+----------|
+| Blue   |   4.9 |       64 |
+| Red    |   3.9 |       51 |
+| Yellow |   2.4 |       55 |
+| Yellow |   6.6 |       34 |
+|--------+-------+----------|
+| Red    |   1.1 |       58 |
+| Yellow |   3.4 |       51 |
+#+END:
+#+end_example
+
+This example is a shorthand for this one, where an explicit =hline=
+column is requested, then discarded with =<>=:
+
+#+begin_example
+#+BEGIN: aggregate :table "withhline" :cols "hline;^n;<> cölØr vâluε 'ra;han'" :hline 1
+| cölØr  | vâluε | 'ra;han' |
+|--------+-------+----------|
+| Red    |   1.3 |       41 |
+| Red    |   3.5 |       35 |
+| Yellow |   9.1 |       95 |
+| Red    |   2.6 |       84 |
+|--------+-------+----------|
+| Blue   |   8.7 |       52 |
+| Blue   |   7.0 |       29 |
+| Yellow |   5.4 |       17 |
+|--------+-------+----------|
+| Blue   |   4.9 |       64 |
+| Red    |   3.9 |       51 |
+| Yellow |   2.4 |       55 |
+| Yellow |   6.6 |       34 |
+|--------+-------+----------|
+| Red    |   1.1 |       58 |
+| Yellow |   3.4 |       51 |
+#+END:
+#+end_example
+
+Actually, output hlines are not limited to input ones. They may appear
+on the major sorted column. In this example, the =cölØr= column is
+sorted, and we require output hlines with =:hline 1=. Then hlines will
+separate blocks of identical =cölØr= rows:
+
+#+begin_example
+#+BEGIN: aggregate :table "withhline" :cols "cölØr;^a vâluε 'ra;han'" :hline 1
+| cölØr  | vâluε | 'ra;han' |
+|--------+-------+----------|
+| Blue   |   8.7 |       52 |
+| Blue   |   7.0 |       29 |
+| Blue   |   4.9 |       64 |
+|--------+-------+----------|
+| Red    |   1.3 |       41 |
+| Red    |   3.5 |       35 |
+| Red    |   2.6 |       84 |
+| Red    |   3.9 |       51 |
+| Red    |   1.1 |       58 |
+|--------+-------+----------|
+| Yellow |   9.1 |       95 |
+| Yellow |   5.4 |       17 |
+| Yellow |   2.4 |       55 |
+| Yellow |   6.6 |       34 |
+| Yellow |   3.4 |       51 |
+#+END:
+#+end_example
+
+In this previous example, output hline are unrelated to input ones.
+
+The =:hline= parameter may be =2=. It means that two sorted columns will
+be looked at when deciding to put an hline. In the following example,
+the two sorted columns are =hline= and =cölØr=. Therefore output hlines
+separate blocks of identical =hline= and =cölØr=:
+
+#+begin_example
+#+BEGIN: aggregate :table "withhline" :cols "hline;^n cölØr;^a vâluε 'ra;han'" :hline 2
+| hline | cölØr  | vâluε | 'ra;han' |
+|-------+--------+-------+----------|
+|     0 | Red    |   1.3 |       41 |
+|     0 | Red    |   3.5 |       35 |
+|     0 | Red    |   2.6 |       84 |
+|-------+--------+-------+----------|
+|     0 | Yellow |   9.1 |       95 |
+|-------+--------+-------+----------|
+|     1 | Blue   |   8.7 |       52 |
+|     1 | Blue   |   7.0 |       29 |
+|-------+--------+-------+----------|
+|     1 | Yellow |   5.4 |       17 |
+|-------+--------+-------+----------|
+|     2 | Blue   |   4.9 |       64 |
+|-------+--------+-------+----------|
+|     2 | Red    |   3.9 |       51 |
+|-------+--------+-------+----------|
+|     2 | Yellow |   2.4 |       55 |
+|     2 | Yellow |   6.6 |       34 |
+|-------+--------+-------+----------|
+|     3 | Red    |   1.1 |       58 |
+|-------+--------+-------+----------|
+|     3 | Yellow |   3.4 |       51 |
+#+END:
+#+end_example
+
+And the =hline= column may be discarded (but its side effect remains). To do so use the =;<>= specifier:
+
+#+begin_example
+#+BEGIN: aggregate :table "withhline" :cols "hline;^n;<> cölØr;^a vâluε 'ra;han'" :hline 2
+| cölØr  | vâluε | 'ra;han' |
+|--------+-------+----------|
+| Red    |   1.3 |       41 |
+| Red    |   3.5 |       35 |
+| Red    |   2.6 |       84 |
+|--------+-------+----------|
+| Yellow |   9.1 |       95 |
+|--------+-------+----------|
+| Blue   |   8.7 |       52 |
+| Blue   |   7.0 |       29 |
+|--------+-------+----------|
+| Yellow |   5.4 |       17 |
+|--------+-------+----------|
+| Blue   |   4.9 |       64 |
+|--------+-------+----------|
+| Red    |   3.9 |       51 |
+|--------+-------+----------|
+| Yellow |   2.4 |       55 |
+| Yellow |   6.6 |       34 |
+|--------+-------+----------|
+| Red    |   1.1 |       58 |
+|--------+-------+----------|
+| Yellow |   3.4 |       51 |
+#+END:
+#+end_example
+
+The =:hline= parameter accepts a number:
+- =:hline 0=, =:hline no=, =:hline nil=, or no =:hline= mean that there will
+  be no hlines in the output.
+- =:hline 1=, =:hline yes=, =:hline t= mean that hlines will separate blocks
+  of identical rows regarding the major sorted column. In case no
+  column is sorted, then output hlines will reflect input ones.
+- =:hline 2= means that the major and the next major sorted columns will
+  be used to separate identical rows regarding those two columns.
+- =:hline 3=, =:hline 4=, ... may be specified, but they may result in too
+  much hlines.
 
 * Aggregation formulas in :cols
 
@@ -899,9 +1082,9 @@ have 3 durations as input, and we want the average of them:
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table "some_durations" :cols "vmean(dur) vmean(dur);T vmean(dur);t vmean(dur);U"
-| vmean(dur) | vmean(dur);T | vmean(dur);t | vmean(dur);U |
-|------------+--------------+--------------+--------------|
-|      46650 |     12:57:30 |        12.96 |        12:57 |
+| vmean(dur) | vmean(dur) | vmean(dur) | vmean(dur) |
+|------------+------------+------------+------------|
+|      46650 |   12:57:30 |      12.96 |      12:57 |
 #+END:
 #+END_EXAMPLE
 
@@ -1047,13 +1230,13 @@ column (look at the =^n= specification):
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table "original" :cols "Day vsum(Quantity);^n"
-| Day       | vsum(Quantity);^n |
-|-----------+-------------------|
-| Monday    |                14 |
-| Friday    |                22 |
-| Tuesday   |                45 |
-| Wednesday |                54 |
-| Thursday  |                83 |
+| Day       | vsum(Quantity) |
+|-----------+----------------|
+| Monday    |             14 |
+| Friday    |             22 |
+| Tuesday   |             45 |
+| Wednesday |             54 |
+| Thursday  |             83 |
 #+END:
 #+END_EXAMPLE
 
@@ -1107,6 +1290,62 @@ Both a format and a sorting instruction may be given. Example:
 The =EXPR= column is
 - formatted with 3 digits after dot (=f3=)
 - sorted numerically in ascending order (=^n=).
+
+* Discarding an output column
+Why would anyone specify a column just to discard it in the output? For
+its side effects. For sorting the output table or for adding hlines to
+it.
+
+To discard a column, add a =;<>= modifier to the column
+description. This syntax is reminiscent of the =<n>= cookies in Org Mode
+tables, which instructs to shorten a column width to only =n=
+characters.
+
+In this example, input hlines create a =hline= column which is used to
+add hlines to the output. Then this =hline= column is discarded with =<>=.
+
+#+begin_example
+#+BEGIN: aggregate :table "withhline" :cols "hline;^n;<> cölØr vsum(vâluε)" :hline 1
+| cölØr  | vsum(vâluε) |
+|--------+-------------|
+| Red    |         7.4 |
+| Yellow |         9.1 |
+|--------+-------------|
+| Blue   |        15.7 |
+| Yellow |         5.4 |
+|--------+-------------|
+| Blue   |         4.9 |
+| Red    |         3.9 |
+| Yellow |          9. |
+|--------+-------------|
+| Red    |         1.1 |
+| Yellow |         3.4 |
+#+END:
+#+end_example
+
+Here is an example where rows are sorted on the =cölØr= column, but without displaying this column:
+
+#+begin_example
+#+BEGIN: aggregate :table "withhline" :cols "cölØr;^a;<> vâluε;^n" :hline 1
+| vâluε |
+|-------|
+|   4.9 |
+|   7.0 |
+|   8.7 |
+|-------|
+|   1.1 |
+|   1.3 |
+|   2.6 |
+|   3.5 |
+|   3.9 |
+|-------|
+|   2.4 |
+|   3.4 |
+|   5.4 |
+|   6.6 |
+|   9.1 |
+#+END:
+#+end_example
 
 * Post-aggregation spreadsheet formulas
 
@@ -1302,6 +1541,7 @@ Contributors
 - Baudilio Tejerina, t, T, U formatters
 - Marco Pas, bug comparing empty string
 - wuqui, sorting output table
+- Nicolas Viviani, output hlines
 
 * Changes
 - Wizard now correctly asks for columns with =$1, $2...= names
@@ -1322,16 +1562,17 @@ Contributors
 - Support quoting of column names, like "a.b" or 'c/d'
 - Disable =\_{}= escape
 - =#.NAME:= inside =#.BEGIN:= survives
-- missing input cells handled as empty ones
-- back-port Org Mode =9.4= speed up
-- increase performance when inserting result into the buffer
-- aligned output in push mode
-- added a hashtable to speedup aggregation
-- back-port org-table-to-lisp which is now much faster
+- Missing input cells handled as empty ones
+- Back-port Org Mode =9.4= speed up
+- Increase performance when inserting result into the buffer
+- Aligned output in push mode
+- Added a hashtable to speedup aggregation
+- Back-port org-table-to-lisp which is now much faster
 - =vlist(X)= now yields input cells verbatim were =(X)= yields Calc processed input cells
-- document dates handling and the =date()= function
-- implement =HH:MM:SS= durations and =T=, =t=, =U= formatters
-- sort output
+- Document dates handling and the =date()= function
+- Implement =HH:MM:SS= durations and =T=, =t=, =U= formatters
+- Sort output
+- Create hlines in the output
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  Thierry Banel

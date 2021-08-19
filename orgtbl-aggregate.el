@@ -165,13 +165,16 @@ An horizontal line is translated as the special symbol `hline'."
 	  (user-error "Cannot find a table at NAME or ID %s" name-or-id))
 	(org-table-to-lisp-9-4)))))
 
-(defun orgtbl-get-header-distant-table (table &optional asstring)
-  "Return the header of TABLE as a list, or as a string if
-ASSTRING is true. TABLE names a table in the same buffer.  The
-function takes care of possibly missing headers, and in this case
-returns a list of $1, $2, $3... column names.  Actual column
-names which are not fully alphanumeric are quoted."
-  (setq table (orgtbl-get-distant-table table))
+(defun orgtbl-get-header-table (table &optional asstring)
+  "Return the header of TABLE as a list of column names. When
+ASSTRING is true, the result is a string which concatenates the
+names of the columns.  TABLE may be a lisp list of rows, or the
+name or id of a distant table.  The function takes care of
+possibly missing headers, and in this case returns a list of $1,
+$2, $3... column names.  Actual column names which are not fully
+alphanumeric are quoted."
+  (unless (consp table)
+    (setq table (orgtbl-get-distant-table table)))
   (while (eq 'hline (car table))
     (setq table (cdr table)))
   (let ((header
@@ -666,6 +669,8 @@ which do not pass the filter (in PARAMS entry :cond)."
 	(orgtbl-aggregate-columns-sorting (-appendable-list-create))
 	;; another global variable
 	(orgtbl-aggregate-var-keycols))
+    (unless aggcols
+      (setq aggcols (orgtbl-get-header-table table)))
     (setq aggcols (orgtbl-aggregate-parse-cols aggcols))
     (when aggcond
       (if (stringp aggcond)
@@ -1198,7 +1203,7 @@ Note:
   (interactive)
   (let* ((table
 	  (completing-read "Table name: " (orgtbl-list-local-tables)))
-	 (header (orgtbl-get-header-distant-table table t))
+	 (header (orgtbl-get-header-table table t))
 	 (aggcols
 	  (replace-regexp-in-string
 	   "\"" "'"
@@ -1409,7 +1414,7 @@ Note:
   (interactive)
   (let* ((table
 	  (completing-read "Table name: " (orgtbl-list-local-tables)))
-         (header (orgtbl-get-header-distant-table table t))
+         (header (orgtbl-get-header-table table t))
 	 (aggcols
 	  (replace-regexp-in-string
 	   "\"" "'"

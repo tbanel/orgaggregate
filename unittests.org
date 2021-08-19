@@ -1252,3 +1252,54 @@ Same with hline & cölØr to separate blocks
 |-------+--------+-------+----------|
 |     0 | Yellow |   9.1 |       95 |
 #+END:
+
+* Test filter only
+#+name: planet
+| planet  |      mass kg | dist MKM |
+|---------+--------------+----------|
+| sun     |   1.98892e30 |        0 |
+| mercury |   1.1980e+37 |       60 |
+| venus   |   8.1252e+35 |      100 |
+| earth   | 5.956440e+24 |      150 |
+| mars    |   6.1631e+36 |      220 |
+| jupiter |  2.08309e+33 |      780 |
+| saturn  |   6.9570e+33 |     1420 |
+| uranus  |  4.55522e+34 |     2870 |
+| neptune |   3.8609e+34 |     4500 |
+| pluto   |       3.e+32 |     5800 |
+
+Without :cols parameter, we get all columns
+
+#+BEGIN: aggregate :table "planet" :cond (> (string-to-number "dist MKM") 150)
+| planet  |   "mass kg" | "dist MKM" |
+|---------+-------------+------------|
+| mars    |  6.1631e+36 |        220 |
+| jupiter | 2.08309e+33 |        780 |
+| saturn  |  6.9570e+33 |       1420 |
+| uranus  | 4.55522e+34 |       2870 |
+| neptune |  3.8609e+34 |       4500 |
+| pluto   |      3.e+32 |       5800 |
+#+END:
+
+What happens without column names in the input?
+
+#+name: planetnh
+| sun     |   1.98892e30 |        0 |
+| mercury |   1.1980e+37 |       60 |
+| venus   |   8.1252e+35 |      100 |
+| earth   | 5.956440e+24 |      150 |
+| mars    |   6.1631e+36 |      220 |
+| jupiter |  2.08309e+33 |      780 |
+| saturn  |   6.9570e+33 |     1420 |
+| uranus  |  4.55522e+34 |     2870 |
+| neptune |   3.8609e+34 |     4500 |
+| pluto   |       3.e+32 |     5800 |
+
+#+BEGIN: aggregate :table "planetnh" :cond (<= (string-to-number "$3") 150)
+| $1      |           $2 |  $3 |
+|---------+--------------+-----|
+| sun     |   1.98892e30 |   0 |
+| mercury |   1.1980e+37 |  60 |
+| venus   |   8.1252e+35 | 100 |
+| earth   | 5.956440e+24 | 150 |
+#+END:

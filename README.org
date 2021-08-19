@@ -233,7 +233,7 @@ If a single string is used, it is split by spaces. Thus, a given
 formula, including its semicolon and modifiers, must not contain any
 space. If spaces are required within a formula, then use the
 parenthesis list. If a column name has spaces, quote it like this:
-='yellow submarine'=.
+~'yellow submarine'~.
 
 * Grouping specifications in :cols
 
@@ -410,7 +410,7 @@ separate blocks of identical =cölØr= rows:
 #+END:
 #+end_example
 
-In this previous example, output hline are unrelated to input ones.
+In this previous example, output hlines are unrelated to input ones.
 
 The =:hline= parameter may be =2=. It means that two sorted columns will
 be looked at when deciding to put an hline. In the following example,
@@ -671,7 +671,7 @@ without any mathematical meaning.
 #+END_EXAMPLE
 
 Basically, Calc operates twice. For example in the formula
-=vsum(Level*10)=:
+=vsum(Level)=:
 - Calc computes =Level= for every input cell in the =Level= column,
 - then Calc computes =vsum()= applied to the resulting list.
 
@@ -781,7 +781,7 @@ expression evaluates to nil, the row is discarded.
 
 Examples of useful expressions includes:
 - =:cond (equal Color "Red")=
-  + to keep only rows where =Color= is =Red=
+  + to keep only rows where =Color= is =Red= 
 - =:cond (> (string-to-number Quantity) 19)=
   + to keep only rows for which =Quantity= is more than =19=
   + note the call to =string-to-number=; without this call, =Quantity= would be used as a string
@@ -789,8 +789,15 @@ Examples of useful expressions includes:
   + to keep only rows for which =2.5*Level > Quantity=
 
 Beware with this example: =:cond (equal Color "Red")=. The input table
-should not have a column named ="Red"=, otherwised the condition will mean:
+should not have a column named ="Red",= otherwised the condition will mean:
 /"keep only rows with the same value in columns =Color= and =Red="/
+
+As a special case, when =:cond= parameter is not given, the result is
+the same as =:cond "COL1 COL2 COL3..."=. All columns in the input
+table are specified as key columns, and output in the resulting table.
+
+This is useful when just filtering. But be aware that aggregation
+still occurs. So duplicate input rows appear only once in the result.
 
 * Pull & Push
 
@@ -1540,7 +1547,7 @@ Contributors
 - falloutphil, underscore in column names
 - Baudilio Tejerina, t, T, U formatters
 - Marco Pas, bug comparing empty string
-- wuqui, sorting output table
+- wuqui, sorting output table, filtering only
 - Nicolas Viviani, output hlines
 
 * Changes
@@ -1573,6 +1580,7 @@ Contributors
 - Implement =HH:MM:SS= durations and =T=, =t=, =U= formatters
 - Sort output
 - Create hlines in the output
+- Missing :cond parameter means all columns
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  Thierry Banel

@@ -5,7 +5,7 @@
 Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the first table.
 
-New: sort output, hlines on output.
+New: custom column names, sort output, hlines on output.
 
 * Examples
 A very simple example. We have a table of activities and quantities
@@ -1147,6 +1147,37 @@ Quoting is not required for
 Note that in =:cond= Lisp expression, only double quotes work. This is
 because single quote in Lisp has a very special meaning.
 
+* Custom column names
+In this example, column have names which are difficult to handle:
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table original :cols "Day vmean(Level*2) vsum(Quantity^2)"
+| Day       | vmean(Level*2) | vsum(Quantity^2) |
+|-----------+----------------+------------------|
+| Monday    |             55 |              130 |
+| Tuesday   |             86 |              693 |
+| Wednesday |             36 |             1010 |
+| Thursday  |             86 |             2317 |
+| Friday    |             16 |              170 |
+#+END
+#+END_EXAMPLE
+
+We can give them custom names with the =;'custom name'= decoration:
+
+#+BEGIN_EXAMPLE
+#+BEGIN: aggregate :table original :cols "Day vmean(Level*2);'mean2' vsum(Quantity^2);'sum_squares'"
+| Day       | mean2 | sum_squares |
+|-----------+-------+-------------|
+| Monday    |    55 |         130 |
+| Tuesday   |    86 |         693 |
+| Wednesday |    36 |        1010 |
+| Thursday  |    86 |        2317 |
+| Friday    |    16 |         170 |
+#+END
+#+END_EXAMPLE
+
+Decorators are optional.
+
 * Empty and malformed input cells
 
 The input table may contain malformed mathematical text.  For
@@ -1377,19 +1408,6 @@ usual =#+TBLFM:= spreadsheet line.
 Moreover, if a =#+TBLFM:= was already there, it survives aggregation re-computations.
 
 This happens in /pull mode/ only.
-
-This feature may be used to change the headers.  Usually, the aggregated
-table headers are the aggregation formulas.  To change that, enter a cell
-formula, which will end up in the =#+TBLFM:= tag.  Example:
-
-#+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table original :cols "vsum(Quantity)" :formula "@1$1=SQuantity"
-| SQuantity |
-|-----------|
-|       218 |
-#+TBLFM: @1$1=SQuantity
-#+END:
-#+END_EXAMPLE
 
 * Chaining
 

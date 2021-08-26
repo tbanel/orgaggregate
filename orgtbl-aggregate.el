@@ -474,6 +474,7 @@ If there is no formatter or sorting, nil is given in place"
 	    (? ";"  (group-n 2 (* (not (any "^;'\"<")))))
 	    (? ";^" (group-n 3 (* (not (any "^;'\"<")))))
 	    (? ";<" (group-n 4 (* (not (any "^;'\">")))) ">")
+	    (? ";'" (group-n 5 (* (not ?'))) "'")
 	    eol)
 	   col)
    do (user-error "Bad column specification: %S" col)
@@ -481,7 +482,8 @@ If there is no formatter or sorting, nil is given in place"
 	    (match-string 1 col)
 	    (match-string 2 col)
 	    (match-string 3 col)
-	    (match-string 4 col))
+	    (match-string 4 col)
+	    (match-string 5 col))
    ))
 
 ;; dynamic binding
@@ -695,7 +697,7 @@ which do not pass the filter (in PARAMS entry :cond)."
     (if (and (> hline 0)
 	     (cl-loop for col in aggcols
 		      never (caddr col)))
-	(setq aggcols (cons (list "hline" nil "n" "") aggcols)))
+	(setq aggcols (cons (list "hline" nil "n" "" nil) aggcols)))
 
     (orgtbl-aggregate-prepare-sorting aggcols)
     (orgtbl-to-aggregated-table-keycols table aggcols)
@@ -745,7 +747,7 @@ which do not pass the filter (in PARAMS entry :cond)."
 	    (cons
 	     (cons nil
 		   (cl-loop for column in aggcols
-			    collect (car column)))
+			    collect (or (nth 4 column) (car column))))
 	     (cons 'hline result)))
 
       ;; remove invisible columns by modifying the table in-place

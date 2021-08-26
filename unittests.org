@@ -1303,3 +1303,15 @@ What happens without column names in the input?
 | venus   |   8.1252e+35 | 100 |
 | earth   | 5.956440e+24 | 150 |
 #+END:
+
+* Test custom column names
+
+#+BEGIN: aggregate :table "pulledtable" :cols "pé;^n vsum(xà);'sum_of_xà' vmean(yÿ);'average Ÿ' vmax(zö);'MAX of ZÖ'"
+| pé | sum_of_xà |     average Ÿ | MAX of ZÖ |
+|----+-----------+---------------+-----------|
+|  1 |      20.1 |             4 |         9 |
+|  2 |        12 |             5 |         5 |
+|  3 |        29 |           5.5 |         9 |
+|  4 |     a + b | a / 2 + b / 2 |         8 |
+|  5 | a + b + 3 | 5 a + b^2 / 2 |         8 |
+#+END:

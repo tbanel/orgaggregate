@@ -1315,3 +1315,26 @@ What happens without column names in the input?
 |  4 |     a + b | a / 2 + b / 2 |         8 |
 |  5 | a + b + 3 | 5 a + b^2 / 2 |         8 |
 #+END:
+
+* Test no collision
+There should be no collision between column names and reserved Calc function names.
+For instance ~vsum~, which is a Calc function, should be usable as a column name.
+
+#+name: keyword-collision
+| vmean | sort | vsum | sum | vmax | aaa |
+|-------+------+------+-----+------+-----|
+|     2 | 12.3 |   43 |  43 |    1 | 8.2 |
+|     8 | 34.4 |   81 |  81 |    1 | 9.3 |
+|     4 | 51.5 |   40 |  40 |    1 | 1.3 |
+|     5 |  8.1 |   27 |  27 |    2 | 3.9 |
+|     2 |  4.7 |   41 |  41 |    2 | 3.5 |
+|     9 | 33.9 |   62 |  62 |    3 | 2.1 |
+|     1 | 41.7 |   83 |  83 |    3 | 2.7 |
+
+#+BEGIN: aggregate :table "keyword-collision" :cols "vmax count() vsum(vmean) vsum(sort) sort(vsum) sort(sum) vmean(sum);%.2f vmean(vsum);f2"
+| vmax | count() | vsum(vmean) | vsum(sort) | sort(vsum)   | sort(sum)    | vmean(sum) | vmean(vsum) |
+|------+---------+-------------+------------+--------------+--------------+------------+-------------|
+|    1 |       3 |          14 |       98.2 | [40, 43, 81] | [40, 43, 81] |      54.67 |       54.67 |
+|    2 |       2 |           7 |       12.8 | [27, 41]     | [27, 41]     |      34.00 |          34 |
+|    3 |       2 |          10 |       75.6 | [62, 83]     | [62, 83]     |      72.50 |       72.50 |
+#+END:

@@ -496,7 +496,7 @@ many other aggregations. They are based on functions provided by Calc:
   + in Calc: =`u N' (`calc-vector-min') [`vmin']=
   + gives the smallest of the elements being aggregated
 
-- =vspan(X)=
+- =span(X)= or =vspan(X)=
   + in Calc: =`v :' (`calc-set-span') [`vspan']=
   + summarizes values to be aggregated into an interval =[MIN..MAX]=
     where =MIN= and =MAX= are the minimal and maximal values to be aggregated
@@ -566,12 +566,12 @@ many other aggregations. They are based on functions provided by Calc:
     passed through Calc interpretation.
 
 - =sort(X)=
-  + in Calc: =`v S' (`calc-sort) [`sort']=
+  + in Calc: =`v S' (`calc-sort') [`sort']=
   + sorts elements to be aggregated in ascending order;
     only works on numerical values
 
 - =rsort(X)=
-  + in Calc: =`I v S' (`calc-sort) [`sort']=
+  + in Calc: =`I v S' (`calc-sort') [`sort']=
   + sorts elements to be aggregated in descending order;
     only works on numerical values
 
@@ -1578,6 +1578,7 @@ Contributors
 - Create hlines in the output
 - Missing :cond parameter means all columns
 - remove =C-c C-x i=, use standard =C-c C-x x= instead
+- avoid name collision between Calc functions and columns
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  Thierry Banel

@@ -77,6 +77,7 @@
 
 ;;; Requires:
 (require 'calc-ext)
+(require 'org)
 (require 'org-table)
 (eval-when-compile (require 'cl-lib))
 (require 'rx)
@@ -1438,6 +1439,16 @@ Note:
       (nconc params (list :cond (read aggcond))))
     (org-create-dblock params)
     (org-update-dblock)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; wizards
+
+;; Insert a dynamic bloc with the C-c C-x x dispatcher
+;;;###autoload
+(eval-after-load 'org
+  '(when (fboundp 'org-dynamic-block-define)
+     (org-dynamic-block-define "aggregate" #'org-insert-dblock:aggregate)
+     (org-dynamic-block-define "transpose" #'org-insert-dblock:transpose)))
 
 (provide 'orgtbl-aggregate)
 ;;; orgtbl-aggregate.el ends here

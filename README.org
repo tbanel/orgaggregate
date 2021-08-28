@@ -139,35 +139,13 @@ Friday         8           22
 
 * Key-binding & Wizard
 
-Type =C-c C-x i= to launch a wizard for creating new /dynamic blocks/.
+Type =C-c C-x x= to launch a wizard for creating new /dynamic blocks/.
 Then answer =aggregate= for the type of block, and follow the instructions.
 (There are several other /dynamic blocks/ that can be built this way:
 ~columnview~, ~clocktable~, ~propview~, ~invoice~, ~transpose~, and any
 future block).
 
-This is given by the file =org-insert-dblock.el=, which extends
-the original =C-c C-x i= key-binding to any dynamic block.
-If for any reason you do not want to load this file, you can still
-create dynamic aggregate blocks by typing
-=M-x org-dblock-write:aggregate=.
-
-In the latest releases of Org Mode (9.4), there is a similar wizard
-(thanks to Kin Stardiviner). Call it with =C-c C-x x=.
-
-But beforehand, you must register the =orgtbl-aggregate= sub-wizard with it.
-To do so, type this somewhere (for instance into your =.emacs= file):
-
-#+BEGIN_EXAMPLE
-(if (fboundp 'org-dynamic-block-define)
-    (org-dynamic-block-define "aggregate" 'org-insert-dblock:aggregate))
-#+END_EXAMPLE
-
-The =fboundp= test is useful to gracefully ignore this setting in case
-your Org Mode is older.
-
-For convenience those two lines have been written down into
-=org-insert-dblock.el=. If you already load this file, you do not have
-anything to configure.
+=C-c C-x x aggregate= is equivalent to =M-x org-dblock-write:aggregate=.
 
 * Other examples
 
@@ -1599,6 +1577,7 @@ Contributors
 - Sort output
 - Create hlines in the output
 - Missing :cond parameter means all columns
+- remove =C-c C-x i=, use standard =C-c C-x x= instead
 
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  Thierry Banel

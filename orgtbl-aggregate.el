@@ -377,31 +377,28 @@ $N, N being the numbering of columns in the input table.  Doing
 so, the COLUMN is ready to be computed by Calc."
   (replace-regexp-in-string
    (rx
-    (group
-     (or
-      (seq ?'  (* (not (any ?' ))) ?')
-      (seq ?\" (* (not (any ?\"))) ?\")
-      (seq (+ (any word "_$.")))))
-    (? (group (* space) "(")))
+    (or
+     (seq ?'  (* (not (any ?' ))) ?')
+     (seq ?\" (* (not (any ?\"))) ?\")
+     (seq (+ (any word "_$."))))
+    (? (* space) "("))
    (lambda (var)
-     (if (match-string 2 column)
-	 (if (member
-	      (match-string 1 column)
-	      '("mean" "meane" "gmean" "hmean" "median" "sum" "min" "max"
-		"prod" "pvar" "sdev" "psdev" "corr" "cov" "pcov"
-		"count" "span" "var"))
-	     ;; aggregate functions with or without the leading "v"
-	     ;; sum(X) and vsum(X) are equivalent
-	     (format "v%s" var)
-	   var)
-       ;; replace VAR if it is a column name
-       (save-match-data ;; save because we are called within a replace-regexp
+     (save-match-data ;; save because we are called within a replace-regexp
+       (if (string-match (rx (group (+ (not "("))) (* space) "(") var)
+	   (if (member
+		(match-string 1 var)
+		'("mean" "meane" "gmean" "hmean" "median" "sum" "min" "max"
+		  "prod" "pvar" "sdev" "psdev" "corr" "cov" "pcov"
+		  "count" "span" "var"))
+	       ;; aggregate functions with or without the leading "v"
+	       ;; sum(X) and vsum(X) are equivalent
+	       (format "v%s" var)
+	     var)
+	 ;; replace VAR if it is a column name
 	 (let ((i (orgtbl-to-aggregated-table-colname-to-int
 		   var
 		   table)))
-	   (if i
-	       (format "$%s" i)
-	     var)))))
+	   (if i (format "$%s" i) var)))))
    column))
 
 (defun orgtbl-to-aggregated-list-$-as-int (formula$ table)

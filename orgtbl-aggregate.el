@@ -719,8 +719,9 @@ which do not pass the filter (in PARAMS entry :cond)."
 	   (cl-loop for x in (-appendable-list-get groups)
 		    collect (-appendable-list-create))))
       
-      ;; inactivating math-read-preprocess-string boosts performance
-      (cl-letf (((symbol-function 'math-read-preprocess-string) #'identity))
+      ;; inactivating those two functions boosts performance
+      (cl-letf (((symbol-function 'math-read-preprocess-string) #'identity)
+		((symbol-function 'calc-input-angle-units) (lambda (x) nil)) )
 	;; do aggregation
 	(cl-loop for formula in aggcols
 		 for colnum from 0

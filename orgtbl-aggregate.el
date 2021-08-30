@@ -467,10 +467,13 @@ If there is no formatter or sorting, nil is given in place"
 			 (seq ?'  (* (not (any ?')))  ?' )
 			 (seq ?\" (* (not (any ?\"))) ?\")
 			 (not (any ";'\"")))))
-	    (? ";"  (group-n 2 (* (not (any "^;'\"<")))))
-	    (? ";^" (group-n 3 (* (not (any "^;'\"<")))))
-	    (? ";<" (group-n 4 (* (not (any "^;'\">")))) ">")
-	    (? ";'" (group-n 5 (* (not ?'))) "'")
+	    (*
+	     ";"
+	     (or
+	      (seq     (group-n 2 (* (not (any "^;'\"<")))))
+	      (seq "^" (group-n 3 (* (not (any "^;'\"<")))))
+	      (seq "<" (group-n 4 (* (not (any "^;'\">")))) ">")
+	      (seq "'" (group-n 5 (* (not ?'))) "'")))
 	    eol)
 	   col)
    do (user-error "Bad column specification: %S" col)

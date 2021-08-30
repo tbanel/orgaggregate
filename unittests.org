@@ -1255,53 +1255,55 @@ Same with hline & cölØr to separate blocks
 
 * Test filter only
 #+name: planet
-| planet  |      mass kg | dist MKM |
-|---------+--------------+----------|
-| sun     |   1.98892e30 |        0 |
-| mercury |   1.1980e+37 |       60 |
-| venus   |   8.1252e+35 |      100 |
-| earth   | 5.956440e+24 |      150 |
-| mars    |   6.1631e+36 |      220 |
-| jupiter |  2.08309e+33 |      780 |
-| saturn  |   6.9570e+33 |     1420 |
-| uranus  |  4.55522e+34 |     2870 |
-| neptune |   3.8609e+34 |     4500 |
-| pluto   |       3.e+32 |     5800 |
+| planet  |   mass kg | dist MKM |
+|---------+-----------+----------|
+| Sun     | 1.9891e30 |        0 |
+| Mercury | 3.3022e23 |       60 |
+| Venus   | 4.8685e24 |      100 |
+| Earth   | 5.9736e24 |      150 |
+| Mars    | 6.4185e23 |      220 |
+| Jupiter | 1.8986e27 |      780 |
+| Saturn  | 5.6846e26 |     1420 |
+| Uranus  | 8.6810e25 |     2870 |
+| Neptune | 10.243e25 |     4500 |
+| Pluto   |   1.25e22 |     5800 |
 
 Without :cols parameter, we get all columns
 
 #+BEGIN: aggregate :table "planet" :cond (> (string-to-number "dist MKM") 150)
-| planet  |   "mass kg" | "dist MKM" |
-|---------+-------------+------------|
-| mars    |  6.1631e+36 |        220 |
-| jupiter | 2.08309e+33 |        780 |
-| saturn  |  6.9570e+33 |       1420 |
-| uranus  | 4.55522e+34 |       2870 |
-| neptune |  3.8609e+34 |       4500 |
-| pluto   |      3.e+32 |       5800 |
+| planet  | "mass kg" | "dist MKM" |
+|---------+-----------+------------|
+| Mars    | 6.4185e23 |        220 |
+| Jupiter | 1.8986e27 |        780 |
+| Saturn  | 5.6846e26 |       1420 |
+| Uranus  | 8.6810e25 |       2870 |
+| Neptune | 10.243e25 |       4500 |
+| Pluto   |   1.25e22 |       5800 |
 #+END:
 
 What happens without column names in the input?
 
 #+name: planetnh
-| sun     |   1.98892e30 |        0 |
-| mercury |   1.1980e+37 |       60 |
-| venus   |   8.1252e+35 |      100 |
-| earth   | 5.956440e+24 |      150 |
-| mars    |   6.1631e+36 |      220 |
-| jupiter |  2.08309e+33 |      780 |
-| saturn  |   6.9570e+33 |     1420 |
-| uranus  |  4.55522e+34 |     2870 |
-| neptune |   3.8609e+34 |     4500 |
-| pluto   |       3.e+32 |     5800 |
+| planet  |   mass kg | dist MKM |
+|---------+-----------+----------|
+| Sun     | 1.9891e30 |        0 |
+| Mercury | 3.3022e23 |       60 |
+| Venus   | 4.8685e24 |      100 |
+| Earth   | 5.9736e24 |      150 |
+| Mars    | 6.4185e23 |      220 |
+| Jupiter | 1.8986e27 |      780 |
+| Saturn  | 5.6846e26 |     1420 |
+| Uranus  | 8.6810e25 |     2870 |
+| Neptune | 10.243e25 |     4500 |
+| Pluto   |   1.25e22 |     5800 |
 
 #+BEGIN: aggregate :table "planetnh" :cond (<= (string-to-number "$3") 150)
-| $1      |           $2 |  $3 |
-|---------+--------------+-----|
-| sun     |   1.98892e30 |   0 |
-| mercury |   1.1980e+37 |  60 |
-| venus   |   8.1252e+35 | 100 |
-| earth   | 5.956440e+24 | 150 |
+| planet  | "mass kg" | "dist MKM" |
+|---------+-----------+------------|
+| Sun     | 1.9891e30 |          0 |
+| Mercury | 3.3022e23 |         60 |
+| Venus   | 4.8685e24 |        100 |
+| Earth   | 5.9736e24 |        150 |
 #+END:
 
 * Test custom column names
@@ -1337,4 +1339,21 @@ For instance ~vsum~, which is a Calc function, should be usable as a column name
 |    1 |       3 |          14 |       98.2 | [40, 43, 81] | [40, 43, 81] |      54.67 |       54.67 |
 |    2 |       2 |           7 |       12.8 | [27, 41]     | [27, 41]     |      34.00 |          34 |
 |    3 |       2 |          10 |       75.6 | [62, 83]     | [62, 83]     |      72.50 |       72.50 |
+#+END:
+
+* Test disordered formatters & decorators
+
+#+BEGIN: aggregate :table "planet" :cols "planet vmax('mass kg');^n;e4;'MassKG' vmin('dist MKM')*1e6;^N;'DistKM';e2"
+| planet  |   MassKG | DistKM |
+|---------+----------+--------|
+| Pluto   |  12.5e21 |  5.8e9 |
+| Mercury | 330.2e21 |   60e6 |
+| Mars    | 641.9e21 |  220e6 |
+| Venus   | 4.869e24 |  100e6 |
+| Earth   | 5.974e24 |  150e6 |
+| Uranus  | 86.81e24 |  2.9e9 |
+| Neptune | 102.4e24 |  4.5e9 |
+| Saturn  | 568.5e24 |  1.4e9 |
+| Jupiter | 1.899e27 |  780e6 |
+| Sun     | 1.989e30 |    0e0 |
 #+END:

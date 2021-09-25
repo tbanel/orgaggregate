@@ -139,10 +139,10 @@ No need to name it.
 #+END RECEIVE ORGTBL aggtable6
 
 #+BEGIN RECEIVE ORGTBL aggtable7
-| q | prod(z) | cov(x,y)                                                                  | corr(z,z) |
-|---+---------+---------------------------------------------------------------------------+-----------|
-| b |   19440 | 0.133333333334 b^3 - 3.63333333335 b - 0.766666666667 b^2 + 19.1999999999 |        1. |
-| a |    4096 | 1.30952380953 a^2 - 5.57380952383 a + 2.5761904762                        |        1. |
+| q | prod(z) | cov(x,y)                                                         | corr(z,z) |
+|---+---------+------------------------------------------------------------------+-----------|
+| b |   19440 | 0.133333333333 b^3 - 3.63333333333 b - 0.766666666667 b^2 + 19.2 |        1. |
+| a |    4096 | 1.30952380953 a^2 - 5.57380952381 a + 2.5761904762               |        1. |
 #+END RECEIVE ORGTBL aggtable7
 
 #+BEGIN RECEIVE ORGTBL aggtable8
@@ -249,8 +249,8 @@ Note the additional =$8= column automatically computed after the aggregation
 #+BEGIN: aggregate :table pulledtable :cols "qû count() cov(zö,xà) pcov(zö,zö) corr(zö,zö)"
 | qû | count() | cov(zö,xà)                       |   pcov(zö,zö) | corr(zö,zö) |
 |----+---------+----------------------------------+---------------+-------------|
-| b  |       6 | 0.266666666667 b + 1.79999999998 | 7.88888888889 |          1. |
-| a  |       7 | 0.619047619049 a - 1.22142857143 | 6.97959183673 |          1. |
+| b  |       6 | 0.266666666666 b + 1.8           | 7.88888888889 |          1. |
+| a  |       7 | 0.619047619047 a - 1.22142857142 | 6.97959183673 |          1. |
 #+END
 
 * Test :cond PUSH
@@ -521,13 +521,13 @@ Contains the variables =x= and =a=, which are not numeric.
 Result is variabilized with =x= and =a=.
 
 #+BEGIN: aggregate :table "symtable" :cols "Day mean(Level) sum(Quantity)"
-| Day       | mean(Level)           | sum(Quantity) |
-|-----------+-----------------------+---------------|
-| Monday    | 2. x + 27.5           | a + 14        |
-| Thuesday  | 0.333333333334 x + 43 | 45            |
-| Wednesday | x / 3 + 18            | 54 - 6 a      |
-| Turdsday  | x / 3 + 43.           | 4 a + 83      |
-| Friday    | 8                     | a + 22        |
+| Day       | mean(Level) | sum(Quantity) |
+|-----------+-------------+---------------|
+| Monday    | 2 x + 27.5  | a + 14        |
+| Thuesday  | x / 3 + 43  | 45            |
+| Wednesday | x / 3 + 18  | 54 - 6 a      |
+| Turdsday  | x / 3 + 43. | 4 a + 83      |
+| Friday    | 8           | a + 22        |
 #+END
 
 * Test zero output

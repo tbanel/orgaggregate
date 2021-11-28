@@ -118,6 +118,7 @@ for a horizontal separator line, or a list of field values as strings.
 The table is taken from the parameter TXT, or from the buffer at point."
   (if txt
       (with-temp-buffer
+	(buffer-disable-undo)
         (insert txt)
         (goto-char (point-min))
         (org-table-to-lisp-post-9-4))
@@ -227,7 +228,7 @@ alphanumeric are quoted."
 	(mapconcat #'identity header " ")
       header)))
 
-(defun make-spaces (n spaces-cache)
+(defun orgtbl-aggregate-make-spaces (n spaces-cache)
   "Makes a string of N spaces.
 Caches results to avoid re-allocating again and again
 the same string"
@@ -296,10 +297,10 @@ special symbol 'hline to mean an horizontal line."
 			       ;; left alignment
 			       else if nu
 			       collect cell and
-			       collect (make-spaces pad spaces-cache)
+			       collect (orgtbl-aggregate-make-spaces pad spaces-cache)
 			       ;; right alignment
 			       else
-			       collect (make-spaces pad spaces-cache) and
+			       collect (orgtbl-aggregate-make-spaces pad spaces-cache) and
 			       collect cell
 			       collect " ")
 		    (cl-loop for bar = "|" then "+"
@@ -1172,6 +1173,7 @@ Note:
   (let ((aggregated-table
 	 (orgtbl-create-table-aggregated table params)))
     (with-temp-buffer
+      (buffer-disable-undo)
       (orgtbl-insert-elisp-table aggregated-table)
       (buffer-substring-no-properties (point-min) (1- (point-max))))))
 
@@ -1421,6 +1423,7 @@ Note:
 	  (plist-get params :cols)
 	  (plist-get params :cond))))
     (with-temp-buffer
+      (buffer-disable-undo)
       (orgtbl-insert-elisp-table transposed-table)
       (buffer-substring-no-properties (point-min) (1- (point-max))))))
 

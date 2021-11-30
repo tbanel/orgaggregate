@@ -178,12 +178,16 @@ An horizontal line is translated as the special symbol `hline'."
       (goto-char (point-min))
       (if (let ((case-fold-search t))
 	    (re-search-forward
-	     (rx bol
-		 (* (any " \t")) "#+" (? "tbl") "name:"
-		 (* (any " \t"))
-		 (literal name-or-id)
-		 (* (any " \t"))
-		 eol)
+	     ;; This concat is automatically done by new versions of rx
+	     ;; using "literal". This appeared on june 26, 2019
+	     ;; For older versions of Emacs, we fallback to concat
+	     (concat
+	      (rx bol
+		  (* (any " \t")) "#+" (? "tbl") "name:"
+		  (* (any " \t")))
+	      name-or-id
+	      (rx (* (any " \t"))
+		  eol))
 	     nil t))
 	  (setq buffer (current-buffer)
 		loc (match-beginning 0))

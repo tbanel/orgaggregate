@@ -466,7 +466,7 @@ filled here too, and nowhere else."
 	      (seq     (group-n 2 (* (not (any "^;'\"<")))))
 	      (seq "^" (group-n 3 (* (not (any "^;'\"<")))))
 	      (seq "<" (group-n 4 (* (not (any "^;'\">")))) ">")
-	      (seq "'" (group-n 5 (* (not ?'))) "'")))
+	      (seq "'" (group-n 5 (* (not (any "'")))) "'")))
 	    eol)
 	   col)
     (user-error "Bad column specification: %S" col))
@@ -493,7 +493,7 @@ filled here too, and nowhere else."
 	    (? (* space) "("))
 	   (lambda (var)
 	     (save-match-data ;; save because we are called within a replace-regexp
-	       (if (string-match (rx (group (+ (not "("))) (* space) "(") var)
+	       (if (string-match (rx (group (+ (not (any "(")))) (* space) "(") var)
 		   (if (member
 			(match-string 1 var)
 			'("mean" "meane" "gmean" "hmean" "median" "sum"
@@ -535,8 +535,8 @@ filled here too, and nowhere else."
 	       (rx
 		bol
 		(group
-		 (or (seq "'"  (* (not "'" )) "'" )
-		     (seq "\"" (* (not "\"")) "\"")
+		 (or (seq "'"  (* (not (any "'" ))) "'" )
+		     (seq "\"" (* (not (any "\""))) "\"")
 		     (+ (any word "_$."))))
 		eol)
 	       formula)

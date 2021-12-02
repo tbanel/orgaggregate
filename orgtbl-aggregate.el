@@ -138,7 +138,7 @@ The table is taken from the parameter TXT, or from the buffer at point."
 	       (buffer-substring-no-properties
 		(setq q (point))
 		(if (progn (skip-chars-forward "^|\n") (eolp))
-		    (point)
+		    (1- (point))
 		  (setq p (1+ (point)))
 		  (skip-chars-backward " \t" q)
 		  (prog1 (point) (goto-char p))))
@@ -185,7 +185,7 @@ An horizontal line is translated as the special symbol `hline'."
 	      (rx bol
 		  (* (any " \t")) "#+" (? "tbl") "name:"
 		  (* (any " \t")))
-	      name-or-id
+	      (regexp-quote name-or-id)
 	      (rx (* (any " \t"))
 		  eol))
 	     nil t))

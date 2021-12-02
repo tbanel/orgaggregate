@@ -1545,6 +1545,7 @@ Contributors
 - Marco Pas, bug comparing empty string
 - wuqui, sorting output table, filtering only
 - Nicolas Viviani, output hlines
+- Nils Lehmann, support old versions of the rx library
 
 * Changes
 - Wizard now correctly asks for columns with =$1, $2...= names
@@ -1580,6 +1581,7 @@ Contributors
 - Remove =C-c C-x i=, use standard =C-c C-x x= instead
 - Avoid name collision between Calc functions and columns
 - More readable & faster code
+- Support for old versions of the rx library
   
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  Thierry Banel

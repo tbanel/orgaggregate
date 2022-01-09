@@ -1047,15 +1047,17 @@ and a cell from any row in the group is returned."
   "Replaces all Frux(N) expressions in FORMULA-FRUX with
 Calc-vectors found in CALC-DOLLAR-VALUES. It also replaces
 vcount() forms with the actual number of rows in the current group"
-  (if (not (consp formula-frux))
-      formula-frux
-    (cond ((memq (car formula-frux) '(calcFunc-Frux calcFunc-FRUX))
-	   (nth (1- (cadr formula-frux)) calc-dollar-values))
-	  ((eq (car formula-frux) 'calcFunc-vcount)
-	   count)
-	  (t
-	   (mapcar (lambda (x) (orgtbl-to-aggregated-defrux x calc-dollar-values count))
-		   formula-frux)))))
+  (cond
+   ((not (consp formula-frux))
+    formula-frux)
+   ((memq (car formula-frux) '(calcFunc-Frux calcFunc-FRUX))
+    (nth (1- (cadr formula-frux)) calc-dollar-values))
+   ((eq (car formula-frux) 'calcFunc-vcount)
+    count)
+   (t
+    (cl-loop
+     for x in formula-frux
+     collect (orgtbl-to-aggregated-defrux x calc-dollar-values count)))))
 
 (defun orgtbl-to-aggregated-make-calc-$-list (table group fmt-settings involved $list)
   "Prepare a list of vectors that will use to replace Frux(N) expressions.

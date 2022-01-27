@@ -1290,9 +1290,10 @@ Note:
       (end-of-line)
       (insert "\n" tblfm)
       (forward-line -1)
-      (condition-case nil
-	  (org-table-recalculate 'all)
-	(args-out-of-range nil)))))
+      (let ((org-table-formula-create-columns t))
+	(condition-case nil
+	    (org-table-recalculate 'all)
+	  (args-out-of-range nil))))))
 
 (defvar orgtbl-aggregate-history-cols ())
 
@@ -1510,9 +1511,10 @@ Note:
       (end-of-line)
       (insert "\n" tblfm)
       (forward-line -1)
-      (condition-case nil
-	  (org-table-recalculate 'all)
-	(args-out-of-range nil)))))
+      (let ((org-table-formula-create-columns t))
+	(condition-case nil
+	    (org-table-recalculate 'all)
+	  (args-out-of-range nil))))))
 
 ;;;###autoload
 (defun org-insert-dblock:transpose ()

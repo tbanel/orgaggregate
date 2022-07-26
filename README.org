@@ -770,8 +770,8 @@ Beware with this example: =:cond (equal Color "Red")=. The input table
 should not have a column named ="Red",= otherwised the condition will mean:
 /"keep only rows with the same value in columns =Color= and =Red="/
 
-As a special case, when =:cond= parameter is not given, the result is
-the same as =:cond "COL1 COL2 COL3..."=. All columns in the input
+As a special case, when =:cols= parameter is not given, the result is
+the same as =:cols "COL1 COL2 COL3..."=. All columns in the input
 table are specified as key columns, and output in the resulting table.
 
 This is useful when just filtering. But be aware that aggregation

@@ -521,7 +521,7 @@ many other aggregations. They are based on functions provided by Calc:
 - =hmean(X)= or =vhmean(X)=
   + in Calc: =`H I u M' (`calc-vector-harmonic-mean') [`vhmean']=
   + computes the harmonic mean of elements being aggregated
- 
+
 - =gmean(X)= or =vgmean(X)=
   + in Calc: =`u G' (`calc-vector-geometric-mean') [`vgmean']=
   + computes the geometric mean of elements being aggregated
@@ -759,7 +759,7 @@ expression evaluates to nil, the row is discarded.
 
 Examples of useful expressions includes:
 - =:cond (equal Color "Red")=
-  + to keep only rows where =Color= is =Red= 
+  + to keep only rows where =Color= is =Red=
 - =:cond (> (string-to-number Quantity) 19)=
   + to keep only rows for which =Quantity= is more than =19=
   + note the call to =string-to-number=; without this call, =Quantity= would be used as a string
@@ -1387,6 +1387,62 @@ Moreover, if a =#+TBLFM:= was already there, it survives aggregation re-computat
 
 This happens in /pull mode/ only.
 
+* Post processing
+
+The aggregated table can be post-processed with the =:post=
+parameter. It accepts a Lisp =lambda=, a Lisp function, or a Babel
+block.
+
+The processing receives the aggregated table as parameter in the form
+of a Lisp expression. It can process it in any way it wants, provided
+it returns a valid Lisp table.
+
+A Lisp table is a list of rows. Each row is either a list of cells, or
+the special symbol =hline=.
+
+In this example, a =lambda= expression adds a =hline= and a row for /Sunday/.
+
+#+begin_example
+#+BEGIN: aggregate :table original :cols "Day vsum(Quantity)" :post (lambda (table) (append table '(hline (Sunday "0.0"))))
+| Day       | vsum(Quantity) |
+|-----------+----------------|
+| Monday    |             14 |
+| Tuesday   |             45 |
+| Wednesday |             54 |
+| Thursday  |             83 |
+| Friday    |             22 |
+|-----------+----------------|
+| Sunday    |            0.0 |
+#+END:
+#+end_example
+
+The =lambda= can be moved to a =defun=. The function is then passed to the =:post= parameter:
+
+#+begin_example
+#+begin_src elisp
+(defun my-function (table)
+  (append table
+          '(hline (Sunday "0.0"))))
+#+end_src
+#+end_example
+
+: ... :post my-function
+
+The =:post= parameter can also refer to a Babel Block. Example:
+
+#+begin_example
+#+BEGIN: aggregate :table original :cols "Day vsum(Quantity)" :post "my-babel-block(tbl=*this*)"
+...
+#+END:
+#+end_example
+
+#+begin_example
+#+begin_src elisp :var tbl=""
+(append tbl
+        '(hline (Sunday "0.0")))
+#+end_src
+#+end_example
+
 * Chaining
 
 The result of an aggregation may become the source of further
@@ -1546,6 +1602,7 @@ Contributors
 - wuqui, sorting output table, filtering only
 - Nicolas Viviani, output hlines
 - Nils Lehmann, support old versions of the rx library
+- shankar2k, =:post= post-processing
 
 * Changes
 - Wizard now correctly asks for columns with =$1, $2...= names
@@ -1582,7 +1639,8 @@ Contributors
 - Avoid name collision between Calc functions and columns
 - More readable & faster code
 - Support for old versions of the rx library
-  
+- =:post= post-processing
+
 * License
 Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  Thierry Banel
 

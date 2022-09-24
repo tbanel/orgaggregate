@@ -421,7 +421,7 @@ It contains four groups separated by horizontal lines.
 | 5 | b | b+3 |  b*b | 8 | 1 |
 
 ** Aggregated table
-The =hline= column groups data 
+The =hline= column groups data
 
 #+BEGIN: aggregate :table hlinetable :cols "q hline vcount()" :cond (equal f "1")
 | q | hline | vcount() |
@@ -469,7 +469,7 @@ Some (limited) handling of dates is available.
 
 ** Aggregated table
 
-Test T, U, t formatters 
+Test T, U, t formatters
 
 #+BEGIN: aggregate :table "some_durations" :cols "vmean(dur) vmean(dur);T vmean(dur);t vmean(dur);U"
 | vmean(dur) | vmean(dur) | vmean(dur) | vmean(dur) |
@@ -848,7 +848,7 @@ In a :cond lisp formula, only double quotes work.
 | b/test         |                   3.350 |                    3.1500 |
 #+END:
 
-#+BEGIN: aggregate :table "funnynames" :cols ("'first column'" "mean('observed;number');%.3f" "mean('computed/expected');%.4f") :cond "(and (>= (string-to-number \"observed;number\") 0) (not (equal \"first column\" \"zero\")))" 
+#+BEGIN: aggregate :table "funnynames" :cols ("'first column'" "mean('observed;number');%.3f" "mean('computed/expected');%.4f") :cond "(and (>= (string-to-number \"observed;number\") 0) (not (equal \"first column\" \"zero\")))"
 | 'first column' | mean('observed;number') | mean('computed/expected') |
 |----------------+-------------------------+---------------------------|
 | a/experiment   |                   8.633 |                    7.1333 |
@@ -1357,3 +1357,104 @@ For instance ~vsum~, which is a Calc function, should be usable as a column name
 | Jupiter | 1.899e27 |  780e6 |
 | Sun     | 1.989e30 |    0e0 |
 #+END:
+
+* Test lambda post-processing
+
+#+BEGIN: aggregate :table "pulledtable" :cols "qû vsum(zö)" :post (lambda (table) (append table '(hline (c 112233))))
+| qû | vsum(zö) |
+|----+----------|
+| b  |       38 |
+| a  |       29 |
+|----+----------|
+| c  |   112233 |
+#+END:
+
+#+BEGIN: aggregate :table "pulledtable" :cols "qû vsum(zö)" :post (lambda (table) (append '((c 112233) hline) table))
+| c  |   112233 |
+|----+----------|
+| qû | vsum(zö) |
+|----+----------|
+| b  |       38 |
+| a  |       29 |
+#+END:
+
+* Test babel post-processing
+
+#+BEGIN: aggregate :table "pulledtable" :cols "qû vsum(zö)" :post "post-proc-babel(*this*)"
+| AA |     BB |
+|----+--------|
+| c  | 112233 |
+|----+--------|
+| b  |     38 |
+| a  |     29 |
+#+END:
+
+#+name: post-proc-babel
+#+begin_src elisp :var intbl="" :colnames '(AA BB)
+(append
+ '((c 112233) hline)
+ intbl))
+#+end_src
+
+* Test push lambda post-processing
+
+#+ORGTBL: SEND sent-aggregate-post orgtbl-to-aggregated-table :cols "a vsum(b) vsum(c)" :post (lambda (tbl) (append tbl '(hline (h 9 "8"))))
+#+ORGTBL: SEND sent-transpose-post orgtbl-to-transposed-table :cols "a c"               :post (lambda (tbl) (append tbl '(hline (h "" 3.4 "8.8"))))
+| a |  b |  c |
+|---+----+----|
+| x | 34 | 56 |
+| i | 90 | 12 |
+| x | 51 |  3 |
+| i |  1 | 11 |
+
+#+BEGIN RECEIVE ORGTBL sent-aggregate-post
+| a | vsum(b) | vsum(c) |
+|---+---------+---------|
+| x |      85 |      59 |
+| i |      91 |      23 |
+|---+---------+---------|
+| h |       9 |       8 |
+#+END RECEIVE ORGTBL sent-aggregate-post
+
+#+BEGIN RECEIVE ORGTBL sent-transpose-post
+| a |   |   x |   i | x |  i |
+| c |   |  56 |  12 | 3 | 11 |
+|---+---+-----+-----+---+----|
+| h |   | 3.4 | 8.8 |
+#+END RECEIVE ORGTBL sent-transpose-post
+
+* Test push babel post-processing
+
+#+ORGTBL: SEND sent-transpose-post-babel orgtbl-to-transposed-table :cols "p r q"             :post "post-proc-babel-send(*this*)"
+#+ORGTBL: SEND sent-aggregate-post-babel orgtbl-to-aggregated-table :cols "p vsum(q) vsum(r)" :post "post-proc-babel-send(intbl=*this*)"
+|     q | p |     r |
+|-------+---+-------|
+|  34.9 | x |  56.1 |
+|  9.20 | i |  77.2 |
+| 51.29 | x |  3.86 |
+|  76.7 | i | 19.47 |
+
+#+BEGIN RECEIVE ORGTBL sent-aggregate-post-babel
+| x   |  86.19 | 59.96 |
+| i   |   85.9 | 96.67 |
+| add | 3.1416 |   5.6 |
+|-----+--------+-------|
+| sub |  2.718 | -42.0 |
+#+END RECEIVE ORGTBL sent-aggregate-post-babel
+
+#+BEGIN RECEIVE ORGTBL sent-transpose-post-babel
+| p   |        |     x |    i |     x |     i |
+| r   |        |  56.1 | 77.2 |  3.86 | 19.47 |
+| q   |        |  34.9 | 9.20 | 51.29 |  76.7 |
+| add | 3.1416 |   5.6 |
+|-----+--------+-------+------+-------+-------|
+| sub |  2.718 | -42.0 |
+#+END RECEIVE ORGTBL sent-transpose-post-babel
+
+#+name: post-proc-babel-send
+#+begin_src elisp :var intbl=""
+(append
+ intbl
+ '((add 3.1416 "5.6") hline (sub 2.718 "-42.0")))
+#+end_src
+

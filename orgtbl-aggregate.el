@@ -232,6 +232,40 @@ alphanumeric are quoted."
 	(mapconcat #'identity header " ")
       header)))
 
+(defun orgtbl-post-process (table post)
+  "Post-process the aggregated TABLE according to the :post header
+POST might be:
+- a reference to a babel-block, for example:
+  :post \"myprocessor(inputtable=*this*)\"
+  and somewhere else:
+  #+name: myprocessor
+  #+begin_src language :var inputtable=""
+  ...
+  #+end_src
+- a Lisp lambda with one parameter, for example:
+  :post (lambda (table) (append table '(hline (\"total\" 123))))
+- a Lisp function with one parameter, for example:
+  :post my-lisp-function
+- a Lisp expression which will be evaluated
+  the *this* variable will contain the TABLE
+In all those cases, the result must be a Lisp value compliant
+with an Org Mode table."
+  (cond
+   ((null post) table)
+   ((functionp post)
+    (apply post table ()))
+   ((stringp post)
+    (let ((*this* table))
+      (condition-case err
+	  (org-babel-ref-resolve post)
+	(error
+	 (message "error: %S" err)
+	 (orgtbl-post-process table (read post))))))
+   ((listp post)
+    (let ((*this* table))
+      (eval post)))
+   (t (user-error ":post %S header could not be understood" post))))
+
 (defun orgtbl-aggregate-make-spaces (n spaces-cache)
   "Makes a string of N spaces.
 Caches results to avoid re-allocating again and again
@@ -261,8 +295,11 @@ special symbol 'hline to mean an horizontal line."
 		      for mx on maxwidths
 		      for nu on numbers
 		      for ne on non-empty
-		      for cellnp = (or (car cell) "")
-		      do (setcar cell cellnp)
+		      for cellnp = (car cell)
+		      do (cond ((not cellnp)
+				(setcar cell (setq cellnp "")))
+		       	       ((not (stringp cellnp))
+		      		(setcar cell (setq cellnp (format "%s" cellnp)))))
 		      if (string-match-p org-table-number-regexp cellnp)
 		      do (setcar nu (1+ (car nu)))
 		      unless (equal cellnp "")
@@ -1179,7 +1216,9 @@ Note:
 "
   (interactive)
   (let ((aggregated-table
-	 (orgtbl-create-table-aggregated table params)))
+	 (orgtbl-post-process
+	  (orgtbl-create-table-aggregated table params)
+	  (plist-get params :post))))
     (with-temp-buffer
       (buffer-disable-undo)
       (orgtbl-insert-elisp-table aggregated-table)
@@ -1262,6 +1301,7 @@ Note:
   (interactive)
   (let ((formula (plist-get params :formula))
 	(content (plist-get params :content))
+	(post    (plist-get params :post))
 	(tblfm nil))
     (if (and content
 	     (let ((case-fold-search t))
@@ -1270,10 +1310,11 @@ Note:
 		content)))
 	(insert (match-string 1 content) "\n"))
     (orgtbl-insert-elisp-table
-     (orgtbl-create-table-aggregated
-      (orgtbl-get-distant-table (plist-get params :table))
-      params))
-
+     (orgtbl-post-process
+      (orgtbl-create-table-aggregated
+       (orgtbl-get-distant-table (plist-get params :table))
+       params)
+      post))
     (delete-char -1) ;; remove trailing \n which Org Mode will add again
     (if (and content
 	     (let ((case-fold-search t))
@@ -1427,10 +1468,12 @@ Note:
 "
   (interactive)
   (let ((transposed-table
-	 (orgtbl-create-table-transposed
-	  table
-	  (plist-get params :cols)
-	  (plist-get params :cond))))
+	 (orgtbl-post-process
+	  (orgtbl-create-table-transposed
+	   table
+	   (plist-get params :cols)
+	   (plist-get params :cond))
+	  (plist-get params :post))))
     (with-temp-buffer
       (buffer-disable-undo)
       (orgtbl-insert-elisp-table transposed-table)
@@ -1483,6 +1526,7 @@ Note:
   (interactive)
   (let ((formula (plist-get params :formula))
 	(content (plist-get params :content))
+	(post    (plist-get params :post))
 	(tblfm nil))
     (if (and content
 	     (let ((case-fold-search t))
@@ -1491,10 +1535,12 @@ Note:
 		content)))
 	(insert (match-string 1 content) "\n"))
     (orgtbl-insert-elisp-table
-     (orgtbl-create-table-transposed
-      (orgtbl-get-distant-table (plist-get params :table))
-      (plist-get params :cols)
-      (plist-get params :cond)))
+     (orgtbl-post-process
+      (orgtbl-create-table-transposed
+       (orgtbl-get-distant-table (plist-get params :table))
+       (plist-get params :cols)
+       (plist-get params :cond))
+      post))
     (delete-char -1) ;; remove trailing \n which Org Mode will add again
     (if (and content
 	     (let ((case-fold-search t))

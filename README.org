@@ -1602,7 +1602,7 @@ Contributors
 - wuqui, sorting output table, filtering only
 - Nicolas Viviani, output hlines
 - Nils Lehmann, support old versions of the rx library
-- shankar2k, =:post= post-processing
+- Shankar Rao, =:post= post-processing
 
 * Changes
 - Wizard now correctly asks for columns with =$1, $2...= names

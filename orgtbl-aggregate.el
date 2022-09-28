@@ -103,6 +103,15 @@
 (defmacro -appendable-list-get (ls)
   `(cdr ,ls))
 
+(defmacro pop-simple (place)
+  "like pop, but without returning (car place)"
+  `(setq ,place (cdr ,place)))
+
+(defmacro orgtbl-pop-leading-hline (table)
+  "Remove leading hlines from the table, if any" 
+  `(while (not (listp (car ,table)))
+     (pop-simple ,table)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The function (org-table-to-lisp) have been greatly enhanced
 ;; in Org Mode version 9.4
@@ -124,26 +133,23 @@ The table is taken from the parameter TXT, or from the buffer at point."
         (org-table-to-lisp-post-9-4))
     (save-excursion
       (goto-char (org-table-begin))
-      (let ((table nil)
-	    (inhibit-changing-match-data t)
-	    q
-	    p
-	    row)
-        (while (re-search-forward "\\=[ \t]*|" nil t)
-	  (if (looking-at "-")
-	      (push 'hline table)
-	    (setq row nil)
-	    (while (progn (skip-chars-forward " \t") (not (eolp)))
-	      (push
-	       (buffer-substring-no-properties
-		(setq q (point))
-		(if (progn (skip-chars-forward "^|\n") (eolp))
-		    (1- (point))
-		  (setq p (1+ (point)))
-		  (skip-chars-backward " \t" q)
-		  (prog1 (point) (goto-char p))))
-	       row))
-	    (push (nreverse row) table))
+      (let ((inhibit-changing-match-data t)
+	    table row p q)
+        (while (progn (skip-chars-forward " \t") (looking-at "|"))
+	  (forward-char)
+	  (push
+	   (if (looking-at "-")
+	       'hline
+	     (setq row nil)
+	     (while (progn (skip-chars-forward " \t") (not (eolp)))
+	       (setq q (point))
+	       (skip-chars-forward "^|\n")
+	       (setq p (if (eolp) (point) (1+ (point))))
+	       (skip-chars-backward " \t" q)
+	       (push (buffer-substring-no-properties q (point)) row)
+	       (goto-char p))
+	     (nreverse row))
+	   table)
 	  (forward-line))
 	(nreverse table)))))
 
@@ -206,67 +212,75 @@ An horizontal line is translated as the special symbol `hline'."
 	  (user-error "Cannot find a table at NAME or ID %s" name-or-id))
 	(org-table-to-lisp-post-9-4)))))
 
-(defun orgtbl-get-header-table (table &optional asstring)
-  "Return the header of TABLE as a list of column names. When
-ASSTRING is true, the result is a string which concatenates the
-names of the columns.  TABLE may be a lisp list of rows, or the
-name or id of a distant table.  The function takes care of
-possibly missing headers, and in this case returns a list of $1,
-$2, $3... column names.  Actual column names which are not fully
-alphanumeric are quoted."
-  (unless (consp table)
-    (setq table (orgtbl-get-distant-table table)))
-  (while (eq 'hline (car table))
-    (setq table (cdr table)))
-  (let ((header
-	 (if (memq 'hline table)
-	     (cl-loop for x in (car table)
-		      collect
-		      (if (string-match "^[[:word:]_$.]+$" x)
-			  x
-			(format "\"%s\"" x)))
-	   (cl-loop for x in (car table)
-		    for i from 1
-		    collect (format "$%s" i)))))
-    (if asstring
-	(mapconcat #'identity header " ")
-      header)))
+(defun split-string-with-quotes (string)
+  "Like `split-string', but also allows single or double quotes
+to protect space characters, and also single quotes to protect
+double quotes and the other way around"
+  (let ((l (length string))
+	(start 0)
+	(result (-appendable-list-create))
+	)
+    (save-match-data
+      (while (and (< start l)
+		  (string-match
+		   (rx
+		    (* (any " \f\t\n\r\v"))
+		    (group
+		     (+ (or
+			 (seq ?'  (* (not (any ?')))  ?' )
+			 (seq ?\" (* (not (any ?\"))) ?\")
+			 (not (any " '\""))))))
+		   string start))
+	(-appendable-list-append result (match-string 1 string))
+	(setq start (match-end 1))
+	))
+    (-appendable-list-get result)))
 
-(defun orgtbl-post-process (table post)
-  "Post-process the aggregated TABLE according to the :post header
-POST might be:
-- a reference to a babel-block, for example:
-  :post \"myprocessor(inputtable=*this*)\"
-  and somewhere else:
-  #+name: myprocessor
-  #+begin_src language :var inputtable=""
-  ...
-  #+end_src
-- a Lisp lambda with one parameter, for example:
-  :post (lambda (table) (append table '(hline (\"total\" 123))))
-- a Lisp function with one parameter, for example:
-  :post my-lisp-function
-- a Lisp expression which will be evaluated
-  the *this* variable will contain the TABLE
-In all those cases, the result must be a Lisp value compliant
-with an Org Mode table."
-  (cond
-   ((null post) table)
-   ((functionp post)
-    (apply post table ()))
-   ((stringp post)
-    (let ((*this* table))
-      (condition-case err
-	  (org-babel-ref-resolve post)
-	(error
-	 (message "error: %S" err)
-	 (orgtbl-post-process table (read post))))))
-   ((listp post)
-    (let ((*this* table))
-      (eval post)))
-   (t (user-error ":post %S header could not be understood" post))))
+(defun orgtbl-colname-to-int (colname table &optional err)
+  "Convert the column name into an integer (first column is numbered 1)
+COLNAME may be:
+- a dollar form, like $5 which is converted to 5
+- an alphanumeric name which appears in the column header (if any)
+- the special symbol `hline' which is converted into 0
+If COLNAME is quoted (single or double quotes),
+quotes are removed beforhand.
+When COLNAME does not match any actual column,
+an error is generated if ERR optional parameter is true
+otherwise nil is returned."
+  (if (symbolp colname)
+      (setq colname (symbol-name colname)))
+  (if (string-match
+       (rx
+	bol
+	(or
+	 (seq ?'  (group-n 1 (* (not (any ?' )))) ?' )
+	 (seq ?\" (group-n 1 (* (not (any ?\")))) ?\"))
+	eol)
+       colname)
+      (setq colname (match-string 1 colname)))
+  ;; skip first hlines if any
+  (orgtbl-pop-leading-hline table)
+  (cond ((equal colname "")
+	 (and err (user-error "Empty column name")))
+	((equal colname "hline")
+	 0)
+	((string-match "^\\$\\([0-9]+\\)$" colname)
+	 (let ((n (string-to-number (match-string 1 colname))))
+	   (if (<= n (length (car table)))
+	       n
+	     (if err
+		 (user-error "Column %s outside table" colname)))))
+	(t
+	 (or
+	  (cl-loop
+	   for h in (car table)
+	   for i from 1
+	   thereis (and (equal h colname) i))
+	  (and
+	   err
+	   (user-error "Column %s not found in table" colname))))))
 
-(defun orgtbl-aggregate-make-spaces (n spaces-cache)
+(defun orgtbl-insert--make-spaces (n spaces-cache)
   "Makes a string of N spaces.
 Caches results to avoid re-allocating again and again
 the same string"
@@ -338,10 +352,10 @@ special symbol 'hline to mean an horizontal line."
 			       ;; left alignment
 			       else if nu
 			       collect cell and
-			       collect (orgtbl-aggregate-make-spaces pad spaces-cache)
+			       collect (orgtbl-insert--make-spaces pad spaces-cache)
 			       ;; right alignment
 			       else
-			       collect (orgtbl-aggregate-make-spaces pad spaces-cache) and
+			       collect (orgtbl-insert--make-spaces pad spaces-cache) and
 			       collect cell
 			       collect " ")
 		    (cl-loop for bar = "|" then "+"
@@ -351,10 +365,69 @@ special symbol 'hline to mean an horizontal line."
 		  (list "|\n"))
 		 ""))))))
 
+(defun orgtbl-get-header-table (table &optional asstring)
+  "Return the header of TABLE as a list of column names. When
+ASSTRING is true, the result is a string which concatenates the
+names of the columns.  TABLE may be a lisp list of rows, or the
+name or id of a distant table.  The function takes care of
+possibly missing headers, and in this case returns a list of $1,
+$2, $3... column names.  Actual column names which are not fully
+alphanumeric are quoted."
+  (unless (consp table)
+    (setq table (orgtbl-get-distant-table table)))
+  (orgtbl-pop-leading-hline table)
+  (let ((header
+	 (if (memq 'hline table)
+	     (cl-loop for x in (car table)
+		      collect
+		      (if (string-match "^[[:word:]_$.]+$" x)
+			  x
+			(format "\"%s\"" x)))
+	   (cl-loop for x in (car table)
+		    for i from 1
+		    collect (format "$%s" i)))))
+    (if asstring
+	(mapconcat #'identity header " ")
+      header)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The venerable Calc is used thoroughly by the Aggregate package.
 ;; A few bugs were found.
 ;; The fixes are here for the time being
+
+(defun orgtbl-post-process (table post)
+  "Post-process the aggregated TABLE according to the :post header
+POST might be:
+- a reference to a babel-block, for example:
+  :post \"myprocessor(inputtable=*this*)\"
+  and somewhere else:
+  #+name: myprocessor
+  #+begin_src language :var inputtable=""
+  ...
+  #+end_src
+- a Lisp lambda with one parameter, for example:
+  :post (lambda (table) (append table '(hline (\"total\" 123))))
+- a Lisp function with one parameter, for example:
+  :post my-lisp-function
+- a Lisp expression which will be evaluated
+  the *this* variable will contain the TABLE
+In all those cases, the result must be a Lisp value compliant
+with an Org Mode table."
+  (cond
+   ((null post) table)
+   ((functionp post)
+    (apply post table ()))
+   ((stringp post)
+    (let ((*this* table))
+      (condition-case err
+	  (org-babel-ref-resolve post)
+	(error
+	 (message "error: %S" err)
+	 (orgtbl-post-process table (read post))))))
+   ((listp post)
+    (let ((*this* table))
+      (eval post)))
+   (t (user-error ":post %S header could not be understood" post))))
 
 (require 'calc-arith)
 
@@ -377,52 +450,7 @@ special symbol 'hline to mean an horizontal line."
     a))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; The Aggregation package
-
-(defun orgtbl-to-aggregated-table-colname-to-int (colname table &optional err)
-  "Convert the column name into an integer (first column is numbered 1)
-COLNAME may be:
-- a dollar form, like $5 which is converted to 5
-- an alphanumeric name which appears in the column header (if any)
-- the special symbol `hline' which is converted into 0
-If COLNAME is quoted (single or double quotes),
-quotes are removed beforhand.
-When COLNAME does not match any actual column,
-an error is generated if ERR optional parameter is true
-otherwise nil is returned."
-  (if (symbolp colname)
-      (setq colname (symbol-name colname)))
-  (if (string-match
-       (rx
-	bol
-	(or
-	 (seq ?'  (group-n 1 (* (not (any ?' )))) ?' )
-	 (seq ?\" (group-n 1 (* (not (any ?\")))) ?\"))
-	eol)
-       colname)
-      (setq colname (match-string 1 colname)))
-  ;; skip first hlines if any
-  (while (not (listp (car table)))
-    (setq table (cdr table)))
-  (cond ((equal colname "")
-	 (and err (user-error "Empty column name")))
-	((equal colname "hline")
-	 0)
-	((string-match "^\\$\\([0-9]+\\)$" colname)
-	 (let ((n (string-to-number (match-string 1 colname))))
-	   (if (<= n (length (car table)))
-	       n
-	     (if err
-		 (user-error "Column %s outside table" colname)))))
-	(t
-	 (or
-	  (cl-loop
-	   for h in (car table)
-	   for i from 1
-	   thereis (and (equal h colname) i))
-	  (and
-	   err
-	   (user-error "Column %s not found in table" colname))))))
+;; The Org Table Aggregation package really begins here
 
 (defun orgtbl-to-aggregated-replace-colnames-nth (table expression)
   "Replace occurrences of column names in lisp EXPRESSION with
@@ -437,34 +465,10 @@ so, the EXPRESSION is ready to be computed against a table row."
    ((numberp expression)
     expression)
    (t
-    (let ((n (orgtbl-to-aggregated-table-colname-to-int expression table)))
+    (let ((n (orgtbl-colname-to-int expression table)))
       (if n
 	  (list 'nth n 'row)
 	expression)))))
-
-(defun split-string-with-quotes (string)
-  "Like `split-string', but also allows single or double quotes
-to protect space characters, and also single quotes to protect
-double quotes and the other way around"
-  (let ((l (length string))
-	(start 0)
-	(result (-appendable-list-create))
-	)
-    (save-match-data
-      (while (and (< start l)
-		  (string-match
-		   (rx
-		    (* (any " \f\t\n\r\v"))
-		    (group
-		     (+ (or
-			 (seq ?'  (* (not (any ?')))  ?' )
-			 (seq ?\" (* (not (any ?\"))) ?\")
-			 (not (any " '\""))))))
-		   string start))
-	(-appendable-list-append result (match-string 1 string))
-	(setq start (match-end 1))
-	))
-    (-appendable-list-get result)))
 
 ;; dynamic binding
 (defvar orgtbl-aggregate-var-keycols)
@@ -541,7 +545,7 @@ filled here too, and nowhere else."
 		       (format "v%s" var)
 		     var)
 		 ;; replace VAR if it is a column name
-		 (let ((i (orgtbl-to-aggregated-table-colname-to-int
+		 (let ((i (orgtbl-colname-to-int
 			   var
 			   table)))
 		   (if i
@@ -577,7 +581,7 @@ filled here too, and nowhere else."
 		     (+ (any word "_$."))))
 		eol)
 	       formula)
-	      (orgtbl-to-aggregated-table-colname-to-int formula table t))))
+	      (orgtbl-colname-to-int formula table t))))
 
     (if key (push key orgtbl-aggregate-var-keycols))
 
@@ -740,8 +744,7 @@ key columns?"
 into an aggregated table compliant with the columns
 specifications (in PARAMS entry :cols), ignoring source rows
 which do not pass the filter (in PARAMS entry :cond)."
-  (while (eq 'hline (car table))
-    (setq table (cdr table)))
+  (orgtbl-pop-leading-hline table)
   (define-hash-table-test
     'orgtbl-aggregate-hash-test-name
     'orgtbl-aggregate-hash-test-equal
@@ -855,7 +858,7 @@ which do not pass the filter (in PARAMS entry :cond)."
 			       with cel = row
 			       if (outcol-invisible col)
 			       do    (setcdr cel (cddr cel))
-			       else do (setq cel (cdr cel)))))
+			       else do (pop-simple cel))))
 
       ;; change appendable-lists to regular lists
       (cl-loop for row on result
@@ -1384,10 +1387,9 @@ If AGGCOND is nil, all source rows are taken"
         (if cols
 	    (cl-loop for column in cols
 		     collect
-		     (orgtbl-to-aggregated-table-colname-to-int column table t))
+		     (orgtbl-colname-to-int column table t))
           (let ((head table))
-	    (while (eq (car head) 'hline)
-	      (setq head (cdr head)))
+	    (orgtbl-pop-leading-hline head)
 	    (cl-loop for x in (car head)
 		     for i from 1
 		     collect i))))
@@ -1408,7 +1410,7 @@ If AGGCOND is nil, all source rows are taken"
 		do
 		(nconc r (list (if (eq row 'hline) "" (nth spec row)))))))
     (cl-loop for row in result
-	     do (pop row)
+	     do (pop-simple row)
 	     collect
 	     (if (cl-loop for x in row
 			  always (equal "" x))

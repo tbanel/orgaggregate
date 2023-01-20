@@ -11,9 +11,11 @@
 ;;   Uwe Brauer
 ;;   Peking Duck
 ;;   Bill Hunker
+;; Package-Requires: ((emacs "26.1"))
 
 ;; Version: 1.0
-;; Keywords: org, table, aggregation, filtering
+;; Keywords: data, extensions
+;; URL: https://github.com/tbanel/orgaggregate/blob/master/README.org
 
 ;; orgtbl-aggregate is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -222,8 +224,7 @@ and also single quotes protect double quotes
 and the other way around."
   (let ((l (length string))
 	(start 0)
-	(result (-appendable-list-create))
-	)
+	(result (-appendable-list-create)))
     (save-match-data
       (while (and (< start l)
 		  (string-match
@@ -236,8 +237,7 @@ and the other way around."
 			 (not (any " '\""))))))
 		   string start))
 	(-appendable-list-append result (match-string 1 string))
-	(setq start (match-end 1))
-	))
+	(setq start (match-end 1))))
     (-appendable-list-get result)))
 
 (defun orgtbl-colname-to-int (colname table &optional err)
@@ -485,7 +485,7 @@ Doing so, EXPRESSION is ready to be computed against a TABLE row."
 ;; dynamic binding
 (defvar orgtbl-aggregate-var-keycols)
 
-(cl-defstruct outcol
+(cl-defstruct orgtbl-aggregate--outcol
   formula	; user-entered formula to compute output cells
   format	; user-entered formatter of output cell
   sort		; user-entered sorting instruction for output column
@@ -498,11 +498,11 @@ Doing so, EXPRESSION is ready to be computed against a TABLE row."
   )
 
 (defun orgtbl-aggregate-parse-col (col table)
-  "Parse COL specification into an OUTCOL structure.
+  "Parse COL specification into an ORGTBL-AGGREGATE--OUTCOL structure.
 COL is a column specification.  It is a string text:
 \"formula;formatter;^sorting;<invisible>;'alternate_name'\"
 If there is no formatter or sorting or other specifier,
-nil is given in place. The other fields of OUTCOL are
+nil is given in place. The other fields of orgtbl-aggregate--OUTCOL are
 filled here too, and nowhere else.
 TABLE is used to convert a column name
 into the column number."
@@ -599,7 +599,7 @@ into the column number."
 
     (if key (push key orgtbl-aggregate-var-keycols))
 
-    (make-outcol
+    (make-orgtbl-aggregate--outcol
      :formula      formula
      :format       format
      :sort         sort
@@ -643,7 +643,7 @@ The list contains sorting specifications as follows:
 - compare function compares two cells and answers nil if
   the first cell must come before the second."
   (cl-loop for col in aggcols
-	   for sorting = (outcol-sort col)
+	   for sorting = (orgtbl-aggregate--outcol-sort col)
 	   for colnum from 0
 	   if sorting
 	   do (progn
@@ -815,7 +815,7 @@ which do not pass the filter found in PARAMS entry :cond."
     ;; then a hidden hline column is added
     (if (and (> hline 0)
 	     (cl-loop for col in aggcols
-		      never (outcol-sort col)))
+		      never (orgtbl-aggregate--outcol-sort col)))
 	(push
 	 (orgtbl-aggregate-parse-col "hline;^n;<>" table)
 	 aggcols))
@@ -868,23 +868,24 @@ which do not pass the filter found in PARAMS entry :cond."
       ;; as they appear in :cols but without decorations
       (setq result
 	    (cons
-	     (cons nil
-		   (cl-loop for column in aggcols
-			    collect (or
-				     (outcol-name    column)
-				     (outcol-formula column))))
+	     (cons
+              nil
+	      (cl-loop for column in aggcols
+		       collect (or
+				(orgtbl-aggregate--outcol-name    column)
+				(orgtbl-aggregate--outcol-formula column))))
 	     (cons 'hline result)))
 
       ;; remove invisible columns by modifying the table in-place
       ;; beware! it assumes that the actual list in -appendable-lists
       ;; is pointed to by the cdr of the -appendable-list
       (if (cl-loop for col in aggcols
-		   thereis (outcol-invisible col))
+		   thereis (orgtbl-aggregate--outcol-invisible col))
 	  (cl-loop for row in result
 		   if (consp row)
 		   do (cl-loop for col in aggcols
 			       with cel = row
-			       if (outcol-invisible col)
+			       if (orgtbl-aggregate--outcol-invisible col)
 			       do    (setcdr cel (cddr cel))
 			       else do (pop-simple cel))))
 
@@ -1032,7 +1033,9 @@ A cell is appended to every row at each call of this function."
 
     ;; get that out of the (let) because its purpose is to override
     ;; what the (let) has set
-    (setq fmt-settings (orgtbl-aggregate-fmt-settings (outcol-format coldesc)))
+    (setq fmt-settings
+          (orgtbl-aggregate-fmt-settings
+           (orgtbl-aggregate--outcol-format coldesc)))
 
     (cl-loop for group in (-appendable-list-get groups)
 	     for row in result
@@ -1049,7 +1052,7 @@ A cell is appended to every row at each call of this function."
 (defun orgtbl-to-aggregated-compute-one-sum (group coldesc fmt-settings $list)
   "Apply a user given formula to one GROUP of input rows.
 COLDESC is a structure where several parameters are packed:
-see (cl-defstruct outcol ...).
+see (cl-defstruct orgtbl-aggregate--outcol ...).
 Those parameters all describe a single column.
 The formula is contained in COLDESC-formula-frux.
 Column names have been replaced by Frux(1), Frux(2), Frux(3)... forms.
@@ -1068,23 +1071,24 @@ When coldesc-key is non-nil, then a key-column is considered,
 and a cell from any row in the group is returned."
   (cond
    ;; key column
-   ((outcol-key coldesc)
-    (nth (outcol-key coldesc)
+   ((orgtbl-aggregate--outcol-key coldesc)
+    (nth (orgtbl-aggregate--outcol-key coldesc)
 	 (car (-appendable-list-get group))))
    ;; do not evaluate
    ((plist-get fmt-settings :noeval)
-    (outcol-formula$ coldesc))
+    (orgtbl-aggregate--outcol-formula$ coldesc))
    ;; vlist($3) alone, without parenthesis or other decoration
    ((string-match
      (rx bos (? ?v) "list"
 	 (* (any " \t")) "(" (* (any " \t"))
 	 "$" (group (+ (any "0-9")))
 	 (* (any " \t")) ")" (* (any " \t")) eos)
-     (outcol-formula$ coldesc))
+     (orgtbl-aggregate--outcol-formula$ coldesc))
     (mapconcat
      #'identity
      (cl-loop with i =
-	      (string-to-number (match-string 1 (outcol-formula$ coldesc)))
+	      (string-to-number
+               (match-string 1 (orgtbl-aggregate--outcol-formula$ coldesc)))
 	      for row in (-appendable-list-get group)
 	      collect (nth i row))
      ", "))
@@ -1094,7 +1098,7 @@ and a cell from any row in the group is returned."
 	   (orgtbl-to-aggregated-make-calc-$-list
 	    group
 	    fmt-settings
-	    (outcol-involved coldesc)
+	    (orgtbl-aggregate--outcol-involved coldesc)
 	    $list))
 	  (calc-command-flags nil)
 	  (calc-next-why nil)
@@ -1107,7 +1111,7 @@ and a cell from any row in the group is returned."
 		(calcFunc-expand  ; otherwise it is not fully expanded
 		 (math-simplify
 		  (orgtbl-to-aggregated-defrux
-		    (outcol-formula-frux coldesc)
+		    (orgtbl-aggregate--outcol-formula-frux coldesc)
 		    calc-dollar-values-oo
 		    (length (-appendable-list-get group)))))))
 	      1000)))

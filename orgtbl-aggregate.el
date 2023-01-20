@@ -1,4 +1,4 @@
-;;; orgtbl-aggregate.el --- Create an aggregated Org table from another one  -*- coding:utf-8;-*-
+;;; orgtbl-aggregate.el --- Create an aggregated Org table from another one  -*- coding:utf-8; lexical-binding: t;-*-
 
 ;; Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  Thierry Banel
 
@@ -299,8 +299,7 @@ again and again the same string."
   "Insert TABLE in current buffer at point.
 TABLE is a list of lists of cells.  The list may contain the
 special symbol 'hline to mean an horizontal line."
-  (let* ((nbrows (length table))
-	 (nbcols (cl-loop
+  (let* ((nbcols (cl-loop
 		  for row in table
 		  maximize (if (listp row) (length row) 0)))
 	 (maxwidths  (make-list nbcols 1))
@@ -335,7 +334,7 @@ special symbol 'hline to mean an horizontal line."
 	     (setcar nu (< (car nu) (* org-table-number-fraction ne))))
 
     ;; inactivating jit-lock-after-change boosts performance a lot
-    (cl-letf (((symbol-function 'jit-lock-after-change) (lambda (a b c)) ))
+    (cl-letf (((symbol-function 'jit-lock-after-change) (lambda (_a _b _c)) ))
       ;; insert well padded and aligned cells at current buffer position
       (cl-loop for row in table
 	       do
@@ -389,7 +388,7 @@ Actual column names which are not fully alphanumeric are quoted."
 		      (if (string-match "^[[:word:]_$.]+$" x)
 			  x
 			(format "\"%s\"" x)))
-	   (cl-loop for x in (car table)
+	   (cl-loop for _x in (car table)
 		    for i from 1
 		    collect (format "$%s" i)))))
     (if asstring
@@ -419,6 +418,11 @@ Actual column names which are not fully alphanumeric are quoted."
 ;	(math-reject-arg (car b) 'anglep))
 ;    a))
 ;; End of Calc fixes
+
+;; The *this* variable is accessible to the user.
+;; It refers to the aggregated table before it is "printed"
+;; into the buffer, so that it can be post-processed.
+(defvar *this*)
 
 (defun orgtbl-post-process (table post)
   "Post-process the aggregated TABLE according to the :post header.
@@ -475,7 +479,7 @@ Doing so, EXPRESSION is ready to be computed against a TABLE row."
    (t
     (let ((n (orgtbl-colname-to-int expression table)))
       (if n
-	  (list 'nth n 'row)
+	  (list 'nth n 'orgtbl-aggregate--row)
 	expression)))))
 
 ;; dynamic binding
@@ -674,6 +678,10 @@ The list contains sorting specifications as follows:
 			      (< (sorting-colnum   a) (sorting-colnum   b)))))))
 	))
 
+;; escape lexical binding to eval user given
+;; Lisp expression
+(defvar orgtbl-aggregate--row)
+
 (defun orgtbl-to-aggregated-table-add-group (groups hgroups row aggcond)
   "Add the source ROW to the GROUPS of rows.
 If ROW fits a group within GROUPS, then it is added at the end
@@ -685,7 +693,10 @@ If nil, ROW is just discarded.
 HGROUPS contains the same information as GROUPS, stored in
 a hash-table, whereas GROUPS is a Lisp list."
   (and (or (not aggcond)
-	   (eval aggcond)) ;; this eval need the variable 'row to have a value
+	   (let ((orgtbl-aggregate--row row))
+             ;; this eval need the variable 'orgtbl-aggregate--row
+             ;; to have a value
+             (eval aggcond)))
        (let ((gr (gethash row hgroups)))
 	 (unless gr
 	   (setq gr (-appendable-list-create))
@@ -764,8 +775,8 @@ which do not pass the filter found in PARAMS entry :cond."
   (orgtbl-pop-leading-hline table)
   (define-hash-table-test
     'orgtbl-aggregate-hash-test-name
-    'orgtbl-aggregate-hash-test-equal
-    'orgtbl-aggregate-hash-test-hash)
+    #'orgtbl-aggregate-hash-test-equal
+    #'orgtbl-aggregate-hash-test-hash)
   (let ((groups (-appendable-list-create))
 	(hgroups (make-hash-table :test 'orgtbl-aggregate-hash-test-name))
 	(aggcols (plist-get params :cols))
@@ -829,15 +840,15 @@ which do not pass the filter found in PARAMS entry :cond."
 		     aggcond))))
     
     (let ((result ;; pre-allocate all resulting rows
-	   (cl-loop for x in (-appendable-list-get groups)
+	   (cl-loop for _x in (-appendable-list-get groups)
 		    collect (-appendable-list-create)))
 	  (all-$list
-	   (cl-loop for x in (-appendable-list-get groups)
+	   (cl-loop for _x in (-appendable-list-get groups)
 		    collect (make-vector (length (car table)) nil))))
       
       ;; inactivating those two functions boosts performance
       (cl-letf (((symbol-function 'math-read-preprocess-string) #'identity)
-		((symbol-function 'calc-input-angle-units) (lambda (x) nil)))
+		((symbol-function 'calc-input-angle-units) (lambda (_x) nil)))
 	;; do aggregation
 	(cl-loop for coldesc in aggcols
 		 do
@@ -1079,7 +1090,7 @@ and a cell from any row in the group is returned."
      ", "))
    (t
     ;; all other cases: handle them to Calc
-    (let ((calc-dollar-values
+    (let ((calc-dollar-values-oo
 	   (orgtbl-to-aggregated-make-calc-$-list
 	    group
 	    fmt-settings
@@ -1097,7 +1108,7 @@ and a cell from any row in the group is returned."
 		 (math-simplify
 		  (orgtbl-to-aggregated-defrux
 		    (outcol-formula-frux coldesc)
-		    calc-dollar-values
+		    calc-dollar-values-oo
 		    (length (-appendable-list-get group)))))))
 	      1000)))
 	(cond
@@ -1109,7 +1120,7 @@ and a cell from any row in the group is returned."
 	   (plist-get fmt-settings :duration-output-format)))
 	 (t ev)))))))
 
-(defun orgtbl-to-aggregated-defrux (formula-frux calc-dollar-values count)
+(defun orgtbl-to-aggregated-defrux (formula-frux calc-dollar-values-oo count)
   "Replace all Frux(N) expressions in FORMULA-FRUX.
 Replace with Calc-vectors found in CALC-DOLLAR-VALUES.
 Also replace vcount() forms with the actual number of rows
@@ -1118,13 +1129,13 @@ in the current group, given by COUNT."
    ((not (consp formula-frux))
     formula-frux)
    ((memq (car formula-frux) '(calcFunc-Frux calcFunc-FRUX))
-    (nth (1- (cadr formula-frux)) calc-dollar-values))
+    (nth (1- (cadr formula-frux)) calc-dollar-values-oo))
    ((eq (car formula-frux) 'calcFunc-vcount)
     count)
    (t
     (cl-loop
      for x in formula-frux
-     collect (orgtbl-to-aggregated-defrux x calc-dollar-values count)))))
+     collect (orgtbl-to-aggregated-defrux x calc-dollar-values-oo count)))))
 
 (defun orgtbl-to-aggregated-make-calc-$-list (group fmt-settings involved $list)
   "Prepare a list of vectors that will use to replace Frux(N) expressions.
@@ -1383,7 +1394,7 @@ Note:
 	   nil
 	   'confirm))
 	 (header
-	  (condition-case err (orgtbl-get-header-table table t)
+	  (condition-case _err (orgtbl-get-header-table table t)
 	    (t "$1 $2 $3 $4 ...")))
 	 (aggcols
 	  (replace-regexp-in-string
@@ -1423,12 +1434,12 @@ If AGGCOND is nil, all source rows are taken."
 		     (orgtbl-colname-to-int column table t))
           (let ((head table))
 	    (orgtbl-pop-leading-hline head)
-	    (cl-loop for x in (car head)
+	    (cl-loop for _x in (car head)
 		     for i from 1
 		     collect i))))
   (if aggcond
       (setq aggcond (orgtbl-to-aggregated-replace-colnames-nth table aggcond)))
-  (let ((result (cl-loop for x in cols collect (list t)))
+  (let ((result (cl-loop for _x in cols collect (list t)))
         (nhline 0))
     (cl-loop for row in table
 	     do
@@ -1616,7 +1627,7 @@ Note:
 	   nil
 	   'confirm))
 	 (header
-	  (condition-case err (orgtbl-get-header-table table t)
+	  (condition-case _err (orgtbl-get-header-table table t)
 	    (t "$1 $2 $3 $4 ...")))
 	 (aggcols
 	  (replace-regexp-in-string

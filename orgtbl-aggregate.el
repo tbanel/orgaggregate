@@ -94,21 +94,24 @@
 ;; the actual list is (cdr ls)
 
 (defsubst -appendable-list-create ()
+  "Create an appendable list."
   (let ((x (cons nil nil)))
     (setcar x x)))
 
 (defmacro -appendable-list-append (ls value)
+  "Append VALUE at the end of LS in O(1) time."
   `(setcar ,ls (setcdr (car ,ls) (cons ,value nil))))
 
 (defmacro -appendable-list-get (ls)
+  "Return the regular Lisp list from LS."
   `(cdr ,ls))
 
 (defmacro pop-simple (place)
-  "like pop, but without returning (car place)"
+  "Like (pop PLACE), but without returning (car PLACE)."
   `(setq ,place (cdr ,place)))
 
 (defmacro orgtbl-pop-leading-hline (table)
-  "Remove leading hlines from the table, if any" 
+  "Remove leading hlines from TABLE, if any."
   `(while (not (listp (car ,table)))
      (pop-simple ,table)))
 
@@ -174,8 +177,8 @@ The table is taken from the parameter TXT, or from the buffer at point."
     tables))
 
 (defun orgtbl-get-distant-table (name-or-id)
-  "Find a table in the current buffer named NAME-OR-ID
-and returns it as a lisp list of lists.
+  "Find a table in the current buffer named NAME-OR-ID.
+Return it as a Lisp list of lists.
 An horizontal line is translated as the special symbol `hline'."
   (unless (stringp name-or-id)
     (setq name-or-id (format "%s" name-or-id)))
@@ -213,9 +216,10 @@ An horizontal line is translated as the special symbol `hline'."
 	(org-table-to-lisp-post-9-4)))))
 
 (defun split-string-with-quotes (string)
-  "Like `split-string', but also allows single or double quotes
-to protect space characters, and also single quotes to protect
-double quotes and the other way around"
+  "Like (split-string STRING), but with quote protection.
+Single and double quotes protect space characters,
+and also single quotes protect double quotes
+and the other way around."
   (let ((l (length string))
 	(start 0)
 	(result (-appendable-list-create))
@@ -237,7 +241,9 @@ double quotes and the other way around"
     (-appendable-list-get result)))
 
 (defun orgtbl-colname-to-int (colname table &optional err)
-  "Convert the column name into an integer (first column is numbered 1)
+  "Convert the COLNAME into an integer.
+COLNAME is a column name of TABLE.
+The first column is numbered 1.
 COLNAME may be:
 - a dollar form, like $5 which is converted to 5
 - an alphanumeric name which appears in the column header (if any)
@@ -281,9 +287,9 @@ otherwise nil is returned."
 	   (user-error "Column %s not found in table" colname))))))
 
 (defun orgtbl-insert--make-spaces (n spaces-cache)
-  "Makes a string of N spaces.
-Caches results to avoid re-allocating again and again
-the same string"
+  "Make a string of N spaces.
+Caches results into SPACES-CACHE to avoid re-allocating
+again and again the same string."
   (if (< n (length spaces-cache))
       (or (aref spaces-cache n)
 	  (aset spaces-cache n (make-string n ? )))
@@ -366,13 +372,13 @@ special symbol 'hline to mean an horizontal line."
 		 ""))))))
 
 (defun orgtbl-get-header-table (table &optional asstring)
-  "Return the header of TABLE as a list of column names. When
-ASSTRING is true, the result is a string which concatenates the
-names of the columns.  TABLE may be a lisp list of rows, or the
+  "Return the header of TABLE as a list of column names.
+When ASSTRING is true, the result is a string which concatenates the
+names of the columns.  TABLE may be a Lisp list of rows, or the
 name or id of a distant table.  The function takes care of
-possibly missing headers, and in this case returns a list of $1,
-$2, $3... column names.  Actual column names which are not fully
-alphanumeric are quoted."
+possibly missing headers, and in this case returns a list
+of $1, $2, $3... column names.
+Actual column names which are not fully alphanumeric are quoted."
   (unless (consp table)
     (setq table (orgtbl-get-distant-table table)))
   (orgtbl-pop-leading-hline table)
@@ -393,10 +399,29 @@ alphanumeric are quoted."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The venerable Calc is used thoroughly by the Aggregate package.
 ;; A few bugs were found.
-;; The fixes are here for the time being
+;; They have been fixed in recent versions of Emacs
+;; Uncomment the fixes if needed
+;(defun math-max-list (a b)
+;  (if b
+;      (if (or (Math-anglep (car b)) (eq (caar b) 'date)
+;	      (and (eq (car (car b)) 'intv) (math-intv-constp (car b)))
+;	      (math-infinitep (car b)))
+;	  (math-max-list (math-max a (car b)) (cdr b))
+;	(math-reject-arg (car b) 'anglep))
+;    a))
+;
+;(defun math-min-list (a b)
+;  (if b
+;      (if (or (Math-anglep (car b)) (eq (caar b) 'date)
+;	      (and (eq (car (car b)) 'intv) (math-intv-constp (car b)))
+;	      (math-infinitep (car b)))
+;	  (math-min-list (math-min a (car b)) (cdr b))
+;	(math-reject-arg (car b) 'anglep))
+;    a))
+;; End of Calc fixes
 
 (defun orgtbl-post-process (table post)
-  "Post-process the aggregated TABLE according to the :post header
+  "Post-process the aggregated TABLE according to the :post header.
 POST might be:
 - a reference to a babel-block, for example:
   :post \"myprocessor(inputtable=*this*)\"
@@ -431,31 +456,14 @@ with an Org Mode table."
 
 (require 'calc-arith)
 
-(defun math-max-list (a b)
-  (if b
-      (if (or (Math-anglep (car b)) (eq (caar b) 'date)
-	      (and (eq (car (car b)) 'intv) (math-intv-constp (car b)))
-	      (math-infinitep (car b)))
-	  (math-max-list (math-max a (car b)) (cdr b))
-	(math-reject-arg (car b) 'anglep))
-    a))
-
-(defun math-min-list (a b)
-  (if b
-      (if (or (Math-anglep (car b)) (eq (caar b) 'date)
-	      (and (eq (car (car b)) 'intv) (math-intv-constp (car b)))
-	      (math-infinitep (car b)))
-	  (math-min-list (math-min a (car b)) (cdr b))
-	(math-reject-arg (car b) 'anglep))
-    a))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Org Table Aggregation package really begins here
 
 (defun orgtbl-to-aggregated-replace-colnames-nth (table expression)
-  "Replace occurrences of column names in lisp EXPRESSION with
-forms like (nth N row), N being the numbering of columns.  Doing
-so, the EXPRESSION is ready to be computed against a table row."
+  "Replace occurrences of column names in Lisp EXPRESSION.
+Replacements are forms like (nth N row),
+N being the numbering of columns.
+Doing so, EXPRESSION is ready to be computed against a TABLE row."
   (cond
    ((listp expression)
     (cons (car expression)
@@ -486,12 +494,14 @@ so, the EXPRESSION is ready to be computed against a table row."
   )
 
 (defun orgtbl-aggregate-parse-col (col table)
-  "COL is a column specification. It is a string text:
+  "Parse COL specification into an OUTCOL structure.
+COL is a column specification.  It is a string text:
 \"formula;formatter;^sorting;<invisible>;'alternate_name'\"
-This function parses it into a (outcol) structure
 If there is no formatter or sorting or other specifier,
-nil is given in place. The other fields of outcol are
-filled here too, and nowhere else."
+nil is given in place. The other fields of OUTCOL are
+filled here too, and nowhere else.
+TABLE is used to convert a column name
+into the column number."
   ;; parse user specification
   (unless (string-match
 	   (rx
@@ -607,25 +617,27 @@ filled here too, and nowhere else."
   compare)
 
 (defun orgtbl-aggregate-prepare-sorting (aggcols)
-  "Creates a liste of columns to be sorted into
-orgtbl-aggregate-columns-sorting.
-The liste contains sorting specifications as follows:
-(sorting-strength
- column-number
- ascending-descending
- extract-function
- compare-function)
-- sorting-strength is a number telling what column should be
+  "Create a list of columns to be sorted.
+Columns are searched into AGGCOLS.
+The resulting list will be used by
+`orgtbl-aggregate-columns-sorting'.
+The list contains sorting specifications as follows:
+  . sorting strength
+  . column number
+  . ascending descending
+  . extract function
+  . compare function
+- sorting strength is a number telling what column should be
   considered first:
   . lower number are considered first
   . nil are condirered last
-- column-number is as in the user specification
+- column number is as in the user specification
   1 is the first user specified column
-- ascending-descending is nil for ascending, t for descending
-- extract-function converts the input cell (which is a string)
+- ascending descending is nil for ascending, t for descending
+- extract function converts the input cell (which is a string)
   into a comparable value
-- compare-function compares two cells and answers nil if
-  the first cell must come before the second"
+- compare function compares two cells and answers nil if
+  the first cell must come before the second."
   (cl-loop for col in aggcols
 	   for sorting = (outcol-sort col)
 	   for colnum from 0
@@ -635,7 +647,7 @@ The liste contains sorting specifications as follows:
 		  (user-error "Bad sorting specification: ^%s, expecting a/A/n/N/t/T and an optional number" sorting))
 		(-appendable-list-append
 		 orgtbl-aggregate-columns-sorting
-		 (let ((strength 
+		 (let ((strength
 			(if (equal (match-string 2 sorting) "")
 			    nil
 			  (string-to-number (match-string 2 sorting)))))
@@ -665,8 +677,13 @@ The liste contains sorting specifications as follows:
 (defun orgtbl-to-aggregated-table-add-group (groups hgroups row aggcond)
   "Add the source ROW to the GROUPS of rows.
 If ROW fits a group within GROUPS, then it is added at the end
-of this group. Otherwise a new group is added at the end of GROUPS,
-containing this single ROW."
+of this group.
+Otherwise a new group is added at the end of GROUPS,
+containing this single ROW.
+AGGCOND is a formula which is evaluated against ROW.
+If nil, ROW is just discarded.
+HGROUPS contains the same information as GROUPS, stored in
+a hash-table, whereas GROUPS is a Lisp list."
   (and (or (not aggcond)
 	   (eval aggcond)) ;; this eval need the variable 'row to have a value
        (let ((gr (gethash row hgroups)))
@@ -677,7 +694,7 @@ containing this single ROW."
 	 (-appendable-list-append gr row))))
 
 (defun orgtbl-aggregate-read-calc-expr (expr)
-  "Interpret a string as either an org date or a calc expression"
+  "Interpret EXPR (a string) as either an org date or a calc expression."
   (cond
    ;; nil happens when a table is malformed
    ;; some columns are missing in some rows
@@ -720,8 +737,7 @@ containing this single ROW."
       (math-read-expr expr))))))
 
 (defun orgtbl-aggregate-hash-test-equal (row1 row2)
-  "Are two rows from the source table equal regarding the
-key columns?"
+  "Are ROW1 & ROW2 equal regarding the key columns?"
   (cl-loop for idx in orgtbl-aggregate-var-keycols
 	   always (string= (nth idx row1) (nth idx row2))))
 
@@ -731,7 +747,7 @@ key columns?"
 ;; { prime_prev ((2^29 - 256) / 127 ) ==> 4227323 }
 
 (defun orgtbl-aggregate-hash-test-hash (row)
-  "Compute a hash code from key columns."
+  "Compute a hash code for ROW from key columns."
   (let ((h 45235))
     (cl-loop for idx in orgtbl-aggregate-var-keycols
 	     do
@@ -740,10 +756,11 @@ key columns?"
     h))
 
 (defun orgtbl-create-table-aggregated (table params)
-  "Convert the source TABLE, which is a list of lists of cells,
-into an aggregated table compliant with the columns
-specifications (in PARAMS entry :cols), ignoring source rows
-which do not pass the filter (in PARAMS entry :cond)."
+  "Convert the source TABLE into an aggregated table.
+The source TABLE is a list of lists of cells.
+The resulting table follows the specifications,
+found in PARAMS entry :cols, ignoring source rows
+which do not pass the filter found in PARAMS entry :cond."
   (orgtbl-pop-leading-hline table)
   (define-hash-table-test
     'orgtbl-aggregate-hash-test-name
@@ -825,7 +842,7 @@ which do not pass the filter (in PARAMS entry :cond)."
 	(cl-loop for coldesc in aggcols
 		 do
 		 (orgtbl-to-aggregated-compute-sums-on-one-column
-		  table groups result coldesc all-$list)))
+                  groups result coldesc all-$list)))
 
       ;; sort table according to columns described in
       ;; orgtbl-aggregate-columns-sorting
@@ -884,7 +901,8 @@ Return nil if LINEA already comes before LINEB."
 	   until   (funcall compare colb cola)))
 
 (defun orgtbl-aggregate-string-to-time (f)
-  "Borrowed from org-table.el"
+  "Interprete the string F into a duration in minutes.
+The code was borrowed from org-table.el."
   (cond ((string-match org-ts-regexp-both f)
 	 (float-time
 	  (org-time-string-to-time (match-string 0 f))))
@@ -894,9 +912,10 @@ Return nil if LINEA already comes before LINEB."
 	(t 0)))
 
 (defun orgtbl-aggregate-add-hlines (result hline)
-  "Adds hlines to RESULT between different blocks of rows.
-Rows are compared on the first HLINE cells
-of major sorting columns.
+  "Add hlines to RESULT between different blocks of rows.
+HLINE is a small number (1 or 2 or 3, maybe more)
+which gives the number of sorted columns to consider
+to split rows blocks with hlines.
 hlines are added in-place"
   (let ((colnums
 	 (cl-loop for col in orgtbl-aggregate-columns-sorting
@@ -913,8 +932,8 @@ hlines are added in-place"
 	     for oldrow = row)))
 
 (defun orgtbl-aggregate-fmt-settings (fmt)
-  "Converts the FMT user-given format into
-the FMT-SETTINGS assoc list"
+  "Convert the FMT user-given format.
+Result is the FMT-SETTINGS assoc list."
   (let ((fmt-settings (plist-put () :fmt nil)))
     (when fmt
       ;; the following code was freely borrowed from org-table-eval-formula
@@ -966,8 +985,10 @@ the FMT-SETTINGS assoc list"
     fmt-settings))
 
 (defmacro orgtbl-aggregate-calc-setting (setting &optional setting0)
-  "Helper function to retrieve a Calc setting either from
-org-calc-default-modes or from the setting itself"
+  "Retrieve a Calc setting.
+The setting comes either from `org-calc-default-modes'
+or from SETTING itself.
+SETTING0 is a default to use if both fail."
   ;; plist-get would be fine, except that there is no way
   ;; to distinguish a value of nil from no value
   ;; so we fallback to memq
@@ -975,13 +996,15 @@ org-calc-default-modes or from the setting itself"
      (if x (cadr x)
        (or ,setting ,setting0))))
 
-(defun orgtbl-to-aggregated-compute-sums-on-one-column (table groups result coldesc all-$list)
-  "COLDESC is a formula given by the user in :cols, with an optional format.
-This function applies the formula over all groups of rows.
-Common Calc settings and formats are pre-computed before actually computing sums,
-because they are the same for all groups.
-RESULT is the list of expected resulting rows. At the beginning, all rows are
-empty lists. A cell is appended to every rows at each call of this function."
+(defun orgtbl-to-aggregated-compute-sums-on-one-column (groups result coldesc all-$list)
+  "Apply COLDESC over all GROUPS of rows.
+COLDESC is a formula given by the user in :cols,
+with an optional format.
+Common Calc settings and formats are pre-computed before
+actually computing sums, because they are the same for all groups.
+RESULT is the list of expected resulting rows.
+At the beginning, all rows are empty lists.
+A cell is appended to every row at each call of this function."
 
   ;; within this (let), we locally set Calc settings that must be active
   ;; for all the calls to Calc:
@@ -1007,24 +1030,28 @@ empty lists. A cell is appended to every rows at each call of this function."
 	     (-appendable-list-append
 	      row
 	      (orgtbl-to-aggregated-compute-one-sum
-	       table
 	       group
 	       coldesc
 	       fmt-settings
 	       $list)))))
 
-(defun orgtbl-to-aggregated-compute-one-sum (table group coldesc fmt-settings $list)
-  "Apply a user given formula to one group of input rows.
-The formula is contained in coldesc-formula-frux.
-Column names have been replaced by Frux(3) forms.
+(defun orgtbl-to-aggregated-compute-one-sum (group coldesc fmt-settings $list)
+  "Apply a user given formula to one GROUP of input rows.
+COLDESC is a structure where several parameters are packed:
+see (cl-defstruct outcol ...).
+Those parameters all describe a single column.
+The formula is contained in COLDESC-formula-frux.
+Column names have been replaced by Frux(1), Frux(2), Frux(3)... forms.
 Those Frux(N) froms are placeholders that will be replaced
 by Calc vectors of values extracted from the input table,
 in column N.
-coldesc-involved is a list of columns numbers used by coldesc-formula-frux.
+COLDESC-involved is a list of columns numbers used by COLDESC-formula-frux.
 $LIST is a Lisp-vector of Calc-vectors of values from the input table
 parsed by Calc. $LIST acts as a cache. When a value is missing, it is
 computed, and stored in $LIST. But if there is already a value,
 a re-computation is saved.
+FMT-SETTINGS are formatter settings computed by
+`orgtbl-aggregate-fmt-settings', from user given formatting instructions.
 Return an output cell.
 When coldesc-key is non-nil, then a key-column is considered,
 and a cell from any row in the group is returned."
@@ -1054,7 +1081,6 @@ and a cell from any row in the group is returned."
     ;; all other cases: handle them to Calc
     (let ((calc-dollar-values
 	   (orgtbl-to-aggregated-make-calc-$-list
-	    table
 	    group
 	    fmt-settings
 	    (outcol-involved coldesc)
@@ -1084,9 +1110,10 @@ and a cell from any row in the group is returned."
 	 (t ev)))))))
 
 (defun orgtbl-to-aggregated-defrux (formula-frux calc-dollar-values count)
-  "Replaces all Frux(N) expressions in FORMULA-FRUX with
-Calc-vectors found in CALC-DOLLAR-VALUES. It also replaces
-vcount() forms with the actual number of rows in the current group"
+  "Replace all Frux(N) expressions in FORMULA-FRUX.
+Replace with Calc-vectors found in CALC-DOLLAR-VALUES.
+Also replace vcount() forms with the actual number of rows
+in the current group, given by COUNT."
   (cond
    ((not (consp formula-frux))
     formula-frux)
@@ -1099,15 +1126,16 @@ vcount() forms with the actual number of rows in the current group"
      for x in formula-frux
      collect (orgtbl-to-aggregated-defrux x calc-dollar-values count)))))
 
-(defun orgtbl-to-aggregated-make-calc-$-list (table group fmt-settings involved $list)
+(defun orgtbl-to-aggregated-make-calc-$-list (group fmt-settings involved $list)
   "Prepare a list of vectors that will use to replace Frux(N) expressions.
-Frux(1) will be replaced by the first element of list, Frux(2) by the second an so on.
-The vectors follow the Calc syntax: (vec a b c ...). They contain values
-extracted from rows of the current GROUP. Vectors are created only for
-column numbers in INVOLVED.
-In FMT-SETTINGS, :KEEP-EMPTY is a flag to tell whether an empty cell
+Frux(1) will be replaced by the first element of list,
+Frux(2) by the second an so on.
+The vectors follow the Calc syntax: (vec a b c ...).
+They contain values extracted from rows of the current GROUP.
+Vectors are created only for column numbers in INVOLVED.
+In FMT-SETTINGS, :keep-empty is a flag to tell whether an empty cell
 should be converted to NAN or ignored.
-:NUMBERS is a flag to replace non numeric values by 0."
+:numbers is a flag to replace non numeric values by 0."
   (cl-loop
    for i in involved
    unless (aref $list (1- i))
@@ -1139,8 +1167,8 @@ should be converted to NAN or ignored.
 
 ;;;###autoload
 (defun orgtbl-to-aggregated-table (table params)
-  "Convert the orgtbl-mode TABLE to another orgtbl-mode table
-with material aggregated.
+  "Convert the Org Mode TABLE to another Org Mode table.
+The resulting table contains aggregated material.
 Grouping of rows is done for identical values of grouping columns.
 For each group, aggregation (sum, mean, etc.) is done for other columns.
   
@@ -1151,6 +1179,8 @@ The destination must be specified somewhere in the same file
 with a block like this:
   #+BEGIN RECEIVE ORGTBL destination
   #+END RECEIVE ORGTBL destination
+
+PARAMS are parameters given in the #+ORGTBL: SEND line.
 
 :cols     gives the specifications of the resulting columns.
           It is a space-separated list of column specifications.
@@ -1211,12 +1241,11 @@ add a line like this one before your table
 then add somewhere in the same file the following lines:
 ,#+BEGIN RECEIVE ORGTBL aggregatedtable
 ,#+END RECEIVE ORGTBL aggregatedtable
-Type C-c C-c into your source table
+Type \\<org-mode-map> & \\[org-ctrl-c-ctrl-c] into your source table
 
 Note:
  This is the 'push' mode for aggregating a table.
- To use the 'pull' mode, look at the org-dblock-write:aggregate function.
-"
+ To use the 'pull' mode, look at the org-dblock-write:aggregate function."
   (interactive)
   (let ((aggregated-table
 	 (orgtbl-post-process
@@ -1231,9 +1260,12 @@ Note:
 
 ;;;###autoload
 (defun org-dblock-write:aggregate (params)
-  "Creates a table which is the aggregation of material from another table.
+  "Create a table which is the aggregation of material from another table.
 Grouping of rows is done for identical values of grouping columns.
 For each group, aggregation (sum, mean, etc.) is done for other columns.
+
+PARAMS contains user parameters given on the #+BEGIN: aggregate line,
+as follow:
 
 :table    name of the source table
 
@@ -1275,7 +1307,7 @@ For each group, aggregation (sum, mean, etc.) is done for other columns.
              corr(COL1,COL2)  compute the linear correlation of two columns
 
 :cond     optional
-          a lisp expression to filter out rows in the source table
+          a Lisp expression to filter out rows in the source table
           when the expression evaluate to nil for a given row of the source table,
           then this row is discarded in the resulting table
           Example:
@@ -1294,13 +1326,12 @@ Example:
 - Create an empty dynamic block like this:
   #+BEGIN: aggregate :table originaltable :cols \"sum(X) Q sum(Y) mean(Z) sum(X*X)\"
   #+END
-- Type C-c C-c over the BEGIN line
+- Type \\<org-mode-map> & \\[org-ctrl-c-ctrl-c] over the BEGIN line
   this fills in the block with an aggregated table
 
 Note:
  This is the 'pull' mode for aggregating a table.
- To use the 'push' mode, look at the orgtbl-to-aggregated-table function.
-"
+ To use the 'push' mode, look at the orgtbl-to-aggregated-table function."
   (interactive)
   (let ((formula (plist-get params :formula))
 	(content (plist-get params :content))
@@ -1376,11 +1407,13 @@ Note:
 ;; The Transposition package
 
 (defun orgtbl-create-table-transposed (table cols aggcond)
-  "Convert the source TABLE, which is a list of lists of cells,
-into a transposed table compliant with the COLS source columns list,
-ignoring source rows which do not pass the AGGCOND.
+  "Convert the source TABLE to a tranposed version.
+TABLE is a list of lists of cells.
+COLS gives the source columns that should become rows.
 If COLS is nil, all source columns are taken.
-If AGGCOND is nil, all source rows are taken"
+AGGCOND is a Lisp expression given bu the user.  It is evaluated
+against each row.  If the result is nil, the row is ignored.
+If AGGCOND is nil, all source rows are taken."
   (if (stringp cols)
       (setq cols (split-string-with-quotes cols)))
   (setq cols
@@ -1419,11 +1452,14 @@ If AGGCOND is nil, all source rows are taken"
 
 ;;;###autoload
 (defun orgtbl-to-transposed-table (table params)
-  "Convert the orgtbl-mode TABLE to a transposed version.
+  "Convert the Org Mode TABLE to a transposed version.
 Rows become columns, columns become rows.
 
-The source table must contain sending directives with the following format:
+The source table must contain sending directives with
+the following format:
 #+ORGTBL: SEND destination orgtbl-to-transposed-table :cols ... :cond ...
+
+PARAMS are the user given parameters found in the #+ORGTBL: SEND line
 
 The destination must be specified somewhere in the same file
 with a bloc like this:
@@ -1440,11 +1476,13 @@ with a bloc like this:
 
 :cond     optional
           a lisp expression to filter out rows in the source table
-          when the expression evaluate to nil for a given row of the source table,
-          then this row is discarded in the resulting table
+          when the expression evaluate to nil for a given row of
+          the source table, then this row is discarded in the
+          resulting table.
           Example:
              (equal Q \"b\")
-          Which means: keep only source rows for which the column Q has the value b
+          Which means: keep only source rows for which the column Q
+          has the value b
 
 Columns in the source table may be in the dollar form,
 for example $3 to name the 3th column,
@@ -1462,12 +1500,12 @@ with a block like this:
   #+BEGIN RECEIVE ORGTBL destination_table_name
   #+END RECEIVE ORGTBL destination_table_name
 
-Type C-c C-c in the source table to re-create the transposed version.
+Type \\<org-mode-map> & \\[org-ctrl-c-ctrl-c] in the source
+table to re-create the transposed version.
 
 Note:
  This is the 'push' mode for transposing a table.
- To use the 'pull' mode, look at the org-dblock-write:transpose function.
-"
+ To use the 'pull' mode, look at the org-dblock-write:transpose function."
   (interactive)
   (let ((transposed-table
 	 (orgtbl-post-process
@@ -1483,8 +1521,11 @@ Note:
 
 ;;;###autoload
 (defun org-dblock-write:transpose (params)
-  "Create a transposed version of the orgtbl TABLE
+  "Create a transposed version of the orgtbl TABLE.
 Rows become columns, columns become rows.
+
+PARAMS are the user given parameters found in the
+#+BEGIN: transpose line
 
 :table    names the source table
 
@@ -1494,15 +1535,16 @@ Rows become columns, columns become rows.
           - names as they appear in the first row of the source table
           - $N forms, starting from $1
           - the special hline column which is the numbering of
-            blocks separated by horizontal lines in the source table
+            blocks separated by horizontal lines in the source table.
 
 :cond     optional
-          a lisp expression to filter out rows in the source table
-          when the expression evaluate to nil for a given row of the source table,
-          then this row is discarded in the resulting table
+          a Lisp expression to filter out rows in the source table
+          when the expression evaluate to nil for a given row of the
+          source table, then this row is discarded in the resulting table.
           Example:
              (equal q \"b\")
-          Which means: keep only source rows for which the column q has the value b
+          Which means: keep only source rows for which the column q
+          has the value b.
 
 Columns in the source table may be in the dollar form,
 for example $3 to name the 3th column,
@@ -1516,15 +1558,14 @@ Horizontal lines are converted to empty columns,
 and the other way around.
 
 - Create an empty dynamic block like this:
-  #+BEGIN: aggregate :table originaltable
+  #+BEGIN: transpose :table originaltable
   #+END
-- Type C-c C-c over the BEGIN line
+- Type \\<org-mode-map> & \\[org-ctrl-c-ctrl-c] over the BEGIN line
   this fills in the block with the transposed table
 
 Note:
  This is the 'pull' mode for transposing a table.
- To use the 'push' mode, look at the orgtbl-to-transposed-table function.
-"
+ To use the 'push' mode, look at the orgtbl-to-transposed-table function."
   (interactive)
   (let ((formula (plist-get params :formula))
 	(content (plist-get params :content))

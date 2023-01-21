@@ -145,7 +145,8 @@ Then answer =aggregate= for the type of block, and follow the instructions.
 ~columnview~, ~clocktable~, ~propview~, ~invoice~, ~transpose~, and any
 future block).
 
-=C-c C-x x aggregate= is equivalent to =M-x org-dblock-write:aggregate=.
+=C-c C-x x aggregate= is equivalent to
+=M-x orgtbl-aggregate-insert-dblock-aggregate=.
 
 * Other examples
 
@@ -1574,11 +1575,10 @@ Then browse the list of available packages and install =orgtbl-aggregate=
 M-x package-list-packages
 #+END_EXAMPLE
 
-Alternatively, you can download the lisp files, and load them:
+Alternatively, you can download the lisp file, and load it:
 
 #+BEGIN_EXAMPLE
 (load-file "orgtbl-aggregate.el")
-(load-file "org-insert-dblock.el") ;; optional, extends C-c C-c i
 #+END_EXAMPLE
 
 * Authors, contributors

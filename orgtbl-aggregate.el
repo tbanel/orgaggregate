@@ -72,7 +72,7 @@
 ;; #+END
 ;;
 ;; A wizard can be used:
-;; M-x org-insert-dblock:aggregate
+;; M-x orgtbl-aggregate-insert-dblock-aggregate
 ;;
 ;; Full documentation here:
 ;;   https://github.com/tbanel/orgaggregate/blob/master/README.org
@@ -659,12 +659,12 @@ The list contains sorting specifications as follows:
 			    nil
 			  (string-to-number (match-string 2 sorting)))))
 		   (pcase (match-string 1 sorting)
-		     ("a" (record 'sorting strength colnum nil #'identity              'string-lessp))
-		     ("A" (record 'sorting strength colnum t   #'identity              'string-lessp))
-		     ("n" (record 'sorting strength colnum nil #'string-to-number                 '<))
-		     ("N" (record 'sorting strength colnum t   #'string-to-number                 '<))
-		     ("t" (record 'sorting strength colnum nil #'orgtbl-aggregate--string-to-time '<))
-		     ("T" (record 'sorting strength colnum t   #'orgtbl-aggregate--string-to-time '<))
+		     ("a" (record 'orgtbl-aggregate--sorting strength colnum nil #'identity              #'string-lessp))
+		     ("A" (record 'orgtbl-aggregate--sorting strength colnum t   #'identity              #'string-lessp))
+		     ("n" (record 'orgtbl-aggregate--sorting strength colnum nil #'string-to-number                 #'<))
+		     ("N" (record 'orgtbl-aggregate--sorting strength colnum t   #'string-to-number                 #'<))
+		     ("t" (record 'orgtbl-aggregate--sorting strength colnum nil #'orgtbl-aggregate--string-to-time #'<))
+		     ("T" (record 'orgtbl-aggregate--sorting strength colnum t   #'orgtbl-aggregate--string-to-time #'<))
 		     ((or "f" "F") (user-error "f/F sorting specification not (yet) implemented"))
 		     (_ (user-error "Bad sorting specification ^%s" sorting)))))))
 
@@ -1197,14 +1197,14 @@ should be converted to NAN or ignored.
 ;; aggregation in Push mode
 
 ;;;###autoload
-(defun orgtbl-aggregate-table (table params)
-  "Convert the Org Mode TABLE to another Org Mode table.
+(defun orgtbl-to-aggregated-table (table params)
+  "Convert the Org Mode TABLE to an aggregated version.
 The resulting table contains aggregated material.
 Grouping of rows is done for identical values of grouping columns.
 For each group, aggregation (sum, mean, etc.) is done for other columns.
   
 The source table must contain sending directives with the following format:
-#+ORGTBL: SEND destination orgtbl-aggregate-table :cols ... :cond ...
+#+ORGTBL: SEND destination orgtbl-to-aggregated-table :cols ... :cond ...
 
 The destination must be specified somewhere in the same file
 with a block like this:
@@ -1268,7 +1268,7 @@ and is incremented by one for each horizontal line.
 
 Example:
 add a line like this one before your table
-,#+ORGTBL: SEND aggregatedtable orgtbl-aggregate-table :cols \"sum(X) q sum(Y) mean(Z) sum(X*X)\"
+,#+ORGTBL: SEND aggregatedtable orgtbl-to-aggregated-table :cols \"sum(X) q sum(Y) mean(Z) sum(X*X)\"
 then add somewhere in the same file the following lines:
 ,#+BEGIN RECEIVE ORGTBL aggregatedtable
 ,#+END RECEIVE ORGTBL aggregatedtable
@@ -1276,7 +1276,11 @@ Type \\<org-mode-map> & \\[org-ctrl-c-ctrl-c] into your source table
 
 Note:
  This is the 'push' mode for aggregating a table.
- To use the 'pull' mode, look at the org-dblock-write:aggregate function."
+ To use the 'pull' mode, look at the org-dblock-write:aggregate function.
+
+Note:
+ The name `orgtbl-to-aggregated-table' follows the Org Mode standard
+ with functions like `orgtbl-to-csv', `orgtbl-to-html'..."
   (interactive)
   (let ((aggregated-table
 	 (orgtbl-aggregate--post-process
@@ -1362,7 +1366,12 @@ Example:
 
 Note:
  This is the 'pull' mode for aggregating a table.
- To use the 'push' mode, look at the orgtbl-aggregate-table function."
+ To use the 'push' mode,
+ look at the `orgtbl-to-aggregated-table' function.
+
+Note:
+ The name `org-dblock-write:aggregate' is constrained
+ by the `org-update-dblock' function."
   (interactive)
   (let ((formula (plist-get params :formula))
 	(content (plist-get params :content))
@@ -1411,7 +1420,7 @@ Note:
 (defvar orgtbl-aggregate-history-cols ())
 
 ;;;###autoload
-(defun org-insert-dblock:aggregate ()
+(defun orgtbl-aggregate-insert-dblock-aggregate ()
   "Wizard to interactively insert an aggregate dynamic block."
   (interactive)
   (let* ((table
@@ -1546,7 +1555,11 @@ table to re-create the transposed version.
 
 Note:
  This is the 'push' mode for transposing a table.
- To use the 'pull' mode, look at the org-dblock-write:transpose function."
+ To use the 'pull' mode, look at the org-dblock-write:transpose function.
+
+Note:
+ The name `orgtbl-to-transposed-table' follows the Org Mode standard
+ with functions like `orgtbl-to-csv', `orgtbl-to-html'..."
   (interactive)
   (let ((transposed-table
 	 (orgtbl-aggregate--post-process
@@ -1606,7 +1619,11 @@ and the other way around.
 
 Note:
  This is the 'pull' mode for transposing a table.
- To use the 'push' mode, look at the orgtbl-to-transposed-table function."
+ To use the 'push' mode, look at the orgtbl-to-transposed-table function.
+
+Note:
+ The name `org-dblock-write:transpose' is constrained
+ by the `org-update-dblock' function."
   (interactive)
   (let ((formula (plist-get params :formula))
 	(content (plist-get params :content))
@@ -1649,7 +1666,7 @@ Note:
 	  (args-out-of-range nil))))))
 
 ;;;###autoload
-(defun org-insert-dblock:transpose ()
+(defun orgtbl-aggregate-insert-dblock-transpose ()
   "Wizard to interactively insert a transpose dynamic block."
   (interactive)
   (let* ((table
@@ -1689,9 +1706,9 @@ Note:
 ;; Insert a dynamic bloc with the C-c C-x x dispatcher
 ;;;###autoload
 (eval-after-load 'org
-  '(when (fboundp 'org-dynamic-block-define)
-     (org-dynamic-block-define "aggregate" #'org-insert-dblock:aggregate)
-     (org-dynamic-block-define "transpose" #'org-insert-dblock:transpose)))
+  '(when (fboundp #'org-dynamic-block-define) ;; found in Emacs 27.1
+     (org-dynamic-block-define "aggregate" #'orgtbl-aggregate-insert-dblock-aggregate)
+     (org-dynamic-block-define "transpose" #'orgtbl-aggregate-insert-dblock-transpose)))
 
 (provide 'orgtbl-aggregate)
 ;;; orgtbl-aggregate.el ends here

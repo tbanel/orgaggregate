@@ -322,8 +322,8 @@ special symbol 'hline to mean an horizontal line."
 		      do (setcar nu (1+ (car nu)))
 		      unless (equal cellnp "")
 		      do (setcar ne (1+ (car ne)))
-		      if (< (car mx) (length cellnp))
-		      do (setcar mx (length cellnp))))
+		      if (< (car mx) (string-width cellnp))
+		      do (setcar mx (string-width cellnp))))
 
     ;; change meaning of numbers from quantity of cells with numbers
     ;; to flags saying whether alignment should be left (number alignment)
@@ -348,7 +348,7 @@ special symbol 'hline to mean an horizontal line."
 		      (cl-loop for cell in row
 			       for mx in maxwidths
 			       for nu in numbers
-			       for pad = (- mx (length cell))
+			       for pad = (- mx (string-width cell))
 			       collect "| "
 			       ;; no alignment
 			       if (<= pad 0)

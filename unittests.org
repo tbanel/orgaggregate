@@ -1458,3 +1458,27 @@ For instance ~vsum~, which is a Calc function, should be usable as a column name
  '((add 3.1416 "5.6") hline (sub 2.718 "-42.0")))
 #+end_src
 
+* Japanese characters
+Japanese characters are wider than ASCII ones.
+In mono-spaced fonts, they are often 2 times wider.
+
+Not all fonts are equal. The Ubuntu one is not too bad, although not perfect:
+: (set-face-font 'default "Ubuntu Mono")
+
+#+name: 日本のテーブル
+| 如何         | 量 |
+|--------------+----|
+| 急行電車     | 23 |
+| 山に雪が降る | 21 |
+| 鳥と花       | 34 |
+| 急行電車     | 61 |
+| 鳥と花       | 93 |
+| 山に雪が降る | 48 |
+
+#+BEGIN: aggregate :table "日本のテーブル" :cols "如何 vsum(量)"
+| 如何         | vsum(量) |
+|--------------+----------|
+| 急行電車     |       84 |
+| 山に雪が降る |       69 |
+| 鳥と花       |      127 |
+#+END:

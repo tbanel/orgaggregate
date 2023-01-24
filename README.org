@@ -1122,9 +1122,13 @@ Quoting is not required for
 - northen letters like ø
 - russian letters like й
 - esperanto letters like ŭ
+- japanese ideograms like 量
 
 Note that in =:cond= Lisp expression, only double quotes work. This is
 because single quote in Lisp has a very special meaning.
+
+~Ubuntu Mono~ font can be used for displaying aligned Japanese
+characters, although not perfectly.
 
 * Custom column names
 In this example, column have names which are difficult to handle:
@@ -1603,6 +1607,8 @@ Contributors
 - Nicolas Viviani, output hlines
 - Nils Lehmann, support old versions of the rx library
 - Shankar Rao, =:post= post-processing
+- Misohena (https://misohena.jp/blog/author/misohena),
+  double width Japanese characters (string-width vs. length)
 
 * Changes
 - Wizard now correctly asks for columns with =$1, $2...= names

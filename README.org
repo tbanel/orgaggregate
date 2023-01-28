@@ -1423,13 +1423,11 @@ In this example, a =lambda= expression adds a =hline= and a row for /Sunday/.
 
 The =lambda= can be moved to a =defun=. The function is then passed to the =:post= parameter:
 
-#+begin_example
-#+begin_src elisp
-(defun my-function (table)
-  (append table
-          '(hline (Sunday "0.0"))))
-#+end_src
-#+end_example
+: #+begin_src elisp
+: (defun my-function (table)
+:   (append table
+:           '(hline (Sunday "0.0"))))
+: #+end_src
 
 : ... :post my-function
 
@@ -1441,12 +1439,10 @@ The =:post= parameter can also refer to a Babel Block. Example:
 #+END:
 #+end_example
 
-#+begin_example
-#+begin_src elisp :var tbl=""
-(append tbl
-        '(hline (Sunday "0.0")))
-#+end_src
-#+end_example
+: #+begin_src elisp :var tbl=""
+: (append tbl
+:         '(hline (Sunday "0.0")))
+: #+end_src
 
 * Chaining
 

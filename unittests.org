@@ -760,65 +760,71 @@ Comparison with the spreadsheet:
 Result of an aggregation can be further processed, for example with another aggregation.
 
 ** chaining 3 aggregations
+Note: header is 2 lines tall
 
 #+TBLNAME: amx
-| A | M | X |
-|---+---+---|
-| a | m | 1 |
-| a | p | 2 |
-| a | m | 3 |
-|---+---+---|
-| b | p | 4 |
-| b | m | 5 |
-| b | p | 6 |
-| b | m | 7 |
+| A  | M  |  X |
+| ~a | ~m | ~x |
+|----+----+----|
+| a  | m  |  1 |
+| a  | p  |  2 |
+| a  | m  |  3 |
+|----+----+----|
+| b  | p  |  4 |
+| b  | m  |  5 |
+| b  | p  |  6 |
+| b  | m  |  7 |
 
 #+TBLNAME: amsx
 #+BEGIN: aggregate :table "amx" :cols "A M sum(X)"
-| A | M | SX |
-|---+---+----|
-| a | m |  4 |
-| a | p |  2 |
-| b | p | 10 |
-| b | m | 12 |
+| A  | M  | SX |
+| ~a | ~m | ~x |
+|----+----+----|
+| a  | m  |  4 |
+| a  | p  |  2 |
+| b  | p  | 10 |
+| b  | m  | 12 |
 #+TBLFM: @1$3=SX
 #+END:
 
 #+TBLNAME: asx
 #+BEGIN: aggregate :table "amsx" :cols "A sum(SX)"
-| A | SSX |
-|---+-----|
-| a |   6 |
-| b |  22 |
+| A  | SSX |
+| ~a |  ~x |
+|----+-----|
+| a  |   6 |
+| b  |  22 |
 #+TBLFM: @1$2=SSX
 #+END:
 
 #+BEGIN: aggregate :table "asx" :cols "sum(SSX)"
 | sum(SSX) |
+| ~x       |
 |----------|
-|       28 |
+| 28       |
 #+END:
 
 ** chaining 2 transpositions
 
 #+TBLNAME: tamx
 #+BEGIN: transpose :table "amx"
-| A |   | a | a | a |   | b | b | b | b |
-| M |   | m | p | m |   | p | m | p | m |
-| X |   | 1 | 2 | 3 |   | 4 | 5 | 6 | 7 |
+| A | ~a |   | a | a | a |   | b | b | b | b |
+| M | ~m |   | m | p | m |   | p | m | p | m |
+| X | ~x |   | 1 | 2 | 3 |   | 4 | 5 | 6 | 7 |
 #+END:
 
 #+BEGIN: transpose :table "tamx"
-| A | M | X |
-|---+---+---|
-| a | m | 1 |
-| a | p | 2 |
-| a | m | 3 |
-|---+---+---|
-| b | p | 4 |
-| b | m | 5 |
-| b | p | 6 |
-| b | m | 7 |
+| A  | M  |  X |
+| ~a | ~m | ~x |
+|----+----+----|
+| a  | m  |  1 |
+| a  | p  |  2 |
+| a  | m  |  3 |
+|----+----+----|
+| b  | p  |  4 |
+| b  | m  |  5 |
+| b  | p  |  6 |
+| b  | m  |  7 |
 #+END:
 
 The double transposition is identical to the original "amx" table,
@@ -1481,4 +1487,64 @@ Not all fonts are equal. The Ubuntu one is not too bad, although not perfect:
 | 急行電車     |       84 |
 | 山に雪が降る |       69 |
 | 鳥と花       |      127 |
+#+END:
+
+* Alignment cookies
+What to do with cookies?
+<> <l> <c> <r> <12> <l12> <c12> <r12>
+
+They are not real data, rather metadata. Mixed into data, they may
+result in false aggregations. Therefore they should be ignored.
+
+But in the header of tables, cookies do not change aggregated
+results. They format the source column. Probably the aggregated column
+may benefit from the same formatting. Therefore, cookies are kept in
+headers.
+
+#+name: with-cookies
+| color  | quantity |  level |
+| <l>    |     <r7> |    <3> |
+| kolor  |     kiom | nivelo |
+|--------+----------+--------|
+| yellow |       72 |      3 |
+| green  |       55 |      0 |
+| <c>    |          |      4 |
+| orange |       80 |      0 |
+| white  |       19 |      6 |
+| green  |        4 |      4 |
+| yellow |       58 |      5 |
+|        |     <25> |      0 |
+| orange |       22 |      4 |
+| orange |        7 |      4 |
+| <>     |       <> |      2 |
+| red    |       71 |      3 |
+| blue   |       56 |      3 |
+| red    |       52 |      5 |
+| <7>    |          |      3 |
+| orange |       35 |      0 |
+|        |      <r> |      3 |
+| yellow |       23 |      0 |
+| <l>    |     <44> |      0 |
+| blue   |       93 |      4 |
+| black  |      <l> |      0 |
+| green  |       82 |      2 |
+| <9>    |      <4> |      5 |
+
+#+BEGIN: aggregate :table "with-cookies" :cols "color vsum(quantity);'sum' count();'nb' vsum(quantity)/vmean(level);'leveled'"
+| color  |  sum | nb |       leveled |
+| <l>    | <r7> |    |               |
+| kolor  | kiom |    |               |
+|--------+------+----+---------------|
+| yellow |  153 |  3 | 57.3749999999 |
+| green  |  141 |  3 |          70.5 |
+| orange |  144 |  4 |            72 |
+| white  |   19 |  1 | 3.16666666667 |
+| red    |  123 |  2 |         30.75 |
+| blue   |  149 |  2 | 42.5714285714 |
+#+END:
+
+#+BEGIN: transpose :table "with-cookies"
+| color    | <l>  | kolor  |   | yellow | green | orange | white | green | yellow | orange | orange | red | blue | red | orange | yellow | blue | green |
+| quantity | <r7> | kiom   |   |     72 |    55 |     80 |    19 |     4 |     58 |     22 |      7 |  71 |   56 |  52 |     35 |     23 |   93 |    82 |
+| level    | <3>  | nivelo |   |      3 |     0 |      0 |     6 |     4 |      5 |      4 |      4 |   3 |    3 |   5 |      0 |      0 |    4 |     2 |
 #+END:

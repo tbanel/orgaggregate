@@ -39,7 +39,7 @@
 ;; Example:
 ;; Starting from a source table of activities and quantities
 ;; (whatever they are) over several days,
-;; 
+;;
 ;; #+TBLNAME: original
 ;; | Day       | Color | Level | Quantity |
 ;; |-----------+-------+-------+----------|
@@ -57,10 +57,10 @@
 ;; | Friday    | Blue  |     7 |        5 |
 ;; | Friday    | Blue  |     6 |        8 |
 ;; | Friday    | Blue  |    11 |        9 |
-;; 
+;;
 ;; an aggregation is built for each day (because several rows
 ;; exist for each day), typing C-c C-c
-;; 
+;;
 ;; #+BEGIN: aggregate :table original :cols "Day mean(Level) sum(Quantity)"
 ;; | Day       | mean(Level) | sum(Quantity) |
 ;; |-----------+-------------+---------------|
@@ -215,6 +215,33 @@ An horizontal line is translated as the special symbol `hline'."
 		     (not (match-beginning 1)))
 	  (user-error "Cannot find a table at NAME or ID %s" name-or-id))
 	(orgtbl-aggregate--table-to-lisp-post-9-4)))))
+
+(defun orgtbl-aggregate--remove-cookie-lines (table)
+  "Remove lines of TABLE which contain cookies.
+But do not remove cookies in the header, if any.
+The operation is destructive.  But on the other hand,
+if there are no cookies in TABLE, TABLE is returned
+without any change.
+A cookie is an alignment instruction like:
+  <l>   left align cells in this column
+  <c>   center cells
+  <r>   right align
+  <15>  make this column 15 characters wide."
+  (orgtbl-aggregate--pop-leading-hline table)
+  (cl-loop with hline = nil
+           for line on table
+           if (and hline
+                   (cl-loop for cell in (car line)
+                            thereis (string-match
+                                     (rx bol "<"
+                                         (? (any "lcr"))
+                                         (* (any "0-9"))
+                                         ">" eol)
+                                     cell)))
+           do (setcar line t)
+           if (eq (car line) 'hline)
+           do (setq hline t))
+  (delq t table))
 
 (defun orgtbl-aggregate--split-string-with-quotes (string)
   "Like (split-string STRING), but with quote protection.
@@ -846,14 +873,14 @@ which do not pass the filter found in PARAMS entry :cond."
 		     hgroups
 		     (cons bs row)
 		     aggcond))))
-    
+
     (let ((result ;; pre-allocate all resulting rows
 	   (cl-loop for _x in (orgtbl-aggregate--list-get groups)
 		    collect (orgtbl-aggregate--list-create)))
 	  (all-$list
 	   (cl-loop for _x in (orgtbl-aggregate--list-get groups)
 		    collect (make-vector (length (car table)) nil))))
-      
+
       ;; inactivating those two functions boosts performance
       (cl-letf (((symbol-function 'math-read-preprocess-string) #'identity)
 		((symbol-function 'calc-input-angle-units) (lambda (_x) nil)))
@@ -872,17 +899,45 @@ which do not pass the filter found in PARAMS entry :cond."
       (if (> hline 0)
 	  (orgtbl-aggregate--add-hlines result hline))
 
-      ;; add a header to the resulting table with column names
+      (push 'hline result)
+
+      ;; add other lines of the original header, if any;
+      ;; this is done only if the aggregated column refers to
+      ;; a single source column (either a key column or within
+      ;; an aggregated formula)
+      (orgtbl-aggregate--pop-leading-hline table)
+
+      (if (memq 'hline table)
+          (cl-loop
+           for i from (cl-loop
+                       for i from -1
+                       for x in table
+                       until (eq x 'hline)
+                       finally return i)
+           downto 1
+           do (push
+               (cons
+                nil
+                (cl-loop for column in aggcols
+                         collect
+                         (if (equal (length (orgtbl-aggregate--outcol-involved column)) 1)
+                             (let ((n (1- (car (orgtbl-aggregate--outcol-involved column)))))
+                               (if (>= n 0)
+                                   (nth n (nth i table))
+                                 ""))
+                           "")))
+               result)))
+
+      ;; add the header to the resulting table with column names
       ;; as they appear in :cols but without decorations
-      (setq result
-	    (cons
-	     (cons
-              nil
-	      (cl-loop for column in aggcols
-		       collect (or
-				(orgtbl-aggregate--outcol-name    column)
-				(orgtbl-aggregate--outcol-formula column))))
-	     (cons 'hline result)))
+      (push
+       (cons
+        nil
+	(cl-loop for column in aggcols
+		 collect (or
+			  (orgtbl-aggregate--outcol-name    column)
+			  (orgtbl-aggregate--outcol-formula column))))
+       result)
 
       ;; remove invisible columns by modifying the table in-place
       ;; beware! it assumes that the actual list in orgtbl-aggregate--lists
@@ -1142,7 +1197,7 @@ and a cell from any row in the group is returned."
 
 (defun orgtbl-aggregate--defrux (formula-frux calc-dollar-values-oo count)
   "Replace all Frux(N) expressions in FORMULA-FRUX.
-Replace with Calc-vectors found in CALC-DOLLAR-VALUES.
+Replace with Calc-vectors found in CALC-DOLLAR-VALUES-OO.
 Also replace vcount() forms with the actual number of rows
 in the current group, given by COUNT."
   (cond
@@ -1202,7 +1257,7 @@ should be converted to NAN or ignored.
 The resulting table contains aggregated material.
 Grouping of rows is done for identical values of grouping columns.
 For each group, aggregation (sum, mean, etc.) is done for other columns.
-  
+
 The source table must contain sending directives with the following format:
 #+ORGTBL: SEND destination orgtbl-to-aggregated-table :cols ... :cond ...
 
@@ -1388,7 +1443,8 @@ Note:
     (orgtbl-aggregate--insert-elisp-table
      (orgtbl-aggregate--post-process
       (orgtbl-aggregate--create-table-aggregated
-       (orgtbl-aggregate--get-distant-table (plist-get params :table))
+       (orgtbl-aggregate--remove-cookie-lines
+        (orgtbl-aggregate--get-distant-table (plist-get params :table)))
        params)
       post))
     (delete-char -1) ;; remove trailing \n which Org Mode will add again
@@ -1640,7 +1696,8 @@ Note:
     (orgtbl-aggregate--insert-elisp-table
      (orgtbl-aggregate--post-process
       (orgtbl-aggregate--create-table-transposed
-       (orgtbl-aggregate--get-distant-table (plist-get params :table))
+       (orgtbl-aggregate--remove-cookie-lines
+        (orgtbl-aggregate--get-distant-table (plist-get params :table)))
        (plist-get params :cols)
        (plist-get params :cond))
       post))

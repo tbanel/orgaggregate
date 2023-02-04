@@ -5,8 +5,6 @@
 Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the first table.
 
-New: custom column names, sort output, hlines on output.
-
 * Examples
 A very simple example. We have a table of activities and quantities
 (whatever they are) over several days.
@@ -424,7 +422,8 @@ separate blocks of identical =hline= and =cölØr=:
 #+END:
 #+end_example
 
-And the =hline= column may be discarded (but its side effect remains). To do so use the =;<>= specifier:
+And the =hline= column may be discarded (but its side effect
+remains). To do so use the =;<>= specifier:
 
 #+begin_example
 #+BEGIN: aggregate :table "withhline" :cols "hline;^n;<> cölØr;^a vâluε 'ra;han'" :hline 2
@@ -664,7 +663,8 @@ Basically, Calc operates twice. For example in the formula
 #+END:
 #+END_EXAMPLE
 
-There are a few occasions were Calc computation does not happen: =vcount()= and =vlist(X)=.
+There are a few occasions were Calc computation does not happen:
+=vcount()= and =vlist(X)=.
 
 The =vcount()= sub-formula is evaluated as the number of input rows in
 each group, without Calc intervention. However, later on Calc can
@@ -680,7 +680,8 @@ handle this number in a formula as this one: =vsum(Level)/vcount()=
 #+END:
 #+END_EXAMPLE
 
-And of course when input cells do not have a mathematical meaning, the result is non-sens:
+And of course when input cells do not have a mathematical meaning, the
+result is non-sens:
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day vsum(Color)"
@@ -708,7 +709,8 @@ cell =20*30= is left as-is.
 #+END:
 #+END_EXAMPLE
 
-As a contrast, the formula =(Level)= yields a list processed through Calc. For instance, the =20*30= formula is replaced by =600=.
+As a contrast, the formula =(Level)= yields a list processed through
+Calc. For instance, the =20*30= formula is replaced by =600=.
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day (Color) (Level)"
@@ -1130,6 +1132,49 @@ because single quote in Lisp has a very special meaning.
 ~Ubuntu Mono~ font can be used for displaying aligned Japanese
 characters, although not perfectly.
 
+* Multiple lines header
+The header of the source table may be more than one row tall.  Only the
+first header row is used to match column names between the source
+table and the =:cols= specifications.
+
+Best effort is made to propagate additional header rows to the
+aggregated table.  This happens when the aggregated column refers to a
+single source column, either as a key column or a formula involving a
+single column.
+
+#+begin_example
+#+name: tall-header
+| color  | quantity |  level |
+| <l>    |     <r7> |    <3> |
+| kolor  |     kiom | nivelo |
+|--------+----------+--------|
+| yellow |       72 |      3 |
+| green  |       55 |      5 |
+| <c>    |          |        |
+| orange |       80 |      2 |
+| yellow |       13 |      1 |
+
+#+BEGIN: aggregate :table "tall-header" :cols "color vsum(quantity);'sum' count();'nb' vsum(quantity)/vmean(level);'leveled'"
+| color  |  sum | nb | leveled |
+| <l>    | <r7> |    |         |
+| kolor  | kiom |    |         |
+|--------+------+----+---------|
+| yellow |   85 |  2 |    42.5 |
+| green  |   55 |  1 |      11 |
+| orange |   80 |  1 |      40 |
+,#+END:
+#+end_example
+
+Note that the last aggregated column has just =leveled= in its header.
+This is because this column refers to more than one source columns,
+namely =quantity= and =level=.
+
+Note that in this example, there are formatting cookies:
+: <> <l> <c> <r> <7> <l7> <c7> <r7>
+
+Data rows containing at least one cookie are ignored. They are not
+ignored in the header.
+
 * Custom column names
 In this example, column have names which are difficult to handle:
 
@@ -1398,9 +1443,9 @@ The aggregated table can be post-processed with the =:post=
 parameter. It accepts a Lisp =lambda=, a Lisp function, or a Babel
 block.
 
-The processing receives the aggregated table as parameter in the form
-of a Lisp expression. It can process it in any way it wants, provided
-it returns a valid Lisp table.
+The process receives the aggregated table as parameter in the form of
+a Lisp expression. It can process it in any way it wants, provided it
+returns a valid Lisp table.
 
 A Lisp table is a list of rows. Each row is either a list of cells, or
 the special symbol =hline=.
@@ -1421,7 +1466,8 @@ In this example, a =lambda= expression adds a =hline= and a row for /Sunday/.
 #+END:
 #+end_example
 
-The =lambda= can be moved to a =defun=. The function is then passed to the =:post= parameter:
+The =lambda= can be moved to a =defun=. The function is then passed to the
+=:post= parameter:
 
 : #+begin_src elisp
 : (defun my-function (table)
@@ -1439,6 +1485,7 @@ The =:post= parameter can also refer to a Babel Block. Example:
 #+END:
 #+end_example
 
+: #+name: my-babel-block
 : #+begin_src elisp :var tbl=""
 : (append tbl
 :         '(hline (Sunday "0.0")))
@@ -1526,7 +1573,8 @@ When a column needs to be sorted, the Calc =calc-sort()= function is handy:
 
 ** A few lowest or highest values
 
-Used with =subvec()=, =sort()= can retrieve the two lowest or the two highest values:
+Used with =subvec()=, =sort()= can retrieve the two lowest or the two
+highest values:
 
 #+begin_example
 #+BEGIN: aggregate :table "trick_table_1" :cols "subvec(sort(column),1,3) subvec(sort(column),count()-1)"
@@ -1537,9 +1585,11 @@ Used with =subvec()=, =sort()= can retrieve the two lowest or the two highest va
 #+end_example
 
 - =subvec(...,1,3)= extracts the two first values: from =1= to =3= excluded.
-- =subvec(...,count()-1)= extracts the two last values, numbered =count()-1= and =count()=
+- =subvec(...,count()-1)= extracts the two last values, numbered
+  =count()-1= and =count()=
 
-And of course we may retrieve the average of the two first and the two last values:
+And of course we may retrieve the average of the two first and the two
+last values:
 
 #+begin_example
 #+BEGIN: aggregate :table "trick_table_1" :cols "vmean(subvec(sort(column),1,3)) vmean(subvec(sort(column),count()-1))"
@@ -1563,7 +1613,8 @@ And of course we may retrieve the average of the two first and the two last valu
 
 * Installation
 
-Emacs package on Melpa: add the following lines to your =.emacs= file, and reload it.
+Emacs package on Melpa: add the following lines to your =.emacs= file,
+and reload it.
 
 #+BEGIN_EXAMPLE
 (add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
@@ -1605,6 +1656,7 @@ Contributors
 - Shankar Rao, =:post= post-processing
 - Misohena (https://misohena.jp/blog/author/misohena),
   double width Japanese characters (string-width vs. length)
+- Kevin Brubeck Unhammer, ignore formatting cookies
 
 * Changes
 - Wizard now correctly asks for columns with =$1, $2...= names
@@ -1642,6 +1694,8 @@ Contributors
 - More readable & faster code
 - Support for old versions of the rx library
 - =:post= post-processing
+- Propagate multiple rows source header to the aggregated header
+- Ignore data rows containing formatting cookies
 
 * License
 Copyright (C) 2013-2023  Thierry Banel

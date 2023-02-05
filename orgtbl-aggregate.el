@@ -79,6 +79,8 @@
 
 ;;; Requires:
 (require 'calc-ext)
+(require 'calc-aent)
+(require 'calc-alg)
 (require 'org)
 (require 'org-table)
 (eval-when-compile (require 'cl-lib))

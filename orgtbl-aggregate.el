@@ -766,7 +766,7 @@ a hash-table, whereas GROUPS is a Lisp list."
    ;; Convert a duration into a number of seconds
    ((string-match
      (rx bos
-	 (group (any "0-9") (any "0-9"))
+	 (group (one-or-more (any "0-9")))
 	 ":"
 	 (group (any "0-9") (any "0-9"))
 	 (? ":" (group (any "0-9") (any "0-9")))

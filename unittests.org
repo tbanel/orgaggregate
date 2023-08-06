@@ -467,6 +467,15 @@ Some (limited) handling of dates is available.
 |    13:55 |
 |    17:12 |
 
+#+name: some_durations_in_different_formats
+|      dur |
+|----------|
+| 01:30:01 |
+|  1:30:02 |
+|    01:30 |
+|     1:30 |
+|   100:30 |
+
 ** Aggregated table
 
 Test T, U, t formatters
@@ -476,6 +485,12 @@ Test T, U, t formatters
 |------------+------------+------------+------------|
 |      46650 |   12:57:30 |      12.96 |      12:57 |
 #+END:
+
+#+BEGIN: aggregate :table "some_durations_in_different_formats" :cols "vsum(dur);T"
+| vsum(dur) |
+|-----------|
+| 106:30:03 |
+#+END
 
 * Test durations HH@ MM' SS" style
 

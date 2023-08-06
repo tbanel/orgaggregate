@@ -1056,6 +1056,8 @@ In Org Mode spreadsheet, durations have the forms =HH:MM= or
 forms, it is converted into a number of seconds. For instance, =01:00=
 is converted into =3600= and =00:00:07= is converted into =7=.
 
+There may be a single digit for hours, as in =7:12= or more than two as in =1255:45:00=.
+
 To output such a form, use a formatter: =;T=; =;t=, =;U=. For example, we
 have 3 durations as input, and we want the average of them:
 
@@ -1657,6 +1659,7 @@ Contributors
 - Misohena (https://misohena.jp/blog/author/misohena),
   double width Japanese characters (string-width vs. length)
 - Kevin Brubeck Unhammer, ignore formatting cookies
+- Tilmann Singer, more flexibility in duration format
 
 * Changes
 - Wizard now correctly asks for columns with =$1, $2...= names
@@ -1696,6 +1699,8 @@ Contributors
 - =:post= post-processing
 - Propagate multiple rows source header to the aggregated header
 - Ignore data rows containing formatting cookies
+- Follow Org Mode way of handling Calc settings in Lisp code
+- Hours in durations are no longer restricted to 2 digits
 
 * License
 Copyright (C) 2013-2023  Thierry Banel

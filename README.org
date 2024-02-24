@@ -1701,6 +1701,7 @@ Contributors
 - Ignore data rows containing formatting cookies
 - Follow Org Mode way of handling Calc settings in Lisp code
 - Hours in durations are no longer restricted to 2 digits
+- 3x speedup =org-table-to-lisp= and avoid Emacs 27 to 30 incompatibilities
 
 * License
 Copyright (C) 2013-2023  Thierry Banel

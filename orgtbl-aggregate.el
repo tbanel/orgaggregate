@@ -124,9 +124,14 @@
 ;; in Org Mode version 9.4
 ;; To benefit from this speedup in older versions of Org Mode,
 ;; this function is copied here with a slightly different name
-;; It has also undergone near 2x speedup
+;; It has also undergone near 3x speedup,
+;; - by not using regexps
+;; - achieving the shortest bytecode
+;; Furthermore, this version avoids the
+;; inhibit-changing-match-data and looking-at
+;; incompatibilities between Emacs-27 and Emacs-30
 
-(defun orgtbl-aggregate--table-to-lisp-post-9-4 (&optional txt)
+(defun orgtbl-aggregate--table-to-lisp (&optional txt)
   "Convert the table at point to a Lisp structure.
 The structure will be a list.  Each item is either the symbol `hline'
 for a horizontal separator line, or a list of field values as strings.
@@ -136,25 +141,31 @@ The table is taken from the parameter TXT, or from the buffer at point."
 	(buffer-disable-undo)
         (insert txt)
         (goto-char (point-min))
-        (orgtbl-aggregate--table-to-lisp-post-9-4))
+        (orgtbl-aggregate--table-to-lisp))
     (save-excursion
       (goto-char (org-table-begin))
-      (let ((inhibit-changing-match-data t)
-	    table row p q)
-        (while (progn (skip-chars-forward " \t") (looking-at "|"))
+      (let (table)
+        (while (progn (skip-chars-forward " \t")
+                      (eq (following-char) ?|))
 	  (forward-char)
 	  (push
-	   (if (looking-at "-")
+	   (if (eq (following-char) ?-)
 	       'hline
-	     (setq row nil)
-	     (while (progn (skip-chars-forward " \t") (not (eolp)))
-	       (setq q (point))
-	       (skip-chars-forward "^|\n")
-	       (setq p (if (eolp) (point) (1+ (point))))
-	       (skip-chars-backward " \t" q)
-	       (push (buffer-substring-no-properties q (point)) row)
-	       (goto-char p))
-	     (nreverse row))
+	     (let (row)
+	       (while (progn (skip-chars-forward " \t")
+                             (not (eolp)))
+                 (let ((q (point)))
+                   (skip-chars-forward "^|\n")
+                   (goto-char
+                    (prog1
+                        (let ((p (point)))
+                          (unless (eolp) (setq p (1+ p)))
+                          p)
+	              (skip-chars-backward " \t" q)
+	              (push
+                       (buffer-substring-no-properties q (point))
+                       row)))))
+	       (nreverse row)))
 	   table)
 	  (forward-line))
 	(nreverse table)))))
@@ -216,7 +227,7 @@ An horizontal line is translated as the special symbol `hline'."
 	(unless (and (re-search-forward "^\\(\\*+ \\)\\|[ \t]*|" nil t)
 		     (not (match-beginning 1)))
 	  (user-error "Cannot find a table at NAME or ID %s" name-or-id))
-	(orgtbl-aggregate--table-to-lisp-post-9-4)))))
+	(orgtbl-aggregate--table-to-lisp)))))
 
 (defun orgtbl-aggregate--remove-cookie-lines (table)
   "Remove lines of TABLE which contain cookies.

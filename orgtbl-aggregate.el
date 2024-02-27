@@ -337,7 +337,7 @@ again and again the same string."
 (defun orgtbl-aggregate--insert-elisp-table (table)
   "Insert TABLE in current buffer at point.
 TABLE is a list of lists of cells.  The list may contain the
-special symbol 'hline to mean an horizontal line."
+special symbol `hline' to mean an horizontal line."
   (let* ((nbcols (cl-loop
 		  for row in table
 		  maximize (if (listp row) (length row) 0)))
@@ -470,11 +470,11 @@ POST might be:
   :post \"myprocessor(inputtable=*this*)\"
   and somewhere else:
   #+name: myprocessor
-  #+begin_src language :var inputtable=""
+  #+begin_src language :var inputtable=
   ...
   #+end_src
 - a Lisp lambda with one parameter, for example:
-  :post (lambda (table) (append table '(hline (\"total\" 123))))
+  :post (lambda (table) (append table \\'(hline (\"total\" 123))))
 - a Lisp function with one parameter, for example:
   :post my-lisp-function
 - a Lisp expression which will be evaluated
@@ -1256,6 +1256,7 @@ should be converted to NAN or ignored.
 ;;;###autoload
 (defun orgtbl-to-aggregated-table (table params)
   "Convert the Org Mode TABLE to an aggregated version.
+
 The resulting table contains aggregated material.
 Grouping of rows is done for identical values of grouping columns.
 For each group, aggregation (sum, mean, etc.) is done for other columns.
@@ -1285,38 +1286,35 @@ PARAMS are parameters given in the #+ORGTBL: SEND line.
                               by horizontal lines
              count()          give the number of rows in each group
              list(COL)        list the values of the column for each group
-             sum(COL)         compute the sum of the column for each group
-             sum(COL1*COL2)   compute the sum of the product of two columns
-                              for each group
-             mean(COL)        compute the average of the column for each group
-             mean(COL1*COL2)  compute the average of the product of two columns
-                              for each group
-             meane(COL)       compute the average along with the estimated error
-             hmean(COL)       compute the harmonic average
-             gmean(COL)       compute the geometric average
-             median(COL)      give the middle element after sorting them
-             max(COL)         gives the largest element of each group
-             min(COL)         gives the smallest element of each group
-             sdev(COL)        compute the standard deviation (divide by N-1)
-             psdev(COL)       compute the population standard deviation (divide by N)
-             pvar(COL)        compute the variance
-             prod(COL)        compute the product
-             cov(COL1,COL2)   compute the covariance of two columns
-                              for each group (divide by N-1)
-             pcov(COL1,COL2)  compute the population covariance of two columns
-                              for each group (/N)
-             corr(COL1,COL2)  compute the linear correlation of two columns
+             sum(COL)         sum of the column for each group
+             sum(COL1*COL2)   sum of the product of two columns for each group
+             mean(COL)        average of the column for each group
+             mean(COL1*COL2)  average of the product of two columns per group
+             meane(COL)       average and estimated error
+             hmean(COL)       harmonic average
+             gmean(COL)       geometric average
+             median(COL)      middle element after sorting them in each group
+             max(COL)         largest element of each group
+             min(COL)         smallest element of each group
+             sdev(COL)        standard deviation (divide by N-1)
+             psdev(COL)       population standard deviation (divide by N)
+             pvar(COL)        variance of values in each group
+             prod(COL)        product of values in each group
+             cov(COL1,COL2)   covariance of two columns, per group (div. by N-1)
+             pcov(COL1,COL2)  population covariance of two columns (div. by N)
+             corr(COL1,COL2)  linear correlation of two columns
 
 :cond     optional
-          a lisp expression to filter out rows in the source table
-          when the expression evaluate to nil for a given row of the source table,
-          then this row is discarded in the resulting table
+          A lisp expression to filter out rows in the source table.
+          When the expression evaluate to nil for a given row of the
+          source table, then this row is discarded in the resulting table.
           Example:
              (equal Q \"b\")
-          Which means: keep only source rows for which the column Q has the value b
+          Which means: keep only source rows for which the column Q
+          has the value b
 
-Columns in the source table may be in the dollar form,
-for example $3 to name the 3th column,
+Names of columns in the source table may be in the dollar form,
+for example use $3 to name the 3th column,
 or by its name if the source table have a header.
 If all column names are in the dollar form,
 the table is supposed not to have a header.
@@ -1325,15 +1323,16 @@ and is incremented by one for each horizontal line.
 
 Example:
 add a line like this one before your table
-,#+ORGTBL: SEND aggregatedtable orgtbl-to-aggregated-table :cols \"sum(X) q sum(Y) mean(Z) sum(X*X)\"
+,#+ORGTBL: SEND aggregatedtable orgtbl-to-aggregated-table \\
+           :cols \"sum(X) q sum(Y) mean(Z) sum(X*X)\"
 then add somewhere in the same file the following lines:
 ,#+BEGIN RECEIVE ORGTBL aggregatedtable
 ,#+END RECEIVE ORGTBL aggregatedtable
 Type \\<org-mode-map> & \\[org-ctrl-c-ctrl-c] into your source table
 
 Note:
- This is the 'push' mode for aggregating a table.
- To use the 'pull' mode, look at the org-dblock-write:aggregate function.
+ This is the \"push\" mode for aggregating a table.
+ To use the \"pull\" mode, look at the org-dblock-write:aggregate function.
 
 Note:
  The name `orgtbl-to-aggregated-table' follows the Org Mode standard
@@ -1374,39 +1373,36 @@ as follow:
              COL              the name of a grouping column in the source table
              hline            a special name for grouping rows separated
                               by horizontal lines
-             count()          give the number of rows in each group
+             count()          number of rows in each group
              list(COL)        list the values of the column for each group
-             sum(COL)         compute the sum of the column for each group
-             sum(COL1*COL2)   compute the sum of the product of two columns
-                              for each group
-             mean(COL)        compute the average of the column for each group
-             mean(COL1*COL2)  compute the average of the product of two columns
-                              for each group
-             meane(COL)       compute the average along with the estimated error
-             hmean(COL)       compute the harmonic average
-             gmean(COL)       compute the geometric average
-             median(COL)      give the middle element after sorting them
-             max(COL)         gives the largest element of each group
-             min(COL)         gives the smallest element of each group
-             sdev(COL)        compute the standard deviation (divide by N-1)
-             psdev(COL)       compute the population standard deviation (divide by N)
-             pvar(COL)        compute the variance
-             prod(COL)        compute the product
-             cov(COL1,COL2)   compute the covariance of two columns
-                              for each group (divide by N-1)
-             pcov(COL1,COL2)  compute the population covariance of two columns
-                              for each group (/N)
-             corr(COL1,COL2)  compute the linear correlation of two columns
+             sum(COL)         sum of the column for each group
+             sum(COL1*COL2)   sum of the product of two columns for each group
+             mean(COL)        average of the column for each group
+             mean(COL1*COL2)  average of the product of two columns per group
+             meane(COL)       average along with the estimated error per group
+             hmean(COL)       harmonic average per group
+             gmean(COL)       geometric average per group
+             median(COL)      middle element after sorting them, per group
+             max(COL)         largest element of each group
+             min(COL)         smallest element of each group
+             sdev(COL)        standard deviation (divide by N-1)
+             psdev(COL)       population standard deviation (divide by N)
+             pvar(COL)        variance per group
+             prod(COL)        product per group
+             cov(COL1,COL2)   covariance of two columns per group (div. by N-1)
+             pcov(COL1,COL2)  population covariance of two columns (div. by N)
+             corr(COL1,COL2)  linear correlation of two columns, per group
 
 :cond     optional
-          a Lisp expression to filter out rows in the source table
-          when the expression evaluate to nil for a given row of the source table,
-          then this row is discarded in the resulting table
+          A Lisp expression to filter out rows in the source table.
+          When the expression evaluate to nil for a given row of
+          the source table, then this row is discarded in the resulting table
           Example:
              (equal Q \"b\")
-          Which means: keep only source rows for which the column Q has the value b
+          Which means: keep only source rows for which the column Q
+          has the value b.
 
-Columns in the source table may be in the dollar form,
+Names of columns in the source table may be in the dollar form,
 for example $3 to name the 3th column,
 or by its name if the source table have a header.
 If all column names are in the dollar form,
@@ -1416,14 +1412,15 @@ and is incremented by one for each horizontal line.
 
 Example:
 - Create an empty dynamic block like this:
-  #+BEGIN: aggregate :table originaltable :cols \"sum(X) Q sum(Y) mean(Z) sum(X*X)\"
+  #+BEGIN: aggregate :table originaltable \\
+           :cols \"sum(X) Q sum(Y) mean(Z) sum(X*X)\"
   #+END
 - Type \\<org-mode-map> & \\[org-ctrl-c-ctrl-c] over the BEGIN line
   this fills in the block with an aggregated table
 
 Note:
- This is the 'pull' mode for aggregating a table.
- To use the 'push' mode,
+ This is the \"pull\" mode for aggregating a table.
+ To use the \"push\" mode,
  look at the `orgtbl-to-aggregated-table' function.
 
 Note:
@@ -1612,8 +1609,8 @@ Type \\<org-mode-map> & \\[org-ctrl-c-ctrl-c] in the source
 table to re-create the transposed version.
 
 Note:
- This is the 'push' mode for transposing a table.
- To use the 'pull' mode, look at the org-dblock-write:transpose function.
+ This is the \"push\" mode for transposing a table.
+ To use the \"pull\" mode, look at the org-dblock-write:transpose function.
 
 Note:
  The name `orgtbl-to-transposed-table' follows the Org Mode standard
@@ -1676,8 +1673,8 @@ and the other way around.
   this fills in the block with the transposed table
 
 Note:
- This is the 'pull' mode for transposing a table.
- To use the 'push' mode, look at the orgtbl-to-transposed-table function.
+ This is the \"pull\" mode for transposing a table.
+ To use the \"push\" mode, look at the orgtbl-to-transposed-table function.
 
 Note:
  The name `org-dblock-write:transpose' is constrained

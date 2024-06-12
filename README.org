@@ -1660,6 +1660,7 @@ Contributors
   double width Japanese characters (string-width vs. length)
 - Kevin Brubeck Unhammer, ignore formatting cookies
 - Tilmann Singer, more flexibility in duration format
+- Piotr Panasiuk, =#+CAPTION:= and any tags survive
 
 * Changes
 - Wizard now correctly asks for columns with =$1, $2...= names
@@ -1679,7 +1680,7 @@ Contributors
 - Document Melpa installation
 - Support quoting of column names, like "a.b" or 'c/d'
 - Disable =\_{}= escape
-- =#.NAME:= inside =#.BEGIN:= survives
+- =#+NAME:= inside =#+BEGIN:= survives
 - Missing input cells handled as empty ones
 - Back-port Org Mode =9.4= speed up
 - Increase performance when inserting result into the buffer
@@ -1702,6 +1703,7 @@ Contributors
 - Follow Org Mode way of handling Calc settings in Lisp code
 - Hours in durations are no longer restricted to 2 digits
 - 3x speedup =org-table-to-lisp= and avoid Emacs 27 to 30 incompatibilities
+- =#+CAPTION:= and any other tag survive inside =#+BEGIN:=
 
 * License
 Copyright (C) 2013-2024  Thierry Banel

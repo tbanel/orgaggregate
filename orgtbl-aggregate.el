@@ -1435,10 +1435,10 @@ Note:
 	     (let ((case-fold-search t))
 	       (string-match
 		(rx bos
-                    (* (any " \t"))
-                    (group "#+" (? "tbl") "name:" (* not-newline)))
+                    (+
+                     (* (any " \t")) "#+" (* not-newline) "\n"))
 		content)))
-	(insert (match-string 1 content) "\n"))
+	(insert (match-string 0 content)))
     (orgtbl-aggregate--insert-elisp-table
      (orgtbl-aggregate--post-process
       (orgtbl-aggregate--create-table-aggregated

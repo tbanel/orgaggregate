@@ -859,6 +859,7 @@ Note: header is 2 lines tall
 
 The double transposition is identical to the original "amx" table,
 including horizontal lines
+
 * Test funny column names
 Name of columns are not unnecessarily alphanumeric words.
 They need to be single or double quoted in formulas.
@@ -1320,8 +1321,6 @@ Without :cols parameter, we get all columns
 What happens without column names in the input?
 
 #+name: planetnh
-| planet  |   mass kg | dist MKM |
-|---------+-----------+----------|
 | Sun     | 1.9891e30 |        0 |
 | Mercury | 3.3022e23 |       60 |
 | Venus   | 4.8685e24 |      100 |
@@ -1334,12 +1333,12 @@ What happens without column names in the input?
 | Pluto   |   1.25e22 |     5800 |
 
 #+BEGIN: aggregate :table "planetnh" :cond (<= (string-to-number "$3") 150)
-| planet  | "mass kg" | "dist MKM" |
-|---------+-----------+------------|
-| Sun     | 1.9891e30 |          0 |
-| Mercury | 3.3022e23 |         60 |
-| Venus   | 4.8685e24 |        100 |
-| Earth   | 5.9736e24 |        150 |
+| $1      |        $2 |  $3 |
+|---------+-----------+-----|
+| Sun     | 1.9891e30 |   0 |
+| Mercury | 3.3022e23 |  60 |
+| Venus   | 4.8685e24 | 100 |
+| Earth   | 5.9736e24 | 150 |
 #+END:
 
 * Test custom column names
@@ -1578,3 +1577,26 @@ headers.
 | quantity | <r7> | kiom   |   |     72 |    55 |     80 |    19 |     4 |     58 |     22 |      7 |  71 |   56 |  52 |     35 |     23 |   93 |    82 |
 | level    | <3>  | nivelo |   |      3 |     0 |      0 |     6 |     4 |      5 |      4 |      4 |   3 |    3 |   5 |      0 |      0 |    4 |     2 |
 #+END:
+
+* 1st data row is not the header
+When the input table does not have a header,
+the first data row should not be mistaken with a header.
+
+#+name: missing-header
+| a | 12 | 33 |
+| c | 13 | 12 |
+| x | 14 | 12 |
+| y | 15 | 45 |
+| z |  7 |  7 |
+
+#+BEGIN: aggregate :table "missing-header" :cols "$1" :cond (equal $3 "12")
+| $1 |
+|----|
+| c  |
+| x  |
+#+END:
+
+In case of a mistake, the result is:
+| $1 |
+|----|
+| z  |

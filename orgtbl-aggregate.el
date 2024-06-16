@@ -309,21 +309,20 @@ otherwise nil is returned."
 	 (and err (user-error "Empty column name")))
 	((equal colname "hline")
 	 0)
-	((string-match "^\\$\\([0-9]+\\)$" colname)
+	((string-match (rx bol "$" (group (+ (any "0-9"))) eol) colname)
 	 (let ((n (string-to-number (match-string 1 colname))))
 	   (if (<= n (length (car table)))
 	       n
 	     (if err
 		 (user-error "Column %s outside table" colname)))))
-	(t
-	 (or
+	((and
+          (memq 'hline table)
 	  (cl-loop
 	   for h in (car table)
 	   for i from 1
-	   thereis (and (equal h colname) i))
-	  (and
-	   err
-	   (user-error "Column %s not found in table" colname))))))
+	   thereis (and (equal h colname) i))))
+        (err
+	 (user-error "Column %s not found in table" colname))))
 
 (defun orgtbl-aggregate--insert-make-spaces (n spaces-cache)
   "Make a string of N spaces.

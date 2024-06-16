@@ -30,7 +30,7 @@ A very simple example. We have a table of activities and quantities
 #+END_EXAMPLE
 
 To begin with we want to gather all colors and count how many times
-they appear. We are interested only in the second column named =Color=.
+they appear. We are interested only in the second column named =Color=
 
 First we give a name to the table through the =#+NAME:=
 or =#+TBLNAME:= tags, just above the table.
@@ -210,7 +210,9 @@ If a single string is used, it is split by spaces. Thus, a given
 formula, including its semicolon and modifiers, must not contain any
 space. If spaces are required within a formula, then use the
 parenthesis list. If a column name has spaces, quote it like this:
-~'yellow submarine'~.
+#+BEGIN_EXAMPLE
+  'yellow submarine'
+#+END_EXAMPLE
 
 * Grouping specifications in :cols
 
@@ -516,7 +518,7 @@ many other aggregations. They are based on functions provided by Calc:
 
 - =median(X)= or =vmedian(X)=
   + in Calc: =`H u M' (`calc-vector-median') [`vmedian']=
-  + computes the median of elements being aggregated, by taken the middle element after sorting them
+  + computes the median of elements being aggregated, by taking the middle element after sorting them
 
 - =hmean(X)= or =vhmean(X)=
   + in Calc: =`H I u M' (`calc-vector-harmonic-mean') [`vhmean']=
@@ -770,11 +772,11 @@ Examples of useful expressions includes:
   + to keep only rows for which =2.5*Level > Quantity=
 
 Beware with this example: =:cond (equal Color "Red")=. The input table
-should not have a column named ="Red",= otherwised the condition will mean:
-/"keep only rows with the same value in columns =Color= and =Red="/
+should not have a column named =Red=, otherwised the condition will mean:
+/keep only rows with the same value in columns Color and Red/
 
 As a special case, when =:cols= parameter is not given, the result is
-the same as =:cols "COL1 COL2 COL3..."=. All columns in the input
+the same as =:cols "COL1 COL2 COL3...".= All columns in the input
 table are specified as key columns, and output in the resulting table.
 
 This is useful when just filtering. But be aware that aggregation
@@ -1086,7 +1088,11 @@ have 3 durations as input, and we want the average of them:
   after dot)
 
 The Calc syntax for durations is also recognized:
-HH@ MM' or HH@ MM' SS". Example:
+#+BEGIN_EXAMPLE
+HH@ MM'
+HH@ MM' SS"
+#+END_EXAMPLE
+Example:
 
 #+BEGIN_EXAMPLE
 #+name: calc_durations
@@ -1619,8 +1625,13 @@ Emacs package on Melpa: add the following lines to your =.emacs= file,
 and reload it.
 
 #+BEGIN_EXAMPLE
-(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
+(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
 (package-initialize)
+#+END_EXAMPLE
+
+You may also customize this variable:
+#+BEGIN_EXAMPLE
+M-x customize-variable package-archives
 #+END_EXAMPLE
 
 Then browse the list of available packages and install =orgtbl-aggregate=

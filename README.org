@@ -1672,6 +1672,7 @@ Contributors
 - Kevin Brubeck Unhammer, ignore formatting cookies
 - Tilmann Singer, more flexibility in duration format
 - Piotr Panasiuk, =#+CAPTION:= and any tags survive
+- Luis Miguel Hernanz, fix regex bug
 
 * Changes
 - Wizard now correctly asks for columns with =$1, $2...= names

@@ -224,7 +224,7 @@ An horizontal line is translated as the special symbol `hline'."
       (save-excursion
 	(goto-char loc)
 	(forward-char 1)
-	(unless (and (re-search-forward "^\\(\\*+ \\)\\|[ \t]*|" nil t)
+	(unless (and (re-search-forward "^\\(\\*+ \\)\\|^[ \t]*|" nil t)
 		     (not (match-beginning 1)))
 	  (user-error "Cannot find a table at NAME or ID %s" name-or-id))
 	(orgtbl-aggregate--table-to-lisp)))))

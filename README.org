@@ -1717,8 +1717,8 @@ Contributors
 - 3x speedup =org-table-to-lisp= and avoid Emacs 27 to 30 incompatibilities
 - =#+CAPTION:= and any other tag survive inside =#+BEGIN:=
 
-* License
-Copyright (C) 2013-2024  Thierry Banel
+* GPL 3 License
+Copyright (C) 2013-2025  Thierry Banel
 
 orgtbl-aggregate is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

@@ -1,6 +1,6 @@
-;;; orgtbl-aggregate.el --- Create an aggregated Org table from another one  -*- coding:utf-8; lexical-binding: t;-*-
+;;; orgtbl-aggregate.el --- Create an Org Mode aggregated table from another table  -*- coding:utf-8; lexical-binding: t;-*-
 
-;; Copyright (C) 2013-2024  Thierry Banel
+;; Copyright (C) 2013-2025  Thierry Banel
 
 ;; Authors:
 ;;   Thierry Banel tbanelwebmin at free dot fr
@@ -72,7 +72,7 @@
 ;; #+END
 ;;
 ;; A wizard can be used:
-;; M-x orgtbl-aggregate-insert-dblock-aggregate
+;; C-c C-x x aggregate
 ;;
 ;; Full documentation here:
 ;;   https://github.com/tbanel/orgaggregate/blob/master/README.org

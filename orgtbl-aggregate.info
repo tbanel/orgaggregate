@@ -1,0 +1,1884 @@
+This is orgtbl-aggregate.info, produced by makeinfo version 6.8 from
+orgtbl-aggregate.texi.
+
+
+INFO-DIR-SECTION Emacs
+START-INFO-DIR-ENTRY
+* Orgtbl Aggregate: (orgtbl-aggregate).     Create an aggregated Org table from another one
+END-INFO-DIR-ENTRY
+
+
+File: orgtbl-aggregate.info,  Node: Top,  Next: Examples,  Up: (dir)
+
+Aggregate Values in a Table
+***************************
+
+Aggregating a table is creating a new table by computing sums, averages,
+and so on, out of material from the first table.
+
+* Menu:
+
+* Examples::
+* SQL equivalent::
+* R equivalent::
+* Datamash equivalent::
+* Key-binding & Wizard::
+* Other examples::
+* Thecols parameter: The cols parameter.
+* Grouping specifications incols: Grouping specifications in cols.
+* hlines in the input table::
+* hlines in the output table::
+* Aggregation formulas incols: Aggregation formulas in cols.
+* Where Calc interpretation happens?::
+* Thecond filtering: The cond filtering.
+* Pull & Push::
+* Symbolic computation::
+* Correlation of two columns::
+* Dates::
+* Durations::
+* Arbitrary column names::
+* Multiple lines header::
+* Custom column names::
+* Empty and malformed input cells::
+* (Almost) any expression can be specified: [Almost) any expression can be specified.
+* Modifiers and formatters::
+* Sorting::
+* Discarding an output column::
+* Post-aggregation spreadsheet formulas::
+* Post processing::
+* Chaining::
+* Tricks::
+* Installation::
+* Authors, contributors: Authors contributors.
+* Changes::
+* GPL 3 License::
+
+— The Detailed Node Listing —
+
+Tricks
+
+* Sorting: Sorting (1).
+* A few lowest or highest values::
+* Span of values::
+
+
+
+File: orgtbl-aggregate.info,  Node: Examples,  Next: SQL equivalent,  Prev: Top,  Up: Top
+
+1 Examples
+**********
+
+A very simple example.  We have a table of activities and quantities
+(whatever they are) over several days.
+
+     #+NAME: original
+     | Day       | Color | Level | Quantity |
+     |-----------+-------+-------+----------|
+     | Monday    | Red   |    30 |       11 |
+     | Monday    | Blue  |    25 |        3 |
+     | Tuesday   | Red   |    51 |       12 |
+     | Tuesday   | Red   |    45 |       15 |
+     | Tuesday   | Blue  |    33 |       18 |
+     | Wednesday | Red   |    27 |       23 |
+     | Wednesday | Blue  |    12 |       16 |
+     | Wednesday | Blue  |    15 |       15 |
+     | Thursday  | Red   |    39 |       24 |
+     | Thursday  | Red   |    41 |       29 |
+     | Thursday  | Red   |    49 |       30 |
+     | Friday    | Blue  |     7 |        5 |
+     | Friday    | Blue  |     6 |        8 |
+     | Friday    | Blue  |    11 |        9 |
+
+   To begin with we want to gather all colors and count how many times
+they appear.  We are interested only in the second column named ‘Color’
+
+   First we give a name to the table through the ‘#+NAME:’ or
+‘#+TBLNAME:’ tags, just above the table.  Then we create a _dynamic
+block_ to receive the aggregation:
+
+     #+BEGIN: aggregate :table "original" :cols "Color count()"
+     #+END:
+
+   Now typing ‘C-c C-c’ in the dynamic block counts the colors in the
+original table:
+
+     #+BEGIN: aggregate :table "original" :cols "Color count()"
+     | Color | count() |
+     |-------+---------|
+     | Red   |       7 |
+     | Blue  |       7 |
+     #+END:
+
+   Org found two colors, ‘Red’ and ‘Blue’.  It found 7 occurrences for
+each.
+
+   Now we want to aggregate this table for each day (because several
+rows exist for each day).  We want the average value of the ‘Level’
+column for each day, and the sum of the ‘Quantity’ column.  We write
+down the block specifying that (later we will see how to automate the
+creation of such a block):
+
+     #+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
+     #+END
+
+   Typing ‘C-c C-c’ in the dynamic block computes the aggregation:
+
+     #+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
+     | Day       | vmean(Level) | vsum(Quantity) |
+     |-----------+--------------+----------------|
+     | Monday    |         27.5 |             14 |
+     | Tuesday   |           43 |             45 |
+     | Wednesday |           18 |             54 |
+     | Thursday  |           43 |             83 |
+     | Friday    |            8 |             22 |
+     #+END
+
+   The source table is not changed in any way.
+
+   To get this result, we specified columns in this way, after the
+‘:cols’ parameter:
+
+   • ‘Day’ : we got the same column as in the source table, except
+     entries are not duplicated.  Here ‘Day’ acts as a _key grouping
+     column_.  We may specify as many key columns as we want just by
+     naming them.  We get only one aggregated row for each different
+     combination of values of key grouping columns.
+
+   • ‘vmean(Level)’ : this instructs Org to compute the average of
+     values found in the ‘Level’ column, grouped by the same ‘Day’.
+
+   • ‘vsum(Quantity)’: Org computes the sum of values found in the
+     ‘Quantity’ column, one sum for each ‘Day’.
+
+
+File: orgtbl-aggregate.info,  Node: SQL equivalent,  Next: R equivalent,  Prev: Examples,  Up: Top
+
+2 SQL equivalent
+****************
+
+If you are familiar with SQL, you would get a similar result with the
+‘GROUP BY’ statement:
+
+     select Day, mean(Level), sum(Quantity)
+     from original
+     group by Day;
+
+
+File: orgtbl-aggregate.info,  Node: R equivalent,  Next: Datamash equivalent,  Prev: SQL equivalent,  Up: Top
+
+3 R equivalent
+**************
+
+If you are familiar with the R statistical language, you would get a
+similar result with ‘factor’ and ‘aggregate’ functions:
+
+     original <- the table as a data.frame
+     day_factor <- factor(original$Day)
+     aggregate (original$Level   , list(Day=day_factor), mean)
+     aggregate (original$Quantity, list(Day=day_factor), sum )
+
+
+File: orgtbl-aggregate.info,  Node: Datamash equivalent,  Next: Key-binding & Wizard,  Prev: R equivalent,  Up: Top
+
+4 Datamash equivalent
+*********************
+
+The command-line Datamash software operates on CSV files and can achieve
+a similar result:
+
+     datamash -H -g Day mean Level sum Quantity <original.csv
+     GroupBy(Day)  mean(Level)  sum(Quantity)
+     Monday        27.5         14
+     Tuesday       43           45
+     Wednesday     18           54
+     Thursday      43           83
+     Friday         8           22
+
+
+File: orgtbl-aggregate.info,  Node: Key-binding & Wizard,  Next: Other examples,  Prev: Datamash equivalent,  Up: Top
+
+5 Key-binding & Wizard
+**********************
+
+Type ‘C-c C-x x’ to launch a wizard for creating new _dynamic blocks_.
+Then answer ‘aggregate’ for the type of block, and follow the
+instructions.  (There are several other _dynamic blocks_ that can be
+built this way: ‘columnview’, ‘clocktable’, ‘propview’, ‘invoice’,
+‘transpose’, and any future block).
+
+   ‘C-c C-x x aggregate’ is equivalent to ‘M-x
+orgtbl-aggregate-insert-dblock-aggregate’.
+
+
+File: orgtbl-aggregate.info,  Node: Other examples,  Next: The cols parameter,  Prev: Key-binding & Wizard,  Up: Top
+
+6 Other examples
+****************
+
+Maybe we are just interested in the sum of ‘Quantities’, regardless of
+‘Days’.  We just type:
+
+     #+BEGIN: aggregate :table "original" :cols "vsum(Quantity)"
+     | vsum(Quantity) |
+     |----------------|
+     |            218 |
+     #+END
+
+   Or we may want to count the number of rows for each combination of
+‘Day’ and ‘Color’:
+
+     #+BEGIN: aggregate :table "original" :cols "count() Day Color"
+     | count() | Day       | Color |
+     |---------+-----------+-------|
+     |       1 | Monday    | Red   |
+     |       1 | Monday    | Blue  |
+     |       2 | Tuesday   | Red   |
+     |       1 | Tuesday   | Blue  |
+     |       1 | Wednesday | Red   |
+     |       2 | Wednesday | Blue  |
+     |       3 | Thursday  | Red   |
+     |       3 | Friday    | Blue  |
+     #+END
+
+   If we want to get measurements for ‘Colors’ rather than ‘Days’, we
+type:
+
+     #+BEGIN: aggregate :table "original" :cols "Color vmean(Level) vsum(Quantity)"
+     | Color |  vmean(Level) | vsum(Quantity) |
+     |-------+---------------+----------------|
+     | Red   | 40.2857142857 |            144 |
+     | Blue  | 15.5714285714 |             74 |
+     #+END
+
+
+File: orgtbl-aggregate.info,  Node: The cols parameter,  Next: Grouping specifications in cols,  Prev: Other examples,  Up: Top
+
+7 The :cols parameter
+*********************
+
+The ‘:cols’ parameter lists the columns of the resulting table.  It
+contains in any order, grouping key columns and aggregation formulas.
+
+   The names of the columns in the original table may be:
+   • the names as they appear in the header of the source table,
+   • or ‘$1’, ‘$2’, ‘$3’ and so on (as in spreadsheet formulas),
+   • additionally, the special column ‘hline’ is used to group parts of
+     the source table separated by horizontal lines.
+
+   The ‘:cols’ parameter may be a string or a list of strings.
+Examples:
+     :cols "Day vmean(Level);f3 vsum(Quantity);f2"
+     :cols ("Day" "vmean(Level);f3" "vsum(Quantity);f2")
+
+   If a single string is used, it is split by spaces.  Thus, a given
+formula, including its semicolon and modifiers, must not contain any
+space.  If spaces are required within a formula, then use the
+parenthesis list.  If a column name has spaces, quote it like this:
+     'yellow submarine'
+
+
+File: orgtbl-aggregate.info,  Node: Grouping specifications in cols,  Next: hlines in the input table,  Prev: The cols parameter,  Up: Top
+
+8 Grouping specifications in :cols
+**********************************
+
+Grouping is done on columns of the source table acting as key columns.
+Just name the key columns.
+
+   Additionally, the ‘hline’ specification means that rows between two
+horizontal lines should be grouped.
+
+   Key columns and ‘hline’ are used to group rows of the source table
+with unique combinations of those columns.
+
+
+File: orgtbl-aggregate.info,  Node: hlines in the input table,  Next: hlines in the output table,  Prev: Grouping specifications in cols,  Up: Top
+
+9 hlines in the input table
+***************************
+
+hline = "horizontal line"
+
+   Here is a source table containing 3 blocks separated by horizontal
+lines:
+
+     #+NAME: originalhl
+     | Color | Level | Quantity |
+     |-------+-------+----------|
+     | Red   |    30 |       11 |
+     | Blue  |    25 |        3 |
+     | Red   |    51 |       12 |
+     | Red   |    45 |       15 |
+     | Blue  |    33 |       18 |
+     |-------+-------+----------|
+     | Red   |    27 |       23 |
+     | Blue  |    12 |       16 |
+     | Blue  |    15 |       15 |
+     | Red   |    39 |       24 |
+     | Red   |    41 |       29 |
+     |-------+-------+----------|
+     | Red   |    49 |       30 |
+     | Blue  |     7 |        5 |
+     | Blue  |     6 |        8 |
+     | Blue  |    11 |        9 |
+
+   And here is the aggregation by those 3 blocks:
+
+     #+BEGIN: aggregate :table originalhl :cols "hline vmean(Level) vsum(Quantity)"
+     | hline | vmean(Level) | vsum(Quantity) |
+     |-------+--------------+----------------|
+     |     0 |         36.8 |             59 |
+     |     1 |         26.8 |            107 |
+     |     2 |        18.25 |             52 |
+     #+END:
+
+   If we want additional details with the ‘Color’ column, we just name
+it:
+
+     #+BEGIN: aggregate :table originalhl :cols "hline Color vmean(Level) vsum(Quantity)"
+     | hline | Color |  vmean(Level) | vsum(Quantity) |
+     |-------+-------+---------------+----------------|
+     |     0 | Red   |            42 |             38 |
+     |     0 | Blue  |            29 |             21 |
+     |     1 | Red   | 35.6666666667 |             76 |
+     |     1 | Blue  |          13.5 |             31 |
+     |     2 | Red   |            49 |             30 |
+     |     2 | Blue  |             8 |             22 |
+     #+END:
+
+   There is an ugly value, ‘35.6666666667’, in the middle of the table.
+See later how to format it.
+
+
+File: orgtbl-aggregate.info,  Node: hlines in the output table,  Next: Aggregation formulas in cols,  Prev: hlines in the input table,  Up: Top
+
+10 hlines in the output table
+*****************************
+
+Example of an input table containing 3 hlines:
+
+     #+name: withhline
+     | cölØr  | vâluε | ra;han |
+     |--------+-------+--------|
+     | Red    |   1.3 |     41 |
+     | Red    |   3.5 |     35 |
+     | Yellow |   9.1 |     95 |
+     | Red    |   2.6 |     84 |
+     |--------+-------+--------|
+     | Blue   |   8.7 |     52 |
+     | Blue   |   7.0 |     29 |
+     | Yellow |   5.4 |     17 |
+     |--------+-------+--------|
+     | Blue   |   4.9 |     64 |
+     | Red    |   3.9 |     51 |
+     | Yellow |   2.4 |     55 |
+     | Yellow |   6.6 |     34 |
+     |--------+-------+--------|
+     | Red    |   1.1 |     58 |
+     | Yellow |   3.4 |     51 |
+
+   With the ‘:hline 1’ parameter, we get back the original hlines.
+Without this parameter, the resulting table would have no hlines.
+
+     #+BEGIN: aggregate :table "withhline" :cols "cölØr vâluε 'ra;han'" :hline 1
+     | cölØr  | vâluε | 'ra;han' |
+     |--------+-------+----------|
+     | Red    |   1.3 |       41 |
+     | Red    |   3.5 |       35 |
+     | Yellow |   9.1 |       95 |
+     | Red    |   2.6 |       84 |
+     |--------+-------+----------|
+     | Blue   |   8.7 |       52 |
+     | Blue   |   7.0 |       29 |
+     | Yellow |   5.4 |       17 |
+     |--------+-------+----------|
+     | Blue   |   4.9 |       64 |
+     | Red    |   3.9 |       51 |
+     | Yellow |   2.4 |       55 |
+     | Yellow |   6.6 |       34 |
+     |--------+-------+----------|
+     | Red    |   1.1 |       58 |
+     | Yellow |   3.4 |       51 |
+     #+END:
+
+   This example is a shorthand for this one, where an explicit ‘hline’
+column is requested, then discarded with ‘<>’:
+
+     #+BEGIN: aggregate :table "withhline" :cols "hline;^n;<> cölØr vâluε 'ra;han'" :hline 1
+     | cölØr  | vâluε | 'ra;han' |
+     |--------+-------+----------|
+     | Red    |   1.3 |       41 |
+     | Red    |   3.5 |       35 |
+     | Yellow |   9.1 |       95 |
+     | Red    |   2.6 |       84 |
+     |--------+-------+----------|
+     | Blue   |   8.7 |       52 |
+     | Blue   |   7.0 |       29 |
+     | Yellow |   5.4 |       17 |
+     |--------+-------+----------|
+     | Blue   |   4.9 |       64 |
+     | Red    |   3.9 |       51 |
+     | Yellow |   2.4 |       55 |
+     | Yellow |   6.6 |       34 |
+     |--------+-------+----------|
+     | Red    |   1.1 |       58 |
+     | Yellow |   3.4 |       51 |
+     #+END:
+
+   Actually, output hlines are not limited to input ones.  They may
+appear on the major sorted column.  In this example, the ‘cölØr’ column
+is sorted, and we require output hlines with ‘:hline 1’.  Then hlines
+will separate blocks of identical ‘cölØr’ rows:
+
+     #+BEGIN: aggregate :table "withhline" :cols "cölØr;^a vâluε 'ra;han'" :hline 1
+     | cölØr  | vâluε | 'ra;han' |
+     |--------+-------+----------|
+     | Blue   |   8.7 |       52 |
+     | Blue   |   7.0 |       29 |
+     | Blue   |   4.9 |       64 |
+     |--------+-------+----------|
+     | Red    |   1.3 |       41 |
+     | Red    |   3.5 |       35 |
+     | Red    |   2.6 |       84 |
+     | Red    |   3.9 |       51 |
+     | Red    |   1.1 |       58 |
+     |--------+-------+----------|
+     | Yellow |   9.1 |       95 |
+     | Yellow |   5.4 |       17 |
+     | Yellow |   2.4 |       55 |
+     | Yellow |   6.6 |       34 |
+     | Yellow |   3.4 |       51 |
+     #+END:
+
+   In this previous example, output hlines are unrelated to input ones.
+
+   The ‘:hline’ parameter may be ‘2’.  It means that two sorted columns
+will be looked at when deciding to put an hline.  In the following
+example, the two sorted columns are ‘hline’ and ‘cölØr’.  Therefore
+output hlines separate blocks of identical ‘hline’ and ‘cölØr’:
+
+     #+BEGIN: aggregate :table "withhline" :cols "hline;^n cölØr;^a vâluε 'ra;han'" :hline 2
+     | hline | cölØr  | vâluε | 'ra;han' |
+     |-------+--------+-------+----------|
+     |     0 | Red    |   1.3 |       41 |
+     |     0 | Red    |   3.5 |       35 |
+     |     0 | Red    |   2.6 |       84 |
+     |-------+--------+-------+----------|
+     |     0 | Yellow |   9.1 |       95 |
+     |-------+--------+-------+----------|
+     |     1 | Blue   |   8.7 |       52 |
+     |     1 | Blue   |   7.0 |       29 |
+     |-------+--------+-------+----------|
+     |     1 | Yellow |   5.4 |       17 |
+     |-------+--------+-------+----------|
+     |     2 | Blue   |   4.9 |       64 |
+     |-------+--------+-------+----------|
+     |     2 | Red    |   3.9 |       51 |
+     |-------+--------+-------+----------|
+     |     2 | Yellow |   2.4 |       55 |
+     |     2 | Yellow |   6.6 |       34 |
+     |-------+--------+-------+----------|
+     |     3 | Red    |   1.1 |       58 |
+     |-------+--------+-------+----------|
+     |     3 | Yellow |   3.4 |       51 |
+     #+END:
+
+   And the ‘hline’ column may be discarded (but its side effect
+remains).  To do so use the ‘;<>’ specifier:
+
+     #+BEGIN: aggregate :table "withhline" :cols "hline;^n;<> cölØr;^a vâluε 'ra;han'" :hline 2
+     | cölØr  | vâluε | 'ra;han' |
+     |--------+-------+----------|
+     | Red    |   1.3 |       41 |
+     | Red    |   3.5 |       35 |
+     | Red    |   2.6 |       84 |
+     |--------+-------+----------|
+     | Yellow |   9.1 |       95 |
+     |--------+-------+----------|
+     | Blue   |   8.7 |       52 |
+     | Blue   |   7.0 |       29 |
+     |--------+-------+----------|
+     | Yellow |   5.4 |       17 |
+     |--------+-------+----------|
+     | Blue   |   4.9 |       64 |
+     |--------+-------+----------|
+     | Red    |   3.9 |       51 |
+     |--------+-------+----------|
+     | Yellow |   2.4 |       55 |
+     | Yellow |   6.6 |       34 |
+     |--------+-------+----------|
+     | Red    |   1.1 |       58 |
+     |--------+-------+----------|
+     | Yellow |   3.4 |       51 |
+     #+END:
+
+   The ‘:hline’ parameter accepts a number:
+   • ‘:hline 0’, ‘:hline no’, ‘:hline nil’, or no ‘:hline’ mean that
+     there will be no hlines in the output.
+   • ‘:hline 1’, ‘:hline yes’, ‘:hline t’ mean that hlines will separate
+     blocks of identical rows regarding the major sorted column.  In
+     case no column is sorted, then output hlines will reflect input
+     ones.
+   • ‘:hline 2’ means that the major and the next major sorted columns
+     will be used to separate identical rows regarding those two
+     columns.
+   • ‘:hline 3’, ‘:hline 4’, ... may be specified, but they may result
+     in too much hlines.
+
+
+File: orgtbl-aggregate.info,  Node: Aggregation formulas in cols,  Next: Where Calc interpretation happens?,  Prev: hlines in the output table,  Up: Top
+
+11 Aggregation formulas in :cols
+********************************
+
+Aggregation formulas are applied for each of those groupings, on the
+specified columns.
+
+   We saw examples with ‘sum’, ‘mean’, ‘count’ aggregations.  There are
+many other aggregations.  They are based on functions provided by Calc:
+
+   • ‘count()’ or ‘vcount()’
+        • in Calc: ‘`u #' (`calc-vector-count') [`vcount'])’
+        • gives the number of elements in the group being aggregated;
+          this function may or may not take a column parameter; with a
+          parameter, empty cells are not counted (except with the ‘E’
+          modifier)..
+
+   • ‘sum(X)’ or ‘vsum(X)’
+        • in Calc: ‘`u +' (`calc-vector-sum') [`vsum']’
+        • computes the sum of elements being aggregated
+
+   • ‘cnorm(X)’
+        • in Calc: ‘`v N' (calc-cnorm') [`cnorm']’
+        • like ‘vsum(X)’, compute the sum of values, but first replacing
+          negative values by their opposite
+
+   • ‘max(X)’ or ‘vmax(X)’
+        • in Calc: ‘`u X' (`calc-vector-max') [`vmax']’
+        • gives the largest of the elements being aggregated
+
+   • ‘min(X)’ or ‘vmin(X)’
+        • in Calc: ‘`u N' (`calc-vector-min') [`vmin']’
+        • gives the smallest of the elements being aggregated
+
+   • ‘span(X)’ or ‘vspan(X)’
+        • in Calc: ‘`v :' (`calc-set-span') [`vspan']’
+        • summarizes values to be aggregated into an interval
+          ‘[MIN..MAX]’ where ‘MIN’ and ‘MAX’ are the minimal and maximal
+          values to be aggregated
+
+   • ‘rnorm(X)’
+        • in Calc: ‘`v n' (`calc-rnorm) [`rnorm']’
+        • like ‘vmax(X)’, gives the maximum of values, but first
+          replacing negative values by their opposite
+
+   • ‘mean(X)’ or ‘vmean(X)’
+        • in Calc: ‘`u M' (`calc-vector-mean') [`vmean']’
+        • computes the average (arithmetic mean) of elements being
+          aggregated
+
+   • ‘meane(X)’ or ‘vmeane(X)’
+        • in Calc: ‘`I u M' (`calc-vector-mean-error') [`vmeane']’
+        • computes the average (as mean) along with the estimated error
+          of elements being aggregated
+
+   • ‘median(X)’ or ‘vmedian(X)’
+        • in Calc: ‘`H u M' (`calc-vector-median') [`vmedian']’
+        • computes the median of elements being aggregated, by taking
+          the middle element after sorting them
+
+   • ‘hmean(X)’ or ‘vhmean(X)’
+        • in Calc: ‘`H I u M' (`calc-vector-harmonic-mean') [`vhmean']’
+        • computes the harmonic mean of elements being aggregated
+
+   • ‘gmean(X)’ or ‘vgmean(X)’
+        • in Calc: ‘`u G' (`calc-vector-geometric-mean') [`vgmean']’
+        • computes the geometric mean of elements being aggregated
+
+   • ‘sdev(X)’ or ‘vsdev(X)’
+        • in Calc: ‘`u S' (`calc-vector-sdev') [`vsdev']’
+        • computes the standard deviation of elements being aggregated
+
+   • ‘psdev(X)’ or ‘vpsdev(X)’
+        • in Calc: ‘`I u S' (`calc-vector-pop-sdev') [`vpsdev']’
+        • computes the population standard deviation (divide by N
+          instead of N-1)
+
+   • ‘var(X)’ or ‘vvar(X)’
+        • in Calc: ‘`H u S' (`calc-vector-variance') [`vvar']’
+        • computes the variance of elements being aggregated
+
+   • ‘pvar(X)’ or ‘vpvar(X)’
+        • in Calc: ‘`H u S' (`calc-vector-variance') [`vpvar']’
+        • computes the population variance of elements being aggregated
+
+   • ‘pcov(X,Y)’ or ‘vpcov(X,Y)’
+        • in Calc: ‘`I u C' (`calc-vector-pop-covariance') [`vpcov']’
+        • computes the population covariance of elements being
+          aggregated from two columns (divides by N)
+
+   • ‘cov(X,Y)’ or ‘vcov(X,Y)’
+        • in Calc: ‘`u C' (`calc-vector-covariance') [`vcov']’
+        • computes the sample covariance of elements being aggregated
+          from two columns (divides by N-1)
+
+   • ‘corr(X,Y)’ or ‘vcorr(X,Y)’
+        • in Calc: ‘`H u C' (`calc-vector-correlation') [`vcorr']’
+        • computes the linear correlation coefficient of elements being
+          aggregated in two columns
+
+   • ‘prod(X)’ or ‘vprod(X)’
+        • in Calc: ‘`u *' (`calc-vector-product') [`vprod']’
+        • computes the product of elements being aggregated
+
+   • ‘vlist(X)’ or ‘list(X)’
+        • gives the list of ‘X’ being aggregated, verbatim, without
+          aggregation.
+
+   • ‘(X)’ or ‘X’ in a formula
+        • returns the list of ‘X’ being aggregated, without aggregation,
+          passed through Calc interpretation.
+
+   • ‘sort(X)’
+        • in Calc: ‘`v S' (`calc-sort') [`sort']’
+        • sorts elements to be aggregated in ascending order; only works
+          on numerical values
+
+   • ‘rsort(X)’
+        • in Calc: ‘`I v S' (`calc-sort') [`sort']’
+        • sorts elements to be aggregated in descending order; only
+          works on numerical values
+
+   • ‘rev(X)’
+        • in Calc: ‘`' (`calc-reverse-vector') [`rev']’
+        • returns the list of values to be aggregated in reverse order
+
+   • ‘subvec(X,from)’, ‘subvec(X,from,to)’
+        • in Calc: ‘`v s' (`calcFunc-subvec') [`subvec']’
+        • extracts a sub-list from ‘X’ starting at ‘from’ and ending at
+          ‘to’ excluded (or up to the end if ‘to’ is not given).  The
+          first value is numbered ‘1’.  So for instance ‘subvec(X,1,3)’
+          extracts the first two values
+
+   • ‘vmask(M,X)’
+        • in Calc: ‘`v m' (`calcFunc-vmask') [`vmask']’
+        • extracts a sub-list from ‘X’, keeping only values for which
+          correponding values in ‘M’ (the mask) are not zero
+
+   • ‘head(X)’
+        • in Calc: ‘`v h' (`calc-head') [`head']’
+        • returns the first value to be aggregated
+
+   • ‘rtail(X)’
+        • in Calc: ‘`H I v h' (`calc-head') [`rtail']’
+        • returns the last value to be aggregated
+
+   • ‘find(X,val)’
+        • in Calc: ‘`v f' (`calc-vector-find') [`find']’
+        • returns the index of ‘val’ in the list of values to be
+          aggregated, or ‘0’ if ‘val’ is not found.  Index starts from
+          ‘1’
+
+   • ‘rdup(X)’
+        • in Calc: ‘`v +' (`calc-remove-duplicates') [`rdup']’
+        • remove duplicates from ‘X’ and returns remaining values sorted
+          in ascending order
+
+   • ‘grade(X)’
+        • in Calc: ‘`v G' (`calc-grade') [`grade']’
+        • returns a list of index of values to be aggregated: the index
+          of the lowest value, then the second lowest value, and so on
+          up to the index of the highest value.  Indexes start from ‘1’
+
+   • ‘rgrade(X)’
+        • in Calc: ‘`I v G' (`calc-grade') [`rgrade']’
+        • Like ‘grade’ in reverse order
+
+   The aggregation functions may be written with or without a leading
+‘v’.  ‘sum’ and ‘vsum’ are equivalent.  The ‘v’ form should be
+preferred, as it is the one used in the Org table spreadsheet, and in
+Calc.  The non-v names may be dropped in the future.
+
+
+File: orgtbl-aggregate.info,  Node: Where Calc interpretation happens?,  Next: The cond filtering,  Prev: Aggregation formulas in cols,  Up: Top
+
+12 Where Calc interpretation happens?
+*************************************
+
+*Calc* is the standard Emacs desktop calculator.  Actual mathematical
+computations are handled through Calc.  This offers a lot of
+flexibility.
+
+   Example of input table.  Besides numbers, there are cells with
+mathematical expressions like ‘20*30’, or just labels as ‘Red&Green’
+without any mathematical meaning.
+
+     #+name: to_Calc_or_not_to_Calc
+     | Day       | Color      | Level  |
+     |-----------+------------+--------|
+     | Monday    | Red        | 20*30  |
+     | Monday    | Blue       | 55+45  |
+     | Tuesday   | Red        | 1      |
+     | Tuesday   | Red&Green  | 2      |
+     | Tuesday   | Blue+Green | 3      |
+     | Wednesday | Red        | (27)   |
+     | Wednesday | Red        | (12+1) |
+     | Wednesday | Green      | [15]   |
+
+   Basically, Calc operates twice.  For example in the formula
+‘vsum(Level)’:
+   • Calc computes ‘Level’ for every input cell in the ‘Level’ column,
+   • then Calc computes ‘vsum()’ applied to the resulting list.
+
+     #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day vsum(Level)"
+     | Day       | vsum(Level) |
+     |-----------+-------------|
+     | Monday    |         700 |
+     | Tuesday   |           6 |
+     | Wednesday |          55 |
+     #+END:
+
+   There are a few occasions were Calc computation does not happen:
+‘vcount()’ and ‘vlist(X)’.
+
+   The ‘vcount()’ sub-formula is evaluated as the number of input rows
+in each group, without Calc intervention.  However, later on Calc can
+handle this number in a formula as this one: ‘vsum(Level)/vcount()’
+
+     #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day vcount() vsum(Level)/vcount()"
+     | Day       | vcount() | vsum(Level)/vcount() |
+     |-----------+----------+----------------------|
+     | Monday    |        2 |                  350 |
+     | Tuesday   |        3 |                    2 |
+     | Wednesday |        3 |            18.333333 |
+     #+END:
+
+   And of course when input cells do not have a mathematical meaning,
+the result is non-sens:
+
+     #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day vsum(Color)"
+     | Day       | vsum(Color)                                    |
+     |-----------+------------------------------------------------|
+     | Monday    | Red + Blue                                     |
+     | Tuesday   | Red + error(3, '"Syntax error") + Blue + Green |
+     | Wednesday | 2 Red + Green                                  |
+     #+END:
+
+   The ‘vlist(X)’ formula is not handled by Calc at all.  This formula
+must appear alone (not embedded as part of a bigger formula).  The cells
+‘X’ are not interpreted by Calc.  As a result, ‘vlist(X)’ produces a
+cell which concatenates input cells verbatim.  For instance, the input
+cell ‘20*30’ is left as-is.
+
+     #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day vlist(Color) vlist(Level)"
+     | Day       | vlist(Color)               | vlist(Level)       |
+     |-----------+----------------------------+--------------------|
+     | Monday    | Red, Blue                  | 20*30, 55+45       |
+     | Tuesday   | Red, Red&Green, Blue+Green | 1, 2, 3            |
+     | Wednesday | Red, Red, Green            | (27), (12+1), [15] |
+     #+END:
+
+   As a contrast, the formula ‘(Level)’ yields a list processed through
+Calc.  For instance, the ‘20*30’ formula is replaced by ‘600’.
+
+     #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day (Color) (Level)"
+     | Day       | (Color)                                        | (Level)        |
+     |-----------+------------------------------------------------+----------------|
+     | Monday    | [Red, Blue]                                    | [600, 100]     |
+     | Tuesday   | [Red, error(3, '"Syntax error"), Blue + Green] | [1, 2, 3]      |
+     | Wednesday | [Red, Red, Green]                              | [27, 13, [15]] |
+     #+END:
+
+   Here we used parenthesis in ‘(Color)’ and ‘(Level)’ because otherwise
+they would have been _key columns_.  Instead of parenthesis, we can
+embed such expressions in formulas, like ‘Level+1’:
+
+     #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day Level+1"
+     | Day       | Level+1        |
+     |-----------+----------------|
+     | Monday    | [601, 101]     |
+     | Tuesday   | [2, 3, 4]      |
+     | Wednesday | [28, 14, [16]] |
+     #+END:
+
+   To summarize, a column name embedded in a formula is evaluated as the
+list of input cells, processed by Calc.  Except for the ‘vlist(Column)’
+formula where input cells are kept verbatim.
+
+   By the way, what is the meaning of the expression ‘Level*Level’?  For
+‘Monday’, it is ‘[600,100]*[600,100]’.  Then Calc simplifies that as a
+_vector product_: sum of individual products.  ‘600^2+100^2’
+
+     #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day Level*Level Level+Level"
+     | Day       | Level*Level | Level+Level    |
+     |-----------+-------------+----------------|
+     | Monday    |      370000 | [1200, 200]    |
+     | Tuesday   |          14 | [2, 4, 6]      |
+     | Wednesday |        1123 | [54, 26, [30]] |
+     #+END:
+
+
+File: orgtbl-aggregate.info,  Node: The cond filtering,  Next: Pull & Push,  Prev: Where Calc interpretation happens?,  Up: Top
+
+13 The :cond filtering
+**********************
+
+This parameter is optional.  If present, it specifies a lisp expression
+which tells whether or not a row should be kept.  When the expression
+evaluates to nil, the row is discarded.
+
+   Examples of useful expressions includes:
+   • ‘:cond (equal Color "Red")’
+        • to keep only rows where ‘Color’ is ‘Red’
+   • ‘:cond (> (string-to-number Quantity) 19)’
+        • to keep only rows for which ‘Quantity’ is more than ‘19’
+        • note the call to ‘string-to-number’; without this call,
+          ‘Quantity’ would be used as a string
+   • ‘:cond (> (* (string-to-number Level) 2.5) (string-to-number
+     Quantity))’
+        • to keep only rows for which ‘2.5*Level > Quantity’
+
+   Beware with this example: ‘:cond (equal Color "Red")’.  The input
+table should not have a column named ‘Red’, otherwised the condition
+will mean: _keep only rows with the same value in columns Color and Red_
+
+   As a special case, when ‘:cols’ parameter is not given, the result is
+the same as ‘:cols "COL1 COL2 COL3...".’ All columns in the input table
+are specified as key columns, and output in the resulting table.
+
+   This is useful when just filtering.  But be aware that aggregation
+still occurs.  So duplicate input rows appear only once in the result.
+
+
+File: orgtbl-aggregate.info,  Node: Pull & Push,  Next: Symbolic computation,  Prev: The cond filtering,  Up: Top
+
+14 Pull & Push
+**************
+
+Two modes are available: _pull_ & _push_.
+
+   In the _pull_ mode, we use so called "dynamic blocks".  The resulting
+table knows how to build itself.  Example:
+
+   We have a source table which is unaware that it will be derived in an
+aggregated table:
+
+     #+NAME: source1
+     | Day       | Color | Level | Quantity |
+     |-----------+-------+-------+----------|
+     | Monday    | Red   |    30 |       11 |
+     | Monday    | Blue  |    25 |        3 |
+     | Tuesday   | Red   |    51 |       12 |
+     | Tuesday   | Red   |    45 |       15 |
+     | Tuesday   | Blue  |    33 |       18 |
+     | Wednesday | Red   |    27 |       23 |
+     | Wednesday | Blue  |    12 |       16 |
+     | Wednesday | Blue  |    15 |       15 |
+     | Thursday  | Red   |    39 |       24 |
+     | Thursday  | Red   |    41 |       29 |
+     | Thursday  | Red   |    49 |       30 |
+     | Friday    | Blue  |     7 |        5 |
+     | Friday    | Blue  |     6 |        8 |
+     | Friday    | Blue  |    11 |        9 |
+
+   We create somewhere else a _dynamic block_ which carries the
+specification of the aggregation:
+
+     #+BEGIN: aggregate :table "source1" :cols "Day vmean(Level) vsum(Quantity)"
+     | Day       | vmean(Level) | vsum(Quantity) |
+     |-----------+--------------+----------------|
+     | Monday    |         27.5 |             14 |
+     | Tuesday   |           43 |             45 |
+     | Wednesday |           18 |             54 |
+     | Thursday  |           43 |             83 |
+     | Friday    |            8 |             22 |
+     #+END
+
+   Typing ‘C-c C-c’ in the dynamic block recomputes it freshly.
+
+   In _push_ mode, the source table drives the creation of derived
+tables.  We specify the wanted results in ‘#+ORGTBL: SEND’ directives
+(as many as desired):
+
+     #+ORGTBL: SEND derived1 orgtbl-to-aggregated-table :cols "vmean(Level) vsum(Quantity)"
+     #+ORGTBL: SEND derived2 orgtbl-to-aggregated-table :cols "Day vmean(Level) vsum(Quantity)"
+     | Day       | Color | Level | Quantity |
+     |-----------+-------+-------+----------|
+     | Monday    | Red   |    30 |       11 |
+     | Monday    | Blue  |    25 |        3 |
+     | Tuesday   | Red   |    51 |       12 |
+     | Tuesday   | Red   |    45 |       15 |
+     | Tuesday   | Blue  |    33 |       18 |
+     | Wednesday | Red   |    27 |       23 |
+     | Wednesday | Blue  |    12 |       16 |
+     | Wednesday | Blue  |    15 |       15 |
+     | Thursday  | Red   |    39 |       24 |
+     | Thursday  | Red   |    41 |       29 |
+     | Thursday  | Red   |    49 |       30 |
+     | Friday    | Blue  |     7 |        5 |
+     | Friday    | Blue  |     6 |        8 |
+     | Friday    | Blue  |    11 |        9 |
+
+   We must create the receiving blocks somewhere else in the same file:
+
+     #+BEGIN RECEIVE ORGTBL derived1
+     #+END RECEIVE ORGTBL derived1
+
+     #+BEGIN RECEIVE ORGTBL derived2
+     #+END RECEIVE ORGTBL derived2
+
+   Then we come back to the source table and type ‘C-c C-c’ with the
+cursor on the 1st pipe of the table, to refresh the derived tables:
+
+     #+BEGIN RECEIVE ORGTBL derived1
+     |  vmean(Level) | vsum(Quantity) |
+     |---------------+----------------|
+     | 27.9285714286 |            218 |
+     #+END RECEIVE ORGTBL derived1
+
+     #+BEGIN RECEIVE ORGTBL derived2
+     | Day       | vmean(Level) | vsum(Quantity) |
+     |-----------+--------------+----------------|
+     | Monday    |         27.5 |             14 |
+     | Tuesday   |           43 |             45 |
+     | Wednesday |           18 |             54 |
+     | Thursday  |           43 |             83 |
+     | Friday    |            8 |             22 |
+     #+END RECEIVE ORGTBL derived2
+
+   Pull & push modes use the same engine in the background.  Thus, using
+either is just a matter of convenience.
+
+   Glitch: in push mode you may see strange ouput like ‘\_{}’.  This is
+an escape generated by Org mode (nothing to do with orgaggregate).  It
+happens for the following characters: ‘&%#_^’ To disable that, in the
+‘#+ORGTBL: SEND’ line, add this parameter: ‘:no-escape true’
+
+
+File: orgtbl-aggregate.info,  Node: Symbolic computation,  Next: Correlation of two columns,  Prev: Pull & Push,  Up: Top
+
+15 Symbolic computation
+***********************
+
+The computations are based on Calc, which is a symbolic calculator.
+Thus, symbolic computations are built-in.  Example:
+
+   This is the source table:
+
+     #+NAME: symtable
+     | Day       | Color |  Level | Quantity |
+     |-----------+-------+--------+----------|
+     | Monday    | Red   |   30+x |     11+a |
+     | Monday    | Blue  | 25+3*x |        3 |
+     | Tuesday   | Red   | 51+2*x |       12 |
+     | Tuesday   | Red   |   45-x |       15 |
+     | Tuesday   | Blue  |     33 |       18 |
+     | Wednesday | Red   |     27 |       23 |
+     | Wednesday | Blue  |   12+x |       16 |
+     | Wednesday | Blue  |     15 |   15-6*a |
+     | Thursday  | Red   |     39 |   24-5*a |
+     | Thursday  | Red   |     41 |       29 |
+     | Thursday  | Red   |   49+x |   30+9*a |
+     | Friday    | Blue  |      7 |      5+a |
+     | Friday    | Blue  |      6 |        8 |
+     | Friday    | Blue  |     11 |        9 |
+
+   And here is the aggregated, symbolic result:
+
+     #+BEGIN: aggregate :table "symtable" :cols "Day vmean(Level) vsum(Quantity)"
+     | Day       | vmean(Level)          | vsum(Quantity) |
+     |-----------+-----------------------+----------------|
+     | Monday    | 2. x + 27.5           | a + 14         |
+     | Tuesday   | 0.333333333334 x + 43 | 45             |
+     | Wednesday | x / 3 + 18            | 54 - 6 a       |
+     | Thursday  | x / 3 + 43.           | 4 a + 83       |
+     | Friday    | 8                     | a + 22         |
+     #+END
+
+   Symbolic calculations are correctly performed on ‘x’ and ‘a’, which
+are symbolic (as opposed to numeric) expressions.
+
+   Note that if there are empty cells in the input, they will be changed
+to ‘nan’ _not a number_, and the whole aggregation will yield ‘nan’.
+This is probably not the expected result.  The ‘N’ modifier (see
+paragraph "modifiers and formatters") won’t help, because even though it
+will replace empty cells with zero, it will do the same for anything
+which does not look like a number.  The best is to just avoid empty
+cells when dealing with symbolic calculations.
+
+
+File: orgtbl-aggregate.info,  Node: Correlation of two columns,  Next: Dates,  Prev: Symbolic computation,  Up: Top
+
+16 Correlation of two columns
+*****************************
+
+Some aggregations work on two columns (rather than one column for
+‘vsum()’, ‘vmean()’).  Those aggregations are ‘vcov(,)’, ‘vpcov(,)’,
+‘vcorr(,)’.
+   • ‘vcorr(,)’ computes the linear correlation between two columns.
+   • ‘vcov(,)’ and ‘vpcov(,)’ compute the covariance of two columns.
+
+   Example.  We create a table where column ‘y’ is a noisy version of
+column ‘x’:
+
+     #+TBLNAME: noisydata
+     | bin   |  x |       y |
+     |-------+----+---------|
+     | small |  1 |  10.454 |
+     | small |  2 |  21.856 |
+     | small |  3 |  30.678 |
+     | small |  4 |  41.392 |
+     | small |  5 |  51.554 |
+     | large |  6 |  61.824 |
+     | large |  7 |  71.538 |
+     | large |  8 |  80.476 |
+     | large |  9 |  90.066 |
+     | large | 10 | 101.070 |
+     | large | 11 | 111.748 |
+     | large | 12 | 121.084 |
+     #+TBLFM: $3=$2*10+random(1000)/500;%.3f
+
+     #+BEGIN: aggregate :table noisydata :cols "bin vcorr(x,y) vcov(x,y) vpcov(x,y)"
+     | bin   |     vcorr(x,y) |     vcov(x,y) |    vpcov(x,y) |
+     |-------+----------------+---------------+---------------|
+     | small | 0.999459736649 |        25.434 |       20.3472 |
+     | large | 0.999542438688 | 46.4656666667 | 39.8277142857 |
+     #+END
+
+   We see that the correlation between ‘x’ and ‘y’ is very close to ‘1’,
+meaning that both columns are correlated.  Indeed they are, as the ‘y’
+is computed from ‘x’ with the formula ‘y = 10*x +
+noise_between_0_and_2’.
+
+
+File: orgtbl-aggregate.info,  Node: Dates,  Next: Durations,  Prev: Correlation of two columns,  Up: Top
+
+17 Dates
+********
+
+Some aggregations are possible on dates.  Example.  Here is a source
+table containing dates:
+
+     #+tblname: datetable
+     | Date                   |
+     |------------------------|
+     | [2035-12-22 Sat 09:01] |
+     | [2034-11-24 Fri 13:04] |
+     | [2030-09-24 Tue 13:54] |
+     | [2027-09-25 Sat 03:54] |
+     | [2023-02-26 Sun 16:11] |
+     | [2020-03-17 Tue 03:51] |
+     | [2018-08-21 Tue 00:00] |
+     | [2012-12-25 Tue 00:00] |
+
+   Here are the earliest and the latest dates, along with the average of
+all input dates:
+
+     #+BEGIN: aggregate :table datetable :cols "vmin(Date) vmax(Date) vmean(Date)"
+     | vmin(Date)             | vmax(Date)             | vmean(Date) |
+     |------------------------+------------------------+-------------|
+     | <2012-12-25 Tue 00:00> | <2035-12-22 Sat 09:01> |   739448.44 |
+     #+END:
+
+   The average of all dates is a number?  Actually, it is a date
+expressed as the number of days since ‘[0000-12-31 Sun 00:00]’.  To
+force a number of days to be interpreted as a date, use the ‘date()’
+function:
+
+     #+BEGIN: aggregate :table datetable :cols "date(vmean(Date))"
+     | date(vmean(Date))      |
+     |------------------------|
+     | <2025-07-16 Wed 10:29> |
+     #+END:
+
+   With the ‘date()’ function in mind, all kinds of dates handling can
+be done.  Example: the average of earliest and the latest dates is
+different from the average of all dates:
+
+     #+BEGIN: aggregate :table datetable :cols "date(vmean(vmin(Date),vmax(Date))) date(vmean(Date))"
+     | date(vmean(vmin(Date),vmax(Date))) | date(vmean(Date))      |
+     |------------------------------------+------------------------|
+     | <2024-06-23 Sun 16:30>             | <2025-07-16 Wed 10:29> |
+     #+END:
+
+   Note that ‘date()’ is not special to orgaggregate.  It can be used in
+Org Mode spreadsheet formulas.
+
+
+File: orgtbl-aggregate.info,  Node: Durations,  Next: Arbitrary column names,  Prev: Dates,  Up: Top
+
+18 Durations
+************
+
+In Org Mode spreadsheet, durations have the forms ‘HH:MM’ or ‘HH:MM:SS’.
+In orgaggregate, when an input cell have one of those two forms, it is
+converted into a number of seconds.  For instance, ‘01:00’ is converted
+into ‘3600’ and ‘00:00:07’ is converted into ‘7’.
+
+   There may be a single digit for hours, as in ‘7:12’ or more than two
+as in ‘1255:45:00’.
+
+   To output such a form, use a formatter: ‘;T’; ‘;t’, ‘;U’.  For
+example, we have 3 durations as input, and we want the average of them:
+
+     #+name: some_durations
+     |      dur |
+     |----------|
+     | 07:45:30 |
+     |    13:55 |
+     |    17:12 |
+
+     #+BEGIN: aggregate :table "some_durations" :cols "vmean(dur) vmean(dur);T vmean(dur);t vmean(dur);U"
+     | vmean(dur) | vmean(dur) | vmean(dur) | vmean(dur) |
+     |------------+------------+------------+------------|
+     |      46650 |   12:57:30 |      12.96 |      12:57 |
+     #+END:
+
+   • With no formatter, we get a number of seconds
+   • The ‘T’ formatter outputs the result as ‘HH:MM:SS’
+   • The ‘U’ formatter outputs the result as ‘HH:MM’
+   • The ‘t’ formatter converts the result into a number of hours (it
+     divides the number of seconds by 3600, and displays only two digits
+     after dot)
+
+   The Calc syntax for durations is also recognized:
+     HH@ MM'
+     HH@ MM' SS"
+   Example:
+
+     #+name: calc_durations
+     | dur        |
+     |------------|
+     | 07@ 45' 30 |
+     | 13@ 55'    |
+     | 17@ 12'    |
+
+     #+BEGIN: aggregate :table "calc_durations" :cols "vmean(dur)"
+     | vmean(dur)   |
+     |--------------|
+     | 12@ 57' 30." |
+     #+END:
+
+
+File: orgtbl-aggregate.info,  Node: Arbitrary column names,  Next: Multiple lines header,  Prev: Durations,  Up: Top
+
+19 Arbitrary column names
+*************************
+
+Column names are not necessarily alphanumeric words.  They may contain
+any characters, including spaces, quotes, +, -, whatever.  They must not
+extend on several lines thought.
+
+   Those names need to be protected with quotes (single or double
+quotes) within formulas.
+
+   Examples:
+   • ‘:cols’ "‘mean('estimated value')’"
+   • ‘:cond (equal "true color" "Red")’
+
+   Quoting is not required for
+   • ascii letters
+   • numbers
+   • underscore _, dollar $, dot .
+   • accented letters like à é
+   • greek letters like α, Ω
+   • northen letters like ø
+   • russian letters like й
+   • esperanto letters like ŭ
+   • japanese ideograms like 量
+
+   Note that in ‘:cond’ Lisp expression, only double quotes work.  This
+is because single quote in Lisp has a very special meaning.
+
+   ‘Ubuntu Mono’ font can be used for displaying aligned Japanese
+characters, although not perfectly.
+
+
+File: orgtbl-aggregate.info,  Node: Multiple lines header,  Next: Custom column names,  Prev: Arbitrary column names,  Up: Top
+
+20 Multiple lines header
+************************
+
+The header of the source table may be more than one row tall.  Only the
+first header row is used to match column names between the source table
+and the ‘:cols’ specifications.
+
+   Best effort is made to propagate additional header rows to the
+aggregated table.  This happens when the aggregated column refers to a
+single source column, either as a key column or a formula involving a
+single column.
+
+     #+name: tall-header
+     | color  | quantity |  level |
+     | <l>    |     <r7> |    <3> |
+     | kolor  |     kiom | nivelo |
+     |--------+----------+--------|
+     | yellow |       72 |      3 |
+     | green  |       55 |      5 |
+     | <c>    |          |        |
+     | orange |       80 |      2 |
+     | yellow |       13 |      1 |
+
+     #+BEGIN: aggregate :table "tall-header" :cols "color vsum(quantity);'sum' count();'nb' vsum(quantity)/vmean(level);'leveled'"
+     | color  |  sum | nb | leveled |
+     | <l>    | <r7> |    |         |
+     | kolor  | kiom |    |         |
+     |--------+------+----+---------|
+     | yellow |   85 |  2 |    42.5 |
+     | green  |   55 |  1 |      11 |
+     | orange |   80 |  1 |      40 |
+     #+END:
+
+   Note that the last aggregated column has just ‘leveled’ in its
+header.  This is because this column refers to more than one source
+columns, namely ‘quantity’ and ‘level’.
+
+   Note that in this example, there are formatting cookies:
+     <> <l> <c> <r> <7> <l7> <c7> <r7>
+
+   Data rows containing at least one cookie are ignored.  They are not
+ignored in the header.
+
+
+File: orgtbl-aggregate.info,  Node: Custom column names,  Next: Empty and malformed input cells,  Prev: Multiple lines header,  Up: Top
+
+21 Custom column names
+**********************
+
+In this example, column have names which are difficult to handle:
+
+     #+BEGIN: aggregate :table original :cols "Day vmean(Level*2) vsum(Quantity^2)"
+     | Day       | vmean(Level*2) | vsum(Quantity^2) |
+     |-----------+----------------+------------------|
+     | Monday    |             55 |              130 |
+     | Tuesday   |             86 |              693 |
+     | Wednesday |             36 |             1010 |
+     | Thursday  |             86 |             2317 |
+     | Friday    |             16 |              170 |
+     #+END
+
+   We can give them custom names with the ‘;'custom name'’ decoration:
+
+     #+BEGIN: aggregate :table original :cols "Day vmean(Level*2);'mean2' vsum(Quantity^2);'sum_squares'"
+     | Day       | mean2 | sum_squares |
+     |-----------+-------+-------------|
+     | Monday    |    55 |         130 |
+     | Tuesday   |    86 |         693 |
+     | Wednesday |    36 |        1010 |
+     | Thursday  |    86 |        2317 |
+     | Friday    |    16 |         170 |
+     #+END
+
+   Decorators are optional.
+
+
+File: orgtbl-aggregate.info,  Node: Empty and malformed input cells,  Next: [Almost) any expression can be specified,  Prev: Custom column names,  Up: Top
+
+22 Empty and malformed input cells
+**********************************
+
+The input table may contain malformed mathematical text.  For instance,
+a cell containing ‘5+’ is malformed, because an expression is missing
+after the ‘+’ symbol.  In this case, the value will be replaced by
+‘error(2, '"Expected a number")’ which will appear in the aggregated
+table, signaling the problem.
+
+   An input cell may be empty.  In this case, it may be ignored or
+converted to zero, depending on modifier flags ‘E’ and ‘N’.
+
+   The empty cells treatment
+   • makes no difference for ‘vsum’ and ‘count’.
+   • may result in zero for ‘prod’,
+   • change ‘vmean’ result,
+   • change ‘vmin’ and ‘vmax’, a possibly empty list of values resulting
+     in ‘inf’ or ‘-inf’
+
+   Some aggregation functions operate on two columns.  If the two
+columns have empty values at different locations, then they should be
+interpreted as zero with the ‘NE’ modifier, otherwise the result will be
+inconsistent.
+
+   Sometimes an input table may be malformed, with incomplete rows, like
+this one:
+
+     | Color | Level | Quantity | Day       |
+     |-------+-------+----------+-----------|
+     | Red   |    30 |       11 | Monday    |
+     | Blue  |    25 |        3 | Monday    |
+     |
+     | Blue  |    33 |       18 | Tuesday   |
+     | Red   |    27 |
+     | Blue  |    12 |       16 | Wednesday |
+     | Blue  |    15 |       15 |
+     |
+
+   Missing cells are handled as though they were empty.
+
+
+File: orgtbl-aggregate.info,  Node: [Almost) any expression can be specified,  Next: Modifiers and formatters,  Prev: Empty and malformed input cells,  Up: Top
+
+23 (Almost) any expression can be specified
+*******************************************
+
+Virtually any Calc formula can be specified as an aggregation formula.
+
+   Single column name (as they appear in the header of the source table,
+or in the form of ‘$1’, ‘$2’, ..., or the virtual column ‘hline’) are
+key columns.  Everything else is given to Calc, to be computed as an
+aggregation.
+
+   For instance:
+     (3)                        ;; a constant
+     vmean(2*X+1)               ;; aggregate an expression
+     exp(vmean(map(log,N)))     ;; the exponential average
+     vsum((X-vmean(X))^2)       ;; X-vmean(X) centers the sample on zero
+
+   Arguably, the first expression is useless, but legal.  The
+aggregation can apply to a computed list of values.  The result of an
+aggregation can be further processed in a formula.  An aggregation can
+even apply to an expression containing another aggregation.
+
+   In an expression, if a variable has the name of a column, then it is
+replaced by a Calc vector containing values from this column.
+
+   The special expression ‘(C)’ (a column name within parenthesis)
+yields a list of values to be aggregated from this column, except they
+are not aggregated.  Note that parenthesis are required, otherwise, ‘C’
+would act as a key grouping column.
+
+
+File: orgtbl-aggregate.info,  Node: Modifiers and formatters,  Next: Sorting,  Prev: [Almost) any expression can be specified,  Up: Top
+
+24 Modifiers and formatters
+***************************
+
+An expression may optionally be followed by modifiers and formatters,
+after a semicolon.  Examples:
+
+     vsum(X);p20    ;; increase Calc internal precision to 20 digits
+     vsum(X);f3     ;; output the result with 3 digits after the decimal dot
+     vsum(X);%.3f   ;; output the result with 3 digits after the decimal dot
+
+   The modifiers and formatters are fully compatible with those of the
+Org Mode spreadsheet.
+
+
+File: orgtbl-aggregate.info,  Node: Sorting,  Next: Discarding an output column,  Prev: Modifiers and formatters,  Up: Top
+
+25 Sorting
+**********
+
+In this example, the output table is sorted numerically on its second
+column (look at the ‘^n’ specification):
+
+     #+BEGIN: aggregate :table "original" :cols "Day vsum(Quantity);^n"
+     | Day       | vsum(Quantity) |
+     |-----------+----------------|
+     | Monday    |             14 |
+     | Friday    |             22 |
+     | Tuesday   |             45 |
+     | Wednesday |             54 |
+     | Thursday  |             83 |
+     #+END:
+
+   The rows of the resulting table may be sorted on any combination of
+its columns.
+
+   By default, no sorting is done.  The output rows follows the ordering
+of the input rows.
+
+   Any column specification in the ‘:cols’ parameter may be followed by
+a semicolon and a caret characters, and an ordering.
+
+   The specification for the ordering are the same as in Org Mode:
+   • ‘a’: ascending alphabetical sort
+   • ‘A’: descending alphabetical sort
+   • ‘n’: ascending numerical sort
+   • ‘N’: descending numerical sort
+   • ‘t’: ascending date, time, or duration sort
+   • ‘T’: descending date, time, or duration sort
+   • ‘f’ & ‘F’ specifications are not (yet) implemented
+
+   Several columns may get a sorting specification.  The major column is
+used for sorting.  Only when two rows are equal regarding the major
+column, the second major column is compared.  And if the two rows are
+still equal on this second column, the third is used, and so on.
+
+   The first sorted column in the ‘:cols’ parameter is the major one.
+To declare another one as the major, follow it with a number, for
+instance ‘1’.  Columns without a number are minor ones.
+
+   Example:
+     :cols "AAA;^a BBB;^N2 CCC DDD;^t1"
+
+   • Column ‘DDD’ is sorted in ascending dates or times (‘t’
+     specification).  It is the major sorting column (because of its ‘1’
+     numbering).
+   • Column ‘BBB’ sorts rows which compare equal on column ‘DDD’
+     (because of its ‘2’ numbering).  This column is assumed to contain
+     numerical values, and it is sorted in descending order (‘N’
+     specification).
+   • Column ‘AAA’ is used to sort rows which compare equal regarding
+     ‘DDD’ and ‘BBB’.  It is sorted in ascending alphabetical order (‘a’
+     specification).
+
+   Both a format and a sorting instruction may be given.  Example:
+     :cols "EXPR:f3:^n"
+
+   The ‘EXPR’ column is
+   • formatted with 3 digits after dot (‘f3’)
+   • sorted numerically in ascending order (‘^n’).
+
+
+File: orgtbl-aggregate.info,  Node: Discarding an output column,  Next: Post-aggregation spreadsheet formulas,  Prev: Sorting,  Up: Top
+
+26 Discarding an output column
+******************************
+
+Why would anyone specify a column just to discard it in the output?  For
+its side effects.  For sorting the output table or for adding hlines to
+it.
+
+   To discard a column, add a ‘;<>’ modifier to the column description.
+This syntax is reminiscent of the ‘<n>’ cookies in Org Mode tables,
+which instructs to shorten a column width to only ‘n’ characters.
+
+   In this example, input hlines create a ‘hline’ column which is used
+to add hlines to the output.  Then this ‘hline’ column is discarded with
+‘<>’.
+
+     #+BEGIN: aggregate :table "withhline" :cols "hline;^n;<> cölØr vsum(vâluε)" :hline 1
+     | cölØr  | vsum(vâluε) |
+     |--------+-------------|
+     | Red    |         7.4 |
+     | Yellow |         9.1 |
+     |--------+-------------|
+     | Blue   |        15.7 |
+     | Yellow |         5.4 |
+     |--------+-------------|
+     | Blue   |         4.9 |
+     | Red    |         3.9 |
+     | Yellow |          9. |
+     |--------+-------------|
+     | Red    |         1.1 |
+     | Yellow |         3.4 |
+     #+END:
+
+   Here is an example where rows are sorted on the ‘cölØr’ column, but
+without displaying this column:
+
+     #+BEGIN: aggregate :table "withhline" :cols "cölØr;^a;<> vâluε;^n" :hline 1
+     | vâluε |
+     |-------|
+     |   4.9 |
+     |   7.0 |
+     |   8.7 |
+     |-------|
+     |   1.1 |
+     |   1.3 |
+     |   2.6 |
+     |   3.5 |
+     |   3.9 |
+     |-------|
+     |   2.4 |
+     |   3.4 |
+     |   5.4 |
+     |   6.6 |
+     |   9.1 |
+     #+END:
+
+
+File: orgtbl-aggregate.info,  Node: Post-aggregation spreadsheet formulas,  Next: Post processing,  Prev: Discarding an output column,  Up: Top
+
+27 Post-aggregation spreadsheet formulas
+****************************************
+
+Additional columns can be specified for the resulting table.  With a
+previous example, adding a ‘:formula’ parameter, we specify a new column
+‘$4’ which uses aggregated columns.  It is translated into a usual
+‘#+TBLFM:’ spreadsheet line.
+
+     #+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)" :formula "$4=$2*$3"
+     | Day       | vmean(Level) | vsum(Quantity) |      |
+     |-----------+--------------+----------------+------|
+     | Monday    |         27.5 |             14 | 385. |
+     | Tuesday   |           43 |             45 | 1935 |
+     | Wednesday |           18 |             54 |  972 |
+     | Thursday  |           43 |             83 | 3569 |
+     | Friday    |            8 |             22 |  176 |
+     #+TBLFM: $4=$2*$3
+     #+END:
+
+   Moreover, if a ‘#+TBLFM:’ was already there, it survives aggregation
+re-computations.
+
+   This happens in _pull mode_ only.
+
+
+File: orgtbl-aggregate.info,  Node: Post processing,  Next: Chaining,  Prev: Post-aggregation spreadsheet formulas,  Up: Top
+
+28 Post processing
+******************
+
+The aggregated table can be post-processed with the ‘:post’ parameter.
+It accepts a Lisp ‘lambda’, a Lisp function, or a Babel block.
+
+   The process receives the aggregated table as parameter in the form of
+a Lisp expression.  It can process it in any way it wants, provided it
+returns a valid Lisp table.
+
+   A Lisp table is a list of rows.  Each row is either a list of cells,
+or the special symbol ‘hline’.
+
+   In this example, a ‘lambda’ expression adds a ‘hline’ and a row for
+_Sunday_.
+
+     #+BEGIN: aggregate :table original :cols "Day vsum(Quantity)" :post (lambda (table) (append table '(hline (Sunday "0.0"))))
+     | Day       | vsum(Quantity) |
+     |-----------+----------------|
+     | Monday    |             14 |
+     | Tuesday   |             45 |
+     | Wednesday |             54 |
+     | Thursday  |             83 |
+     | Friday    |             22 |
+     |-----------+----------------|
+     | Sunday    |            0.0 |
+     #+END:
+
+   The ‘lambda’ can be moved to a ‘defun’.  The function is then passed
+to the ‘:post’ parameter:
+
+     #+begin_src elisp
+     (defun my-function (table)
+       (append table
+               '(hline (Sunday "0.0"))))
+     #+end_src
+
+     ... :post my-function
+
+   The ‘:post’ parameter can also refer to a Babel Block.  Example:
+
+     #+BEGIN: aggregate :table original :cols "Day vsum(Quantity)" :post "my-babel-block(tbl=*this*)"
+     ...
+     #+END:
+
+     #+name: my-babel-block
+     #+begin_src elisp :var tbl=""
+     (append tbl
+             '(hline (Sunday "0.0")))
+     #+end_src
+
+
+File: orgtbl-aggregate.info,  Node: Chaining,  Next: Tricks,  Prev: Post processing,  Up: Top
+
+29 Chaining
+***********
+
+The result of an aggregation may become the source of further
+processing.  To do that, just add a ‘#+NAME:’ or ‘#+TBLNAME:’ line just
+above the aggregated table.  Here is an example of a double aggregation:
+
+     #+NAME: squantity
+     #+BEGIN: aggregate :table original :cols "Day vsum(Quantity)"
+     | Day       | SQuantity |
+     |-----------+-----------|
+     | Monday    |        14 |
+     | Tuesday   |        45 |
+     | Wednesday |        54 |
+     | Thursday  |        83 |
+     | Friday    |        22 |
+     #+TBLFM: @1$2=SQuantity
+     #+END:
+
+     #+BEGIN: aggregate :table "squantity" :cols "vsum(SQuantity)"
+     | vsum(SQuantity) |
+     |-----------------|
+     |             218 |
+     #+END:
+
+   Note the spreadsheet cell formula ‘@1$2=SQuantity’, which changes the
+column heading from it default ‘vsum(Quantity)’ to ‘SQuantity’.  This
+new heading will survive any refresh.
+
+   Sometimes the name of the aggregated table is not found by some babel
+block referencing it (Gnuplot blocks are among them).  To fix that, just
+exchange the ‘#+NAME:’ and ‘#+BEGIN:’ lines:
+
+     #+BEGIN: aggregate :table original :cols "Day vsum(Quantity)"
+     #+NAME: squantity
+     | Day       | SQuantity |
+     |-----------+-----------|
+     | Monday    |        14 |
+     | Tuesday   |        45 |
+     | Wednesday |        54 |
+     | Thursday  |        83 |
+     | Friday    |        22 |
+     #+TBLFM: @1$2=SQuantity
+     #+END:
+
+   The ‘#.NAME:’ line will survive when recomputing the aggregation (as
+‘#.TBLFM:’ line survives)
+
+
+File: orgtbl-aggregate.info,  Node: Tricks,  Next: Installation,  Prev: Chaining,  Up: Top
+
+30 Tricks
+*********
+
+This chapter collects some tricks that may be useful.
+
+* Menu:
+
+* Sorting: Sorting (1).
+* A few lowest or highest values::
+* Span of values::
+
+
+File: orgtbl-aggregate.info,  Node: Sorting (1),  Next: A few lowest or highest values,  Up: Tricks
+
+30.1 Sorting
+============
+
+     #+name: trick_table_1
+     | column |
+     |--------|
+     |    677 |
+     |    713 |
+     |    459 |
+     |    537 |
+     |    881 |
+
+   When a column needs to be sorted, the Calc ‘calc-sort()’ function is
+handy:
+
+     #+BEGIN: aggregate :table "trick_table_1" :cols "(column) sort(column)"
+     | (column)                  | sort(column)              |
+     |---------------------------+---------------------------|
+     | [677, 713, 459, 537, 881] | [459, 537, 677, 713, 881] |
+     #+END:
+
+   • ‘(column)’ gives the list of values to aggregate, without
+     aggregating them.
+   • ‘sort(column)’ gives the same list sorted in ascending ordrer.
+
+
+File: orgtbl-aggregate.info,  Node: A few lowest or highest values,  Next: Span of values,  Prev: Sorting (1),  Up: Tricks
+
+30.2 A few lowest or highest values
+===================================
+
+Used with ‘subvec()’, ‘sort()’ can retrieve the two lowest or the two
+highest values:
+
+     #+BEGIN: aggregate :table "trick_table_1" :cols "subvec(sort(column),1,3) subvec(sort(column),count()-1)"
+     | subvec(sort(column),1,3) | subvec(sort(column),count()-1) |
+     |--------------------------+--------------------------------|
+     | [459, 537]               | [713, 881]                     |
+     #+END:
+
+   • ‘subvec(...,1,3)’ extracts the two first values: from ‘1’ to ‘3’
+     excluded.
+   • ‘subvec(...,count()-1)’ extracts the two last values, numbered
+     ‘count()-1’ and ‘count()’
+
+   And of course we may retrieve the average of the two first and the
+two last values:
+
+     #+BEGIN: aggregate :table "trick_table_1" :cols "vmean(subvec(sort(column),1,3)) vmean(subvec(sort(column),count()-1))"
+     | vmean(subvec(sort(column),1,3)) | vmean(subvec(sort(column),count()-1)) |
+     |---------------------------------+---------------------------------------|
+     |                             498 |                                   797 |
+     #+END:
+
+
+File: orgtbl-aggregate.info,  Node: Span of values,  Prev: A few lowest or highest values,  Up: Tricks
+
+30.3 Span of values
+===================
+
+‘vmin()’ and ‘vmax()’ can compute the span of aggregated values:
+
+     #+BEGIN: aggregate :table "trick_table_1" :cols "vmin(column) vmax(column) vmax(column)-vmin(column)"
+     | vmin(column) | vmax(column) | vmax(column)-vmin(column) |
+     |--------------+--------------+---------------------------|
+     |          459 |          881 |                       422 |
+     #+END:
+
+
+File: orgtbl-aggregate.info,  Node: Installation,  Next: Authors contributors,  Prev: Tricks,  Up: Top
+
+31 Installation
+***************
+
+Emacs package on Melpa: add the following lines to your ‘.emacs’ file,
+and reload it.
+
+     (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
+     (package-initialize)
+
+   You may also customize this variable:
+     M-x customize-variable package-archives
+
+   Then browse the list of available packages and install
+‘orgtbl-aggregate’
+     M-x package-list-packages
+
+   Alternatively, you can download the lisp file, and load it:
+
+     (load-file "orgtbl-aggregate.el")
+
+
+File: orgtbl-aggregate.info,  Node: Authors contributors,  Next: Changes,  Prev: Installation,  Up: Top
+
+32 Authors, contributors
+************************
+
+Authors
+   • Thierry Banel, tbanelwebmin at free dot fr, inception &
+     implementation.
+   • Michael Brand, Calc unleashed, ‘#+TBLFM’ survival, empty input
+     cells, formatters.
+
+   Contributors
+   • Eric Abrahamsen, non-ascii column names
+   • Alejandro Erickson, quoting non alphanumeric column names
+   • Uwe Brauer, simpler example in documentation, take
+     org-calc-default-modes preferences into account
+   • Peking Duck, fixed obsolete letf function
+   • Bill Hunker, discovered ‘\_{}’ escape
+   • Dirk Schmitt, surviving ‘#.NAME:’ line
+   • Dale Sedivec, case insensitive ‘#+NAME:’ tags
+   • falloutphil, underscore in column names
+   • Baudilio Tejerina, t, T, U formatters
+   • Marco Pas, bug comparing empty string
+   • wuqui, sorting output table, filtering only
+   • Nicolas Viviani, output hlines
+   • Nils Lehmann, support old versions of the rx library
+   • Shankar Rao, ‘:post’ post-processing
+   • Misohena (<https://misohena.jp/blog/author/misohena>), double width
+     Japanese characters (string-width vs.  length)
+   • Kevin Brubeck Unhammer, ignore formatting cookies
+   • Tilmann Singer, more flexibility in duration format
+   • Piotr Panasiuk, ‘#+CAPTION:’ and any tags survive
+   • Luis Miguel Hernanz, fix regex bug
+
+
+File: orgtbl-aggregate.info,  Node: Changes,  Next: GPL 3 License,  Prev: Authors contributors,  Up: Top
+
+33 Changes
+**********
+
+   • Wizard now correctly asks for columns with ‘$1, $2...’ names when
+     table header is missing
+   • Handle tables beginning with hlines
+   • Handle non-ascii column names
+   • ‘:formula’ parameter and ‘#+TBLFM’ survival
+   • Empty cells are ignored.
+   • Empty output upon too small input set
+   • Fix ordering of output values
+   • Aggregations formulas may now be arbitrary expressions
+   • Table headers (and the lack of) are better handled
+   • Modifiers and formatters can now be specified as in the spreadsheet
+   • Aggregation function names can optionally have a leading ‘v’, like
+     ‘sum’ & ‘vsum’
+   • Increased performance on large data sets
+   • Tables can be named with ‘#+NAME:’ besides ‘#+TBLNAME:’
+   • Document Melpa installation
+   • Support quoting of column names, like "a.b" or ’c/d’
+   • Disable ‘\_{}’ escape
+   • ‘#+NAME:’ inside ‘#+BEGIN:’ survives
+   • Missing input cells handled as empty ones
+   • Back-port Org Mode ‘9.4’ speed up
+   • Increase performance when inserting result into the buffer
+   • Aligned output in push mode
+   • Added a hashtable to speedup aggregation
+   • Back-port org-table-to-lisp which is now much faster
+   • ‘vlist(X)’ now yields input cells verbatim were ‘(X)’ yields Calc
+     processed input cells
+   • Document dates handling and the ‘date()’ function
+   • Implement ‘HH:MM:SS’ durations and ‘T’, ‘t’, ‘U’ formatters
+   • Sort output
+   • Create hlines in the output
+   • Missing :cond parameter means all columns
+   • Remove ‘C-c C-x i’, use standard ‘C-c C-x x’ instead
+   • Avoid name collision between Calc functions and columns
+   • More readable & faster code
+   • Support for old versions of the rx library
+   • ‘:post’ post-processing
+   • Propagate multiple rows source header to the aggregated header
+   • Ignore data rows containing formatting cookies
+   • Follow Org Mode way of handling Calc settings in Lisp code
+   • Hours in durations are no longer restricted to 2 digits
+   • 3x speedup ‘org-table-to-lisp’ and avoid Emacs 27 to 30
+     incompatibilities
+   • ‘#+CAPTION:’ and any other tag survive inside ‘#+BEGIN:’
+
+
+File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
+
+34 GPL 3 License
+****************
+
+Copyright (C) 2013-2025 Thierry Banel
+
+   orgtbl-aggregate is free software: you can redistribute it and/or
+modify it under the terms of the GNU General Public License as published
+by the Free Software Foundation, either version 3 of the License, or (at
+your option) any later version.
+
+   orgtbl-aggregate is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+
+Tag Table:
+Node: Top93
+Node: Examples1453
+Node: SQL equivalent4871
+Node: R equivalent5188
+Node: Datamash equivalent5676
+Node: Key-binding & Wizard6216
+Node: Other examples6817
+Node: The cols parameter8145
+Node: Grouping specifications in cols9279
+Node: hlines in the input table9821
+Node: hlines in the output table11889
+Node: Aggregation formulas in cols18677
+Node: Where Calc interpretation happens?26183
+Node: The cond filtering31594
+Node: Pull & Push33091
+Node: Symbolic computation37345
+Node: Correlation of two columns39617
+Node: Dates41298
+Node: Durations43278
+Node: Arbitrary column names45086
+Node: Multiple lines header46187
+Node: Custom column names47914
+Node: Empty and malformed input cells49158
+Node: [Almost) any expression can be specified50841
+Node: Modifiers and formatters52312
+Node: Sorting52927
+Node: Discarding an output column55603
+Node: Post-aggregation spreadsheet formulas57333
+Node: Post processing58488
+Node: Chaining60238
+Node: Tricks61930
+Node: Sorting (1)62188
+Node: A few lowest or highest values62988
+Node: Span of values64289
+Node: Installation64825
+Node: Authors contributors65467
+Node: Changes66941
+Node: GPL 3 License69360
+
+End Tag Table
+
+
+Local Variables:
+coding: utf-8
+End:

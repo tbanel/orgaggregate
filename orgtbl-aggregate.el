@@ -1036,7 +1036,7 @@ Result is the FMT-SETTINGS assoc list."
 	    (?s (setq calc-float-format (list 'sci   n)))
 	    (?e (setq calc-float-format (list 'eng   n)))))
 	(setq fmt (replace-match "" t t fmt)))
-      (while (string-match "[tTUNLEDRFSuQ]" fmt)
+      (while (string-match "[tTUNLEDRFSuQqCc]" fmt)
         (cl-case (string-to-char (match-string 0 fmt))
           (?t (plist-put fmt-settings :duration t)
 	      (plist-put fmt-settings :numbers  t)
@@ -1055,7 +1055,10 @@ Result is the FMT-SETTINGS assoc list."
 	  (?F (setq calc-prefer-frac t))
 	  (?S (setq calc-symbolic-mode t))
           (?u (setq calc-simplify-mode 'units))
-	  (?Q (plist-put fmt-settings :noeval t)))
+          (?c (plist-put fmt-settings :debug ?c))
+          (?C (plist-put fmt-settings :debug ?C))
+          (?q (plist-put fmt-settings :debug ?q))
+	  (?Q (plist-put fmt-settings :debug ?Q)))
 	(setq fmt (replace-match "" t t fmt)))
       (when (string-match "\\S-" fmt)
 	(plist-put fmt-settings :fmt fmt)))
@@ -1146,9 +1149,12 @@ and a cell from any row in the group is returned."
    ((orgtbl-aggregate--outcol-key coldesc)
     (nth (orgtbl-aggregate--outcol-key coldesc)
 	 (car (orgtbl-aggregate--list-get group))))
-   ;; do not evaluate
-   ((plist-get fmt-settings :noeval)
+   ;; do not evaluate, output Calc formula
+   ((eq (plist-get fmt-settings :debug) ?c)
     (orgtbl-aggregate--outcol-formula$ coldesc))
+   ;; do not evaluate, output Lisp formula
+   ((eq (plist-get fmt-settings :debug) ?q)
+    (orgtbl-aggregate--outcol-formula-frux coldesc))
    ;; vlist($3) alone, without parenthesis or other decoration
    ((string-match
      (rx bos (? ?v) "list"
@@ -1177,18 +1183,26 @@ and a cell from any row in the group is returned."
 	  (calc-language 'flat)
 	  (calc-dollar-used 0))
       (let ((ev
-	     (math-format-value
-	      (math-simplify
-	       (calcFunc-expand	  ; yes, double expansion
-		(calcFunc-expand  ; otherwise it is not fully expanded
-		 (math-simplify
-		  (orgtbl-aggregate--defrux
-		    (orgtbl-aggregate--outcol-formula-frux coldesc)
-		    calc-dollar-values-oo
-		    (length (orgtbl-aggregate--list-get group)))))))
-	      1000)))
-	(cond
-	 ((plist-get fmt-settings :fmt)
+	     (orgtbl-aggregate--defrux
+	      (orgtbl-aggregate--outcol-formula-frux coldesc)
+	      calc-dollar-values-oo
+	      (length (orgtbl-aggregate--list-get group)))))
+
+        (cond
+         ((eq (plist-get fmt-settings :debug) ?C)
+          (math-format-value ev))
+         ((eq (plist-get fmt-settings :debug) ?Q)
+          (format "%S" ev))
+         ((progn
+            (setq ev
+                  (math-format-value
+	           (math-simplify
+	            (calcFunc-expand	  ; yes, double expansion
+		     (calcFunc-expand  ; otherwise it is not fully expanded
+		      (math-simplify
+                       ev))))
+                   1000))
+            (plist-get fmt-settings :fmt))
 	  (format (plist-get fmt-settings :fmt) (string-to-number ev)))
 	 ((plist-get fmt-settings :duration)
 	  (org-table-time-seconds-to-string

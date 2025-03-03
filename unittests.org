@@ -1600,3 +1600,16 @@ In case of a mistake, the result is:
 | $1 |
 |----|
 | z  |
+
+* Debug settings
+
+4 settings: c q C Q
+
+#+BEGIN: aggregate :table "withhline" :cols "hline vsum(vâluε);c vsum(vâluε);q vsum(vâluε);C vsum(vâluε);Q"
+| hline | vsum(vâluε) | vsum(vâluε)                       | vsum(vâluε)                | vsum(vâluε)                                                                   |
+|-------+-------------+-----------------------------------+----------------------------+-------------------------------------------------------------------------------|
+|     0 | vsum($2)    | (calcFunc-vsum (calcFunc-Frux 2)) | vsum([1.3, 3.5, 9.1, 2.6]) | (calcFunc-vsum (vec (float 13 -1) (float 35 -1) (float 91 -1) (float 26 -1))) |
+|     1 | vsum($2)    | (calcFunc-vsum (calcFunc-Frux 2)) | vsum([8.7, 7., 5.4])       | (calcFunc-vsum (vec (float 87 -1) (float 7 0) (float 54 -1)))                 |
+|     2 | vsum($2)    | (calcFunc-vsum (calcFunc-Frux 2)) | vsum([4.9, 3.9, 2.4, 6.6]) | (calcFunc-vsum (vec (float 49 -1) (float 39 -1) (float 24 -1) (float 66 -1))) |
+|     3 | vsum($2)    | (calcFunc-vsum (calcFunc-Frux 2)) | vsum([1.1, 3.4])           | (calcFunc-vsum (vec (float 11 -1) (float 34 -1)))                             |
+#+END:

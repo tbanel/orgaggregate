@@ -1298,6 +1298,158 @@ vsum(X);%.3f   ;; output the result with 3 digits after the decimal dot
 The modifiers and formatters are fully compatible with those of the
 Org Mode spreadsheet.
 
+- =p12= change the precision to 12 decimal digits.
+- =n7= output as floating point number with 7 decimal digits.
+- =f4= output number with 4 decimal places after dot.
+- =s5= output number in "scientific" mode (with exponent of 10) with 5
+  decimal digits.
+- =e6= output number in "engineering" mode (with exponent of 10 multiple
+  of 3) with 6 decimal digits.
+- =t= output duration in decimal hours; input is supposed to be either a
+  duration like ="2:37"= meaning 2 hours and 37 minutes, or a number of
+  seconds like ="1234=" which is approximately =0.34= hours. The output is
+  controlled by the =org-table-duration-custom-format= variable.
+- =T= output duration in an hours-minutes-seconds format like ="01:20:34"=
+  meaning 1 hour, 20 minutes, and 34 seconds.
+- =U= like =t=, but disregard the =org-table-duration-custom-format=
+  variable and use ='hh:mm= in place.
+- =N= output number: remove any non-numeric output.
+- =E= keep empty input cells. The result is often =nan=. Without =E=, empty
+  input cells cells are ignored as if they did not exist.
+- =D= angles are in degrees.
+- =R= angles are in radians.
+- =F= output is presented as a fraction of integers if it actually
+  is. The format is the Calc one, for example ="2:3"= means =2/3=.
+- =S= symbolic mode. When an input cell is, for instance =sqrt(2)=, it it
+  kept as-is rather than being replaced by =1.41421=.
+
+Additionally, a few formatters are dedicated to debugging:
+
+- =c= output the Calc expression before substitution by actual input
+  cells values.
+- =q= output the Lisp expression before substitution by actual input
+  cells values.
+- =C= output the Calc expression before it gets simplified and folded.
+- =Q= output the Lisp expression before it gets simplified and folded.
+
+* Debugging
+The work of Org Aggregate is to hand out pieces of the input table to
+Calc (the Emacs calculator).
+
+Is some intricate cases, it may be useful to see what is going on. The
+debugging formatters come handy.
+
+Here is an example input table:
+
+#+begin_example
+#+name: inputdebug
+|   nn | aa |
+|------+----|
+| 1.23 | a  |
+| 7.65 | b  |
+| 8.46 | c  |
+|------+----|
+| 2.44 | d  |
+| 6.81 | e  |
+#+end_example
+
+And here is an aggregation to debug:
+
+#+begin_example
+#+BEGIN: aggregate :table "inputdebug" :cols "hline vsum(nn*10) vsum(aa+7)"
+| hline | vsum(nn*10) | vsum(aa+7)     |
+|-------+-------------+----------------|
+|     0 |       173.4 | a + b + c + 21 |
+|     1 |        92.5 | d + e + 14     |
+#+END:
+#+end_example
+
+So far so good. But we would like to know what Calc did. To do so let
+us add the =c= formatter.
+
+#+begin_example
+#+BEGIN: aggregate :table "inputdebug" :cols "hline vsum(nn*10);c vsum(aa+7);c"
+| hline | vsum(nn*10) | vsum(aa+7) |
+|-------+-------------+------------|
+|     0 | vsum($1*10) | vsum($2+7) |
+|     1 | vsum($1*10) | vsum($2+7) |
+#+END:
+#+end_example
+
+Each output cell now contains the formula, with column names replaced
+by dollar equivalent forms. But without any further processing.
+
+Let us go one step further with the =C= formatter:
+
+#+begin_example
+#+BEGIN: aggregate :table "inputdebug" :cols "hline vsum(nn*10);C vsum(aa+7);C"
+| hline | vsum(nn*10)                 | vsum(aa+7)          |
+|-------+-----------------------------+---------------------|
+|     0 | vsum([1.23, 7.65, 8.46] 10) | vsum([a, b, c] + 7) |
+|     1 | vsum([2.44, 6.81] 10)       | vsum([d, e] + 7)    |
+#+END:
+#+end_example
+
+The dollar forms were replaced by Calc vectors made of input cells. No
+foldings or simplifications went on. The vectors are slices of columns,
+selected by Org Aggregate in response of the =hline= aggregation.
+
+We see that multiplying by =10= or adding =7= is done on a Calc vector. It
+happens that Calc knows how to multiply or add something to a
+vector. Org Aggregate does not perform those operations, it delegates
+them to Calc.
+
+We can also view the same results, formatted as Lisp forms (rather
+than Calc forms) with the =Q= formatter:
+
+#+begin_example
+#+BEGIN: aggregate :table "inputdebug" :cols "hline vsum(nn*10);Q vsum(aa+7);Q"
+| hline | vsum(nn*10)                                                               | vsum(aa+7)                                                            |
+|-------+---------------------------------------------------------------------------+-----------------------------------------------------------------------|
+|     0 | (calcFunc-vsum (* (vec (float 123 -2) (float 765 -2) (float 846 -2)) 10)) | (calcFunc-vsum (+ (vec (var a var-a) (var b var-b) (var c var-c)) 7)) |
+|     1 | (calcFunc-vsum (* (vec (float 244 -2) (float 681 -2)) 10))                | (calcFunc-vsum (+ (vec (var d var-d) (var e var-e)) 7))               |
+#+END:
+#+end_example
+
+This is the internal, Lisp representation of Calc formulas.
+
+Beware of a formula like =vsum(nn^2)=. This gives the expected result,
+although not in the obvious way. Let us see what happens, thanks to
+the =C= debugging formatter:
+
+#+begin_example
+#+BEGIN: aggregate :table "inputdebug" :cols "hline vsum(nn^2);C"
+| hline | vsum(nn^2)                 |
+|-------+----------------------------|
+|     0 | vsum([1.23, 7.65, 8.46]^2) |
+|     1 | vsum([2.44, 6.81]^2)       |
+#+END:
+#+end_example
+
+We are not summing squares. We are squaring Calc vectors. Calc being a
+mathematical tool, it interprets the product of two vectors as the sum
+of the products element-wise, as a mathematician would do. Then =vsum=
+is applied on a single resulting value. So =vsum= is useless in this
+case. That can be confirmed:
+
+#+begin_example
+#+BEGIN: aggregate :table "inputdebug" :cols "hline vsum(nn^2) nn^2 vprod(nn^2)"
+| hline | vsum(nn^2) |    nn^2 | vprod(nn^2) |
+|-------+------------+---------+-------------|
+|     0 |    131.607 | 131.607 |     131.607 |
+|     1 |    52.3297 | 52.3297 |     52.3297 |
+#+END:
+#+end_example
+
+Therefore, changing =vsum= to =vprod= does not change the result. This can
+be unexpected.
+
+To summarize the debugging settings:
+- =c=: output Calc formula
+- =C=: output Calc formula with dollar forms substituted by actual input data
+- =q=: output Lisp formula
+- =Q=: output Lisp formula with column forms substituted by actual input data
+
 * Sorting
 In this example, the output table is sorted numerically on its second
 column (look at the =^n= specification):

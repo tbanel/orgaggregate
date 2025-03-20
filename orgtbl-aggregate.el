@@ -339,7 +339,8 @@ TABLE is a list of lists of cells.  The list may contain the
 special symbol `hline' to mean an horizontal line."
   (let* ((nbcols (cl-loop
 		  for row in table
-		  maximize (if (listp row) (length row) 0)))
+                  if (listp row)
+		  maximize (length row)))
 	 (maxwidths  (make-list nbcols 1))
 	 (numbers    (make-list nbcols 0))
 	 (non-empty  (make-list nbcols 0))

@@ -798,18 +798,30 @@ a hash-table, whereas GROUPS is a Lisp list."
   (cl-loop for idx in orgtbl-aggregate--var-keycols
 	   always (string= (nth idx row1) (nth idx row2))))
 
-;; for hashes, try to stay within the 2^29 fixnums
+;; Use standard sxhash-equal to hash strings
+;; Unfortunately sxhash-equal is weak.
+;; So we compensate with multiplications and reminders,
+;; while trying to stay within the 2^29 fixnums.
 ;; see (info "(elisp) Integer Basics")
-;; { prime_next 123 ==> 127 }
-;; { prime_prev ((2^29 - 256) / 127 ) ==> 4227323 }
 
 (defun orgtbl-aggregate--hash-test-hash (row)
   "Compute a hash code for ROW from key columns."
-  (let ((h 45235))
+  (let ((h 456542153))
     (cl-loop for idx in orgtbl-aggregate--var-keycols
 	     do
-	     (cl-loop for c across (nth idx row)
-		      do (setq h (% (* (+ h c) 127) 4227323))))
+             (setq
+              h
+              (*
+               (%
+                (*
+                 (%
+                  (logxor
+                   (sxhash-equal (nth idx row))
+                   h)
+                  53639)
+                 9973)
+                53633)
+               10007)))
     h))
 
 (defun orgtbl-aggregate--create-table-aggregated (table params)

@@ -1911,6 +1911,7 @@ Authors
    • Tilmann Singer, more flexibility in duration format
    • Piotr Panasiuk, ‘#+CAPTION:’ and any tags survive
    • Luis Miguel Hernanz, fix regex bug
+   • Jason Hemann, output column names no longer have quotes
 
 
 File: orgtbl-aggregate.info,  Node: Changes,  Next: GPL 3 License,  Prev: Authors contributors,  Up: Top
@@ -2026,8 +2027,8 @@ Node: A few lowest or highest values69689
 Node: Span of values70990
 Node: Installation71526
 Node: Authors contributors72168
-Node: Changes73642
-Node: GPL 3 License76154
+Node: Changes73705
+Node: GPL 3 License76217
 
 End Tag Table
 

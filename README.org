@@ -1825,6 +1825,7 @@ Contributors
 - Tilmann Singer, more flexibility in duration format
 - Piotr Panasiuk, =#+CAPTION:= and any tags survive
 - Luis Miguel Hernanz, fix regex bug
+- Jason Hemann, output column names no longer have quotes
 
 * Changes
 - Wizard now correctly asks for columns with =$1, $2...= names

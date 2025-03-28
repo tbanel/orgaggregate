@@ -960,8 +960,10 @@ which do not pass the filter found in PARAMS entry :cond."
         nil
 	(cl-loop for column in aggcols
 		 collect (or
-			  (orgtbl-aggregate--outcol-name    column)
-			  (orgtbl-aggregate--outcol-formula column))))
+			  (orgtbl-aggregate--outcol-name column)
+                          (replace-regexp-in-string
+                           "['\"]" ""
+			   (orgtbl-aggregate--outcol-formula column)))))
        result)
 
       ;; remove invisible columns by modifying the table in-place

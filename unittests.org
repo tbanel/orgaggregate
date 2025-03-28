@@ -879,17 +879,17 @@ In a :cond lisp formula, only double quotes work.
 | zero         |               0 |                 0 |
 
 #+BEGIN: aggregate :table "funnynames" :cols "\"first column\" mean('observed;number');%.3f mean('computed/expected');%.4f" :cond (and (>= (string-to-number "observed;number") 0) (not (equal "first column" "zero")))
-| "first column" | mean('observed;number') | mean('computed/expected') |
-|----------------+-------------------------+---------------------------|
-| a/experiment   |                   8.633 |                    7.1333 |
-| b/test         |                   3.350 |                    3.1500 |
+| first column | mean(observed;number) | mean(computed/expected) |
+|--------------+-----------------------+-------------------------|
+| a/experiment |                 8.633 |                  7.1333 |
+| b/test       |                 3.350 |                  3.1500 |
 #+END:
 
 #+BEGIN: aggregate :table "funnynames" :cols ("'first column'" "mean('observed;number');%.3f" "mean('computed/expected');%.4f") :cond "(and (>= (string-to-number \"observed;number\") 0) (not (equal \"first column\" \"zero\")))"
-| 'first column' | mean('observed;number') | mean('computed/expected') |
-|----------------+-------------------------+---------------------------|
-| a/experiment   |                   8.633 |                    7.1333 |
-| b/test         |                   3.350 |                    3.1500 |
+| first column | mean(observed;number) | mean(computed/expected) |
+|--------------+-----------------------+-------------------------|
+| a/experiment |                 8.633 |                  7.1333 |
+| b/test       |                 3.350 |                  3.1500 |
 #+END:
 
 #+BEGIN: transpose :table "funnynames" :cols ("first column" "computed/expected" "observed;number")
@@ -1131,11 +1131,11 @@ Missing cells are handled as though they were empty
 | Red    |   1.1 |     58 |
 
 #+BEGIN RECEIVE ORGTBL sortag1
-| cölØr  | vsum(vâluε) | count() | vmean('ra;han') |
-|--------+-------------+---------+-----------------|
-| Yellow |        23.5 |       4 |          50.250 |
-| Blue   |        20.6 |       3 |          48.333 |
-| Red    |        12.4 |       5 |          53.800 |
+| cölØr  | vsum(vâluε) | count() | vmean(ra;han) |
+|--------+-------------+---------+---------------|
+| Yellow |        23.5 |       4 |        50.250 |
+| Blue   |        20.6 |       3 |        48.333 |
+| Red    |        12.4 |       5 |        53.800 |
 #+END RECEIVE ORGTBL sortag1
 
 * Test hline output
@@ -1162,132 +1162,132 @@ Missing cells are handled as though they were empty
 
 Are original hlines given back?
 #+BEGIN: aggregate :table "withhline" :cols "cölØr vâluε 'ra;han'" :hline 1
-| cölØr  | vâluε | 'ra;han' |
-|--------+-------+----------|
-| Red    |   1.3 |       41 |
-| Red    |   3.5 |       35 |
-| Yellow |   9.1 |       95 |
-| Red    |   2.6 |       84 |
-|--------+-------+----------|
-| Blue   |   8.7 |       52 |
-| Blue   |   7.0 |       29 |
-| Yellow |   5.4 |       17 |
-|--------+-------+----------|
-| Blue   |   4.9 |       64 |
-| Red    |   3.9 |       51 |
-| Yellow |   2.4 |       55 |
-| Yellow |   6.6 |       34 |
-|--------+-------+----------|
-| Red    |   1.1 |       58 |
-| Yellow |   3.4 |       51 |
+| cölØr  | vâluε | ra;han |
+|--------+-------+--------|
+| Red    |   1.3 |     41 |
+| Red    |   3.5 |     35 |
+| Yellow |   9.1 |     95 |
+| Red    |   2.6 |     84 |
+|--------+-------+--------|
+| Blue   |   8.7 |     52 |
+| Blue   |   7.0 |     29 |
+| Yellow |   5.4 |     17 |
+|--------+-------+--------|
+| Blue   |   4.9 |     64 |
+| Red    |   3.9 |     51 |
+| Yellow |   2.4 |     55 |
+| Yellow |   6.6 |     34 |
+|--------+-------+--------|
+| Red    |   1.1 |     58 |
+| Yellow |   3.4 |     51 |
 #+END:
 
 I do not specify hlines in the output
 #+BEGIN: aggregate :table "withhline" :cols "cölØr vâluε 'ra;han'"
-| cölØr  | vâluε | 'ra;han' |
-|--------+-------+----------|
-| Red    |   1.3 |       41 |
-| Red    |   3.5 |       35 |
-| Yellow |   9.1 |       95 |
-| Red    |   2.6 |       84 |
-| Blue   |   8.7 |       52 |
-| Blue   |   7.0 |       29 |
-| Yellow |   5.4 |       17 |
-| Blue   |   4.9 |       64 |
-| Red    |   3.9 |       51 |
-| Yellow |   2.4 |       55 |
-| Yellow |   6.6 |       34 |
-| Red    |   1.1 |       58 |
-| Yellow |   3.4 |       51 |
+| cölØr  | vâluε | ra;han |
+|--------+-------+--------|
+| Red    |   1.3 |     41 |
+| Red    |   3.5 |     35 |
+| Yellow |   9.1 |     95 |
+| Red    |   2.6 |     84 |
+| Blue   |   8.7 |     52 |
+| Blue   |   7.0 |     29 |
+| Yellow |   5.4 |     17 |
+| Blue   |   4.9 |     64 |
+| Red    |   3.9 |     51 |
+| Yellow |   2.4 |     55 |
+| Yellow |   6.6 |     34 |
+| Red    |   1.1 |     58 |
+| Yellow |   3.4 |     51 |
 #+END:
 
 What if I want hline on cölØr?
 #+BEGIN: aggregate :table "withhline" :cols "cölØr;^a vâluε 'ra;han'" :hline 1
-| cölØr  | vâluε | 'ra;han' |
-|--------+-------+----------|
-| Blue   |   8.7 |       52 |
-| Blue   |   7.0 |       29 |
-| Blue   |   4.9 |       64 |
-|--------+-------+----------|
-| Red    |   1.3 |       41 |
-| Red    |   3.5 |       35 |
-| Red    |   2.6 |       84 |
-| Red    |   3.9 |       51 |
-| Red    |   1.1 |       58 |
-|--------+-------+----------|
-| Yellow |   9.1 |       95 |
-| Yellow |   5.4 |       17 |
-| Yellow |   2.4 |       55 |
-| Yellow |   6.6 |       34 |
-| Yellow |   3.4 |       51 |
+| cölØr  | vâluε | ra;han |
+|--------+-------+--------|
+| Blue   |   8.7 |     52 |
+| Blue   |   7.0 |     29 |
+| Blue   |   4.9 |     64 |
+|--------+-------+--------|
+| Red    |   1.3 |     41 |
+| Red    |   3.5 |     35 |
+| Red    |   2.6 |     84 |
+| Red    |   3.9 |     51 |
+| Red    |   1.1 |     58 |
+|--------+-------+--------|
+| Yellow |   9.1 |     95 |
+| Yellow |   5.4 |     17 |
+| Yellow |   2.4 |     55 |
+| Yellow |   6.6 |     34 |
+| Yellow |   3.4 |     51 |
 #+END:
 
 And if I explicitly require hline column?
 #+BEGIN: aggregate :table "withhline" :cols "hline;^n cölØr;^a vâluε 'ra;han'"
-| hline | cölØr  | vâluε | 'ra;han' |
-|-------+--------+-------+----------|
-|     0 | Red    |   1.3 |       41 |
-|     0 | Red    |   3.5 |       35 |
-|     0 | Red    |   2.6 |       84 |
-|     0 | Yellow |   9.1 |       95 |
-|     1 | Blue   |   8.7 |       52 |
-|     1 | Blue   |   7.0 |       29 |
-|     1 | Yellow |   5.4 |       17 |
-|     2 | Blue   |   4.9 |       64 |
-|     2 | Red    |   3.9 |       51 |
-|     2 | Yellow |   2.4 |       55 |
-|     2 | Yellow |   6.6 |       34 |
-|     3 | Red    |   1.1 |       58 |
-|     3 | Yellow |   3.4 |       51 |
+| hline | cölØr  | vâluε | ra;han |
+|-------+--------+-------+--------|
+|     0 | Red    |   1.3 |     41 |
+|     0 | Red    |   3.5 |     35 |
+|     0 | Red    |   2.6 |     84 |
+|     0 | Yellow |   9.1 |     95 |
+|     1 | Blue   |   8.7 |     52 |
+|     1 | Blue   |   7.0 |     29 |
+|     1 | Yellow |   5.4 |     17 |
+|     2 | Blue   |   4.9 |     64 |
+|     2 | Red    |   3.9 |     51 |
+|     2 | Yellow |   2.4 |     55 |
+|     2 | Yellow |   6.6 |     34 |
+|     3 | Red    |   1.1 |     58 |
+|     3 | Yellow |   3.4 |     51 |
 #+END:
 
 And hline rows as well as column?
 #+BEGIN: aggregate :table "withhline" :cols "hline;^N cölØr;^a vâluε 'ra;han'" :hline 1
-| hline | cölØr  | vâluε | 'ra;han' |
-|-------+--------+-------+----------|
-|     3 | Red    |   1.1 |       58 |
-|     3 | Yellow |   3.4 |       51 |
-|-------+--------+-------+----------|
-|     2 | Blue   |   4.9 |       64 |
-|     2 | Red    |   3.9 |       51 |
-|     2 | Yellow |   2.4 |       55 |
-|     2 | Yellow |   6.6 |       34 |
-|-------+--------+-------+----------|
-|     1 | Blue   |   8.7 |       52 |
-|     1 | Blue   |   7.0 |       29 |
-|     1 | Yellow |   5.4 |       17 |
-|-------+--------+-------+----------|
-|     0 | Red    |   1.3 |       41 |
-|     0 | Red    |   3.5 |       35 |
-|     0 | Red    |   2.6 |       84 |
-|     0 | Yellow |   9.1 |       95 |
+| hline | cölØr  | vâluε | ra;han |
+|-------+--------+-------+--------|
+|     3 | Red    |   1.1 |     58 |
+|     3 | Yellow |   3.4 |     51 |
+|-------+--------+-------+--------|
+|     2 | Blue   |   4.9 |     64 |
+|     2 | Red    |   3.9 |     51 |
+|     2 | Yellow |   2.4 |     55 |
+|     2 | Yellow |   6.6 |     34 |
+|-------+--------+-------+--------|
+|     1 | Blue   |   8.7 |     52 |
+|     1 | Blue   |   7.0 |     29 |
+|     1 | Yellow |   5.4 |     17 |
+|-------+--------+-------+--------|
+|     0 | Red    |   1.3 |     41 |
+|     0 | Red    |   3.5 |     35 |
+|     0 | Red    |   2.6 |     84 |
+|     0 | Yellow |   9.1 |     95 |
 #+END:
 
 Same with hline & cölØr to separate blocks
 #+BEGIN: aggregate :table "withhline" :cols "hline;^N cölØr;^a vâluε 'ra;han'" :hline 2
-| hline | cölØr  | vâluε | 'ra;han' |
-|-------+--------+-------+----------|
-|     3 | Red    |   1.1 |       58 |
-|-------+--------+-------+----------|
-|     3 | Yellow |   3.4 |       51 |
-|-------+--------+-------+----------|
-|     2 | Blue   |   4.9 |       64 |
-|-------+--------+-------+----------|
-|     2 | Red    |   3.9 |       51 |
-|-------+--------+-------+----------|
-|     2 | Yellow |   2.4 |       55 |
-|     2 | Yellow |   6.6 |       34 |
-|-------+--------+-------+----------|
-|     1 | Blue   |   8.7 |       52 |
-|     1 | Blue   |   7.0 |       29 |
-|-------+--------+-------+----------|
-|     1 | Yellow |   5.4 |       17 |
-|-------+--------+-------+----------|
-|     0 | Red    |   1.3 |       41 |
-|     0 | Red    |   3.5 |       35 |
-|     0 | Red    |   2.6 |       84 |
-|-------+--------+-------+----------|
-|     0 | Yellow |   9.1 |       95 |
+| hline | cölØr  | vâluε | ra;han |
+|-------+--------+-------+--------|
+|     3 | Red    |   1.1 |     58 |
+|-------+--------+-------+--------|
+|     3 | Yellow |   3.4 |     51 |
+|-------+--------+-------+--------|
+|     2 | Blue   |   4.9 |     64 |
+|-------+--------+-------+--------|
+|     2 | Red    |   3.9 |     51 |
+|-------+--------+-------+--------|
+|     2 | Yellow |   2.4 |     55 |
+|     2 | Yellow |   6.6 |     34 |
+|-------+--------+-------+--------|
+|     1 | Blue   |   8.7 |     52 |
+|     1 | Blue   |   7.0 |     29 |
+|-------+--------+-------+--------|
+|     1 | Yellow |   5.4 |     17 |
+|-------+--------+-------+--------|
+|     0 | Red    |   1.3 |     41 |
+|     0 | Red    |   3.5 |     35 |
+|     0 | Red    |   2.6 |     84 |
+|-------+--------+-------+--------|
+|     0 | Yellow |   9.1 |     95 |
 #+END:
 
 * Test filter only
@@ -1308,14 +1308,14 @@ Same with hline & cölØr to separate blocks
 Without :cols parameter, we get all columns
 
 #+BEGIN: aggregate :table "planet" :cond (> (string-to-number "dist MKM") 150)
-| planet  | "mass kg" | "dist MKM" |
-|---------+-----------+------------|
-| Mars    | 6.4185e23 |        220 |
-| Jupiter | 1.8986e27 |        780 |
-| Saturn  | 5.6846e26 |       1420 |
-| Uranus  | 8.6810e25 |       2870 |
-| Neptune | 10.243e25 |       4500 |
-| Pluto   |   1.25e22 |       5800 |
+| planet  |   mass kg | dist MKM |
+|---------+-----------+----------|
+| Mars    | 6.4185e23 |      220 |
+| Jupiter | 1.8986e27 |      780 |
+| Saturn  | 5.6846e26 |     1420 |
+| Uranus  | 8.6810e25 |     2870 |
+| Neptune | 10.243e25 |     4500 |
+| Pluto   |   1.25e22 |     5800 |
 #+END:
 
 What happens without column names in the input?

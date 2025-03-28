@@ -1868,6 +1868,8 @@ Contributors
 - Hours in durations are no longer restricted to 2 digits
 - 3x speedup =org-table-to-lisp= and avoid Emacs 27 to 30 incompatibilities
 - =#+CAPTION:= and any other tag survive inside =#+BEGIN:=
+- Output column names are now stripped from quotes, better reflecting
+  input names.
 
 * GPL 3 License
 Copyright (C) 2013-2025  Thierry Banel

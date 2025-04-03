@@ -1965,6 +1965,7 @@ File: orgtbl-aggregate.info,  Node: Changes,  Next: GPL 3 License,  Prev: Author
    • ‘#+CAPTION:’ and any other tag survive inside ‘#+BEGIN:’
    • Output column names are now stripped from quotes, better reflecting
      input names.
+   • TOC in README.org (thanks org-make-toc)
 
 
 File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
@@ -2028,7 +2029,7 @@ Node: Span of values70990
 Node: Installation71526
 Node: Authors contributors72168
 Node: Changes73705
-Node: GPL 3 License76217
+Node: GPL 3 License76264
 
 End Tag Table
 

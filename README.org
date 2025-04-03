@@ -5,7 +5,54 @@
 Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the first table.
 
+* Table of Contents
+:PROPERTIES:
+:TOC:      :include siblings :depth 1 :force () :ignore (this) :local (nothing)
+:CUSTOM_ID: table-of-contents
+:END:
+
+:CONTENTS:
+- [[#examples][Examples]]
+- [[#sql-equivalent][SQL equivalent]]
+- [[#r-equivalent][R equivalent]]
+- [[#datamash-equivalent][Datamash equivalent]]
+- [[#key-binding--wizard][Key-binding & Wizard]]
+- [[#other-examples][Other examples]]
+- [[#the-cols-parameter][The :cols parameter]]
+- [[#grouping-specifications-in-cols][Grouping specifications in :cols]]
+- [[#hlines-in-the-input-table][hlines in the input table]]
+- [[#hlines-in-the-output-table][hlines in the output table]]
+- [[#aggregation-formulas-in-cols][Aggregation formulas in :cols]]
+- [[#where-calc-interpretation-happens][Where Calc interpretation happens?]]
+- [[#the-cond-filtering][The :cond filtering]]
+- [[#pull--push][Pull & Push]]
+- [[#symbolic-computation][Symbolic computation]]
+- [[#correlation-of-two-columns][Correlation of two columns]]
+- [[#dates][Dates]]
+- [[#durations][Durations]]
+- [[#arbitrary-column-names][Arbitrary column names]]
+- [[#multiple-lines-header][Multiple lines header]]
+- [[#custom-column-names][Custom column names]]
+- [[#empty-and-malformed-input-cells][Empty and malformed input cells]]
+- [[#almost-any-expression-can-be-specified][(Almost) any expression can be specified]]
+- [[#modifiers-and-formatters][Modifiers and formatters]]
+- [[#debugging][Debugging]]
+- [[#sorting][Sorting]]
+- [[#discarding-an-output-column][Discarding an output column]]
+- [[#post-aggregation-spreadsheet-formulas][Post-aggregation spreadsheet formulas]]
+- [[#post-processing][Post processing]]
+- [[#chaining][Chaining]]
+- [[#tricks][Tricks]]
+- [[#installation][Installation]]
+- [[#authors-contributors][Authors, contributors]]
+- [[#changes][Changes]]
+- [[#gpl-3-license][GPL 3 License]]
+:END:
+
 * Examples
+:PROPERTIES:
+:CUSTOM_ID: examples
+:END:
 A very simple example. We have a table of activities and quantities
 (whatever they are) over several days.
 
@@ -98,6 +145,9 @@ To get this result, we specified columns in this way, after the
   =Quantity= column, one sum for each =Day=.
 
 * SQL equivalent
+:PROPERTIES:
+:CUSTOM_ID: sql-equivalent
+:END:
 
 If you are familiar with SQL, you would get a similar result with the
 =GROUP BY= statement:
@@ -109,6 +159,9 @@ group by Day;
 #+end_src
 
 * R equivalent
+:PROPERTIES:
+:CUSTOM_ID: r-equivalent
+:END:
 
 If you are familiar with the R statistical language, you would get a
 similar result with =factor= and =aggregate= functions:
@@ -121,6 +174,9 @@ aggregate (original$Quantity, list(Day=day_factor), sum )
 #+end_src
 
 * Datamash equivalent
+:PROPERTIES:
+:CUSTOM_ID: datamash-equivalent
+:END:
 
 The command-line Datamash software operates on CSV files and can
 achieve a similar result:
@@ -136,6 +192,9 @@ Friday         8           22
 #+end_src
 
 * Key-binding & Wizard
+:PROPERTIES:
+:CUSTOM_ID: key-binding--wizard
+:END:
 
 Type =C-c C-x x= to launch a wizard for creating new /dynamic blocks/.
 Then answer =aggregate= for the type of block, and follow the instructions.
@@ -147,6 +206,9 @@ future block).
 =M-x orgtbl-aggregate-insert-dblock-aggregate=.
 
 * Other examples
+:PROPERTIES:
+:CUSTOM_ID: other-examples
+:END:
 
 Maybe we are just interested in the sum of =Quantities=, regardless of
 =Days=. We just type:
@@ -190,6 +252,9 @@ type:
 #+END_EXAMPLE
 
 * The :cols parameter
+:PROPERTIES:
+:CUSTOM_ID: the-cols-parameter
+:END:
 
 The =:cols= parameter lists the columns of the resulting table. It
 contains in any order, grouping key columns and aggregation formulas.
@@ -215,6 +280,9 @@ parenthesis list. If a column name has spaces, quote it like this:
 #+END_EXAMPLE
 
 * Grouping specifications in :cols
+:PROPERTIES:
+:CUSTOM_ID: grouping-specifications-in-cols
+:END:
 
 Grouping is done on columns of the source table acting as key columns.
 Just name the key columns.
@@ -226,6 +294,9 @@ Key columns and =hline= are used to group rows of the source
 table with unique combinations of those columns.
 
 * hlines in the input table
+:PROPERTIES:
+:CUSTOM_ID: hlines-in-the-input-table
+:END:
 
 hline = "horizontal line"
 
@@ -285,6 +356,9 @@ There is an ugly value, =35.6666666667=, in the middle of the
 table. See later how to format it.
 
 * hlines in the output table
+:PROPERTIES:
+:CUSTOM_ID: hlines-in-the-output-table
+:END:
 
 Example of an input table containing 3 hlines:
 
@@ -467,6 +541,9 @@ The =:hline= parameter accepts a number:
   much hlines.
 
 * Aggregation formulas in :cols
+:PROPERTIES:
+:CUSTOM_ID: aggregation-formulas-in-cols
+:END:
 
 Aggregation formulas are applied for each of those groupings, on the
 specified columns.
@@ -627,6 +704,9 @@ preferred, as it is the one used in the Org table spreadsheet, and in
 Calc.  The non-v names may be dropped in the future.
 
 * Where Calc interpretation happens?
+:PROPERTIES:
+:CUSTOM_ID: where-calc-interpretation-happens
+:END:
 
 *Calc* is the standard Emacs desktop calculator. Actual mathematical
 computations are handled through Calc. This offers a lot of
@@ -757,6 +837,9 @@ By the way, what is the meaning of the expression =Level*Level=? For
 #+END_EXAMPLE
 
 * The :cond filtering
+:PROPERTIES:
+:CUSTOM_ID: the-cond-filtering
+:END:
 
 This parameter is optional. If present, it specifies a lisp
 expression which tells whether or not a row should be kept. When the
@@ -783,6 +866,9 @@ This is useful when just filtering. But be aware that aggregation
 still occurs. So duplicate input rows appear only once in the result.
 
 * Pull & Push
+:PROPERTIES:
+:CUSTOM_ID: pull--push
+:END:
 
 Two modes are available: /pull/ & /push/.
 
@@ -900,6 +986,9 @@ To disable that, in the =#+ORGTBL: SEND= line, add this parameter:
 =:no-escape true=
 
 * Symbolic computation
+:PROPERTIES:
+:CUSTOM_ID: symbolic-computation
+:END:
 
 The computations are based on Calc, which is a symbolic calculator.
 Thus, symbolic computations are built-in. Example:
@@ -952,6 +1041,9 @@ number.  The best is to just avoid empty cells when dealing with symbolic
 calculations.
 
 * Correlation of two columns
+:PROPERTIES:
+:CUSTOM_ID: correlation-of-two-columns
+:END:
 
 Some aggregations work on two columns (rather than one column for
 =vsum()=, =vmean()=).
@@ -996,6 +1088,9 @@ is computed from =x= with the formula =y = 10*x +
 noise_between_0_and_2=.
 
 * Dates
+:PROPERTIES:
+:CUSTOM_ID: dates
+:END:
 
 Some aggregations are possible on dates. Example. Here is a source
 table containing dates:
@@ -1053,6 +1148,9 @@ Note that =date()= is not special to orgaggregate. It can be used in
 Org Mode spreadsheet formulas.
 
 * Durations
+:PROPERTIES:
+:CUSTOM_ID: durations
+:END:
 In Org Mode spreadsheet, durations have the forms =HH:MM= or
 =HH:MM:SS=. In orgaggregate, when an input cell have one of those two
 forms, it is converted into a number of seconds. For instance, =01:00=
@@ -1112,6 +1210,9 @@ Example:
 #+END_EXAMPLE
 
 * Arbitrary column names
+:PROPERTIES:
+:CUSTOM_ID: arbitrary-column-names
+:END:
 Column names are not necessarily alphanumeric words. They may contain
 any characters, including spaces, quotes, +, -, whatever. They must
 not extend on several lines thought.
@@ -1141,6 +1242,9 @@ because single quote in Lisp has a very special meaning.
 characters, although not perfectly.
 
 * Multiple lines header
+:PROPERTIES:
+:CUSTOM_ID: multiple-lines-header
+:END:
 The header of the source table may be more than one row tall.  Only the
 first header row is used to match column names between the source
 table and the =:cols= specifications.
@@ -1184,6 +1288,9 @@ Data rows containing at least one cookie are ignored. They are not
 ignored in the header.
 
 * Custom column names
+:PROPERTIES:
+:CUSTOM_ID: custom-column-names
+:END:
 In this example, column have names which are difficult to handle:
 
 #+BEGIN_EXAMPLE
@@ -1215,6 +1322,9 @@ We can give them custom names with the =;'custom name'= decoration:
 Decorators are optional.
 
 * Empty and malformed input cells
+:PROPERTIES:
+:CUSTOM_ID: empty-and-malformed-input-cells
+:END:
 
 The input table may contain malformed mathematical text.  For
 instance, a cell containing =5+= is malformed, because an expression
@@ -1256,6 +1366,9 @@ this one:
 Missing cells are handled as though they were empty.
 
 * (Almost) any expression can be specified
+:PROPERTIES:
+:CUSTOM_ID: almost-any-expression-can-be-specified
+:END:
 
 Virtually any Calc formula can be specified as an aggregation formula.
 
@@ -1286,6 +1399,9 @@ are not aggregated. Note that parenthesis are required, otherwise, =C=
 would act as a key grouping column.
 
 * Modifiers and formatters
+:PROPERTIES:
+:CUSTOM_ID: modifiers-and-formatters
+:END:
 An expression may optionally be followed by modifiers and formatters,
 after a semicolon. Examples:
 
@@ -1333,6 +1449,9 @@ Additionally, a few formatters are dedicated to debugging:
 - =Q= output the Lisp expression before it gets simplified and folded.
 
 * Debugging
+:PROPERTIES:
+:CUSTOM_ID: debugging
+:END:
 The work of Org Aggregate is to hand out pieces of the input table to
 Calc (the Emacs calculator).
 
@@ -1451,6 +1570,9 @@ To summarize the debugging settings:
 - =Q=: output Lisp formula with column forms substituted by actual input data
 
 * Sorting
+:PROPERTIES:
+:CUSTOM_ID: sorting
+:END:
 In this example, the output table is sorted numerically on its second
 column (look at the =^n= specification):
 
@@ -1518,6 +1640,9 @@ The =EXPR= column is
 - sorted numerically in ascending order (=^n=).
 
 * Discarding an output column
+:PROPERTIES:
+:CUSTOM_ID: discarding-an-output-column
+:END:
 Why would anyone specify a column just to discard it in the output? For
 its side effects. For sorting the output table or for adding hlines to
 it.
@@ -1574,6 +1699,9 @@ Here is an example where rows are sorted on the =cölØr= column, but without di
 #+end_example
 
 * Post-aggregation spreadsheet formulas
+:PROPERTIES:
+:CUSTOM_ID: post-aggregation-spreadsheet-formulas
+:END:
 
 Additional columns can be specified for the resulting table.  With a
 previous example, adding a =:formula= parameter, we specify a new
@@ -1598,6 +1726,9 @@ Moreover, if a =#+TBLFM:= was already there, it survives aggregation re-computat
 This happens in /pull mode/ only.
 
 * Post processing
+:PROPERTIES:
+:CUSTOM_ID: post-processing
+:END:
 
 The aggregated table can be post-processed with the =:post=
 parameter. It accepts a Lisp =lambda=, a Lisp function, or a Babel
@@ -1652,6 +1783,9 @@ The =:post= parameter can also refer to a Babel Block. Example:
 : #+end_src
 
 * Chaining
+:PROPERTIES:
+:CUSTOM_ID: chaining
+:END:
 
 The result of an aggregation may become the source of further
 processing.  To do that, just add a =#+NAME:= or =#+TBLNAME:= line
@@ -1704,6 +1838,9 @@ The =#.NAME:= line will survive when recomputing the aggregation (as
 =#.TBLFM:= line survives)
 
 * Tricks
+:PROPERTIES:
+:CUSTOM_ID: tricks
+:END:
 This chapter collects some tricks that may be useful.
 
 ** Sorting
@@ -1772,6 +1909,9 @@ last values:
 #+end_example
 
 * Installation
+:PROPERTIES:
+:CUSTOM_ID: installation
+:END:
 
 Emacs package on Melpa: add the following lines to your =.emacs= file,
 and reload it.
@@ -1798,6 +1938,9 @@ Alternatively, you can download the lisp file, and load it:
 #+END_EXAMPLE
 
 * Authors, contributors
+:PROPERTIES:
+:CUSTOM_ID: authors-contributors
+:END:
 
 Authors
 - Thierry Banel, tbanelwebmin at free dot fr, inception & implementation.
@@ -1828,6 +1971,9 @@ Contributors
 - Jason Hemann, output column names no longer have quotes
 
 * Changes
+:PROPERTIES:
+:CUSTOM_ID: changes
+:END:
 - Wizard now correctly asks for columns with =$1, $2...= names
   when table header is missing
 - Handle tables beginning with hlines
@@ -1873,6 +2019,9 @@ Contributors
   input names.
 
 * GPL 3 License
+:PROPERTIES:
+:CUSTOM_ID: gpl-3-license
+:END:
 Copyright (C) 2013-2025  Thierry Banel
 
 orgtbl-aggregate is free software: you can redistribute it and/or modify

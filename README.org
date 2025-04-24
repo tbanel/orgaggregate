@@ -2018,6 +2018,8 @@ Contributors
 - Output column names are now stripped from quotes, better reflecting
   input names.
 - TOC in README.org (thanks org-make-toc)
+- Add formatters =c= =C= =q= =Q= (useful fro debugging or understanding
+  OrgAggregate)
 
 * GPL 3 License
 :PROPERTIES:

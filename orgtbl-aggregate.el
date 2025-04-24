@@ -963,7 +963,10 @@ which do not pass the filter found in PARAMS entry :cond."
 		    collect (orgtbl-aggregate--list-create)))
 	  (all-$list
 	   (cl-loop for _x in (orgtbl-aggregate--list-get groups)
-		    collect (make-vector (length (car table)) nil))))
+		    collect
+                    (make-vector
+                     (1+ (length (car table))) ;; 1+ for hline at 0
+                     nil))))
 
       ;; inactivating those two functions boosts performance
       (cl-letf (((symbol-function 'math-read-preprocess-string) #'identity)
@@ -1293,7 +1296,7 @@ in the current group, given by COUNT."
    ((not (consp formula-frux))
     formula-frux)
    ((memq (car formula-frux) '(calcFunc-Frux calcFunc-FRUX))
-    (nth (1- (cadr formula-frux)) calc-dollar-values-oo))
+    (nth (cadr formula-frux) calc-dollar-values-oo))
    ((eq (car formula-frux) 'calcFunc-vcount)
     count)
    (t
@@ -1313,16 +1316,16 @@ should be converted to NAN or ignored.
 :numbers is a flag to replace non numeric values by 0."
   (cl-loop
    for i in involved
-   unless (aref $list (1- i))
+   unless (aref $list i)
    do (aset
-       $list (1- i)
+       $list i
        (cons 'vec
 	     (cl-loop for row in (orgtbl-aggregate--list-get group)
 		      collect
 		      (orgtbl-aggregate--read-calc-expr (nth i row))))))
   (cl-loop
    for vec across $list
-   for i from 1
+   for i from 0
    collect
    (when (memq i involved)
      (let ((vecc

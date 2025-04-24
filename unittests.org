@@ -1613,3 +1613,18 @@ In case of a mistake, the result is:
 |     2 | vsum($2)    | (calcFunc-vsum (calcFunc-Frux 2)) | vsum([4.9, 3.9, 2.4, 6.6]) | (calcFunc-vsum (vec (float 49 -1) (float 39 -1) (float 24 -1) (float 66 -1))) |
 |     3 | vsum($2)    | (calcFunc-vsum (calcFunc-Frux 2)) | vsum([1.1, 3.4])           | (calcFunc-vsum (vec (float 11 -1) (float 34 -1)))                             |
 #+END:
+
+* hline as a column to be aggregated
+Does it make sense to calculate something based on hline?
+Anyway, it is now available at no cost.
+
+#+BEGIN: aggregate :table "withhline" :cols "cölØr vmean(hline*15) vlist(hline)"
+| cölØr  | vmean(hline*15) | vlist(hline)  |
+|--------+-----------------+---------------|
+| Red    |              15 | 0, 0, 0, 2, 3 |
+| Yellow |              24 | 0, 1, 2, 2, 3 |
+| Blue   |              20 | 1, 1, 2       |
+#+END:
+
+We see that Reds are more at the begining of the input table,
+while Yellows are more at the end.

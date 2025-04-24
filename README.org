@@ -2020,6 +2020,8 @@ Contributors
 - TOC in README.org (thanks org-make-toc)
 - Add formatters =c= =C= =q= =Q= (useful fro debugging or understanding
   OrgAggregate)
+- Formulas involving =hline= like =vmean(hline*10)= are now taken into
+  account
 
 * GPL 3 License
 :PROPERTIES:

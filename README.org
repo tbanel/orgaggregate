@@ -2022,6 +2022,8 @@ Contributors
   OrgAggregate)
 - Formulas involving =hline= like =vmean(hline*10)= are now taken into
   account
+- Documentation is now integrated right into Emacs in the =info= format.
+  Type =M-: (info "orgtbl-aggregate")=
 
 * GPL 3 License
 :PROPERTIES:

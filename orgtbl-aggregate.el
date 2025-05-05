@@ -171,14 +171,13 @@ The table is taken from the parameter TXT, or from the buffer at point."
                  (let ((q (point)))
                    (skip-chars-forward "^|\n")
                    (goto-char
-                    (prog1
-                        (let ((p (point)))
-                          (unless (eolp) (setq p (1+ p)))
-                          p)
-	              (skip-chars-backward " \t" q)
-	              (push
+                    (let ((p (point)))
+                      (unless (eolp) (setq p (1+ p)))
+                      (skip-chars-backward " \t" q)
+                      (push
                        (buffer-substring-no-properties q (point))
-                       row)))))
+                       row)
+                      p))))
 	       (nreverse row)))
 	   table)
 	  (forward-line))

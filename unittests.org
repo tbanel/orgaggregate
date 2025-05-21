@@ -1628,3 +1628,44 @@ Anyway, it is now available at no cost.
 
 We see that Reds are more at the begining of the input table,
 while Yellows are more at the end.
+
+* Input table is a Babel script
+
+Note the =:colnames yes= parameter to output a header with label & value
+column names.
+
+The table resulting from the =ascript= script is computed on the fly, it
+appears nowhere in the buffer.
+
+#+name: ascript
+#+begin_src elisp :colnames yes
+`(
+  (label "value")                       ; cells are symbols or strings
+  hline
+  ,@(cl-loop
+     for i from 1 to 20
+     collect
+     (list
+      (format "%c" (+ ?a (% i 3)))      ; cell is a string
+      i)))                              ; cell is a number
+#+end_src
+
+Use column names in the =:cols= specification:
+
+#+BEGIN: aggregate :table "ascript" :cols "label vsum(value)"
+| label | vsum(value) |
+|-------+-------------|
+| b     |          70 |
+| c     |          77 |
+| a     |          63 |
+#+END:
+
+Use dollar to specify columns in =:cols=:
+
+#+BEGIN: aggregate :table "ascript" :cols "$1 vsum($2)"
+| $1 | vsum($2) |
+|----+----------|
+| b  |       70 |
+| c  |       77 |
+| a  |       63 |
+#+END:

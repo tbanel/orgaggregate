@@ -1,5 +1,4 @@
-;;; orgtbl-aggregate.el --- Create an Org Mode aggregated table from another table  -*- coding:utf-8; lexical-binding: t;-*-
-
+;;; orgtbl-aggregate.el --- Aggregate an Org Mode table | + | + | into another table  -*- coding:utf-8; lexical-binding: t;-*-
 ;; Copyright (C) 2013-2025  Thierry Banel
 
 ;; Authors:

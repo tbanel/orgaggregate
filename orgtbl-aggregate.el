@@ -82,6 +82,7 @@
 (require 'calc-alg)
 (require 'org)
 (require 'org-table)
+(require 'thingatpt) ;; just for thing-at-point--read-from-whole-string
 (eval-when-compile (require 'cl-lib))
 (require 'rx)
 (cl-proclaim '(optimize (speed 3) (safety 0)))
@@ -246,7 +247,6 @@ An horizontal line is translated as the special symbol `hline'."
 	    (setq buffer (marker-buffer id-loc)
 		  loc (marker-position id-loc))
 	    (move-marker id-loc nil)))))
-    (message "loc = %S" loc)
     (or
      (and buffer
           (with-current-buffer buffer
@@ -374,10 +374,10 @@ again and again the same string."
 ;; Time optimization: surprisingly,
 ;; (insert (concat a b c)) is faster than
 ;; (insert a b c)
-;; Therefore, we build a the Org Mode representation of a table
-;; as list of strings which get concatenated into a huge string.
+;; Therefore, we build the Org Mode representation of a table
+;; as a list of strings which get concatenated into a huge string.
 ;; This is faster and less garbage-collector intensive than
-;; inserting bits one at a time in a buffer.
+;; inserting cells one at a time in a buffer.
 ;;
 ;; benches:
 ;; insert a large 3822 rows × 16 columns table
@@ -507,7 +507,9 @@ Actual column names which are not fully alphanumeric are quoted."
 	 (if (memq 'hline table)
 	     (cl-loop for x in (car table)
 		      collect
-		      (if (string-match "^[[:word:]_$.]+$" x)
+		      (if (string-match
+                           (rx bol (+ (in "$._" word)) eol)
+                           x)
 			  x
 			(format "\"%s\"" x)))
 	   (cl-loop for _x in (car table)
@@ -574,7 +576,16 @@ with an Org Mode table."
 	  (org-babel-ref-resolve post)
 	(error
 	 (message "error: %S" err)
-	 (orgtbl-aggregate--post-process table (read post))))))
+         (condition-case err2
+	     (orgtbl-aggregate--post-process
+              table
+              (thing-at-point--read-from-whole-string post))
+           (error
+            (user-error
+             ":post %S ends in an error
+- as a Babel block: %s
+- not a valid Lisp expression: %s"
+             post err err2)))))))
    ((listp post)
     (let ((*this* table))
       (eval post)))
@@ -614,8 +625,8 @@ Doing so, EXPRESSION is ready to be computed against a TABLE row."
   invisible	; user-entered output column invisibility
   name		; user-entered output column name
   formula$	; derived formula with $N instead of input column names
-  involved	; list of input columns numbers appearing in formula
   formula-frux	; derived formula in Calc format with Frux(N) for input columns
+  involved	; list of input columns numbers appearing in formula
   key		; is this output column a key-column?
   )
 
@@ -670,7 +681,8 @@ into the column number."
 	    (? (* space) "("))
 	   (lambda (var)
 	     (save-match-data ;; save because we are called within a replace-regexp
-	       (if (string-match (rx (group (+ (not (any "(")))) (* space) "(") var)
+	       (if (string-match
+                    (rx (group (+ (not (any "(")))) (* space) "(") var)
 		   (if (member
 			(match-string 1 var)
 			'("mean" "meane" "gmean" "hmean" "median" "sum"
@@ -727,8 +739,8 @@ into the column number."
      :sort         sort
      :invisible    invisible
      :name         name
-     :formula-frux (math-read-expr frux)
      :formula$     formula$
+     :formula-frux (math-read-expr frux)
      :involved     involved
      :key          key)))
 
@@ -770,7 +782,10 @@ The list contains sorting specifications as follows:
 	   if sorting
 	   do (progn
 		(unless (string-match
-                         (rx bol (group (any "aAnNtTfF")) (group (* (any num))) eol)
+                         (rx bol
+                             (group (any "aAnNtTfF"))
+                             (group (* (any num)))
+                             eol)
                          sorting)
 		  (user-error
                    "Bad sorting specification: ^%s, expecting a/A/n/N/t/T and an optional number"
@@ -856,7 +871,11 @@ a hash-table, whereas GROUPS is a Lisp list."
     (math-read-number expr))
    ;; Convert an Org-mode date to Calc internal representation
    ((string-match org-ts-regexp0 expr)
-    (math-parse-date (replace-regexp-in-string " *[a-z]+[.]? *" " " expr)))
+    (math-parse-date
+     (replace-regexp-in-string
+      (rx (* " ") (+ (any "a-z")) (opt ".") (* " "))
+      " "
+      expr)))
    ;; Convert a duration into a number of seconds
    ((string-match
      (rx bos
@@ -1095,7 +1114,9 @@ The code was borrowed from org-table.el."
 	 (float-time
 	  (org-time-string-to-time (match-string 0 f))))
 	((org-duration-p f) (org-duration-to-minutes f))
-	((string-match "\\<[0-9]+:[0-9]\\{2\\}\\>" f)
+	((string-match
+          (rx bow (+ (any "0-9")) ":" (= 2 (any "0-9")) eow)
+          f)
 	 (org-duration-to-minutes (match-string 0 f)))
 	(t 0)))
 
@@ -1127,7 +1148,9 @@ Result is the FMT-SETTINGS assoc list."
     (when fmt
       ;; the following code was freely borrowed from org-table-eval-formula
       ;; not all settings extracted from fmt are used
-      (while (string-match "\\([pnfse]\\)\\(-?[0-9]+\\)" fmt)
+      (while (string-match
+              (rx (group (any "pnfse")) (group (opt "-") (+ (any "0-9"))))
+              fmt)
 	(let ((c (string-to-char   (match-string 1 fmt)))
 	      (n (string-to-number (match-string 2 fmt))))
           (cl-case c
@@ -1161,7 +1184,7 @@ Result is the FMT-SETTINGS assoc list."
           (?q (plist-put fmt-settings :debug ?q))
 	  (?Q (plist-put fmt-settings :debug ?Q)))
 	(setq fmt (replace-match "" t t fmt)))
-      (when (string-match "\\S-" fmt)
+      (when (string-match (rx (not (syntax whitespace))) fmt)
 	(plist-put fmt-settings :fmt fmt)))
     fmt-settings))
 

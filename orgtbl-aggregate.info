@@ -2036,6 +2036,7 @@ File: orgtbl-aggregate.info,  Node: Changes,  Next: GPL 3 License,  Prev: Author
      format.  Type ‘M-: (info "orgtbl-aggregate")’
    • Input table may now be the result of a Babel script (virtual
      table).
+   • Better handling of user errors in the ‘:post’ directive.
 
 
 File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
@@ -2100,7 +2101,7 @@ Node: Span of values72811
 Node: Installation73347
 Node: Authors contributors73989
 Node: Changes75526
-Node: GPL 3 License78519
+Node: GPL 3 License78587
 
 End Tag Table
 

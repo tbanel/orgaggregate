@@ -2091,6 +2091,7 @@ Contributors
 - Documentation is now integrated right into Emacs in the =info= format.
   Type =M-: (info "orgtbl-aggregate")=
 - Input table may now be the result of a Babel script (virtual table).
+- Better handling of user errors in the =:post= directive.
 
 * GPL 3 License
 :PROPERTIES:

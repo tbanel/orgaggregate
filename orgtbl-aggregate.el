@@ -260,7 +260,7 @@ An horizontal line is translated as the special symbol `hline'."
                      (or
                       (group (1+ "*") " ")
                       (seq
-                       (0+ (0+ blank) "#" (0+ any) "\n")
+                       (0+ (0+ blank) (? "#" (0+ any)) "\n")
                        (0+ blank) "|")))
                     nil t)
 		   (not (match-beginning 1))

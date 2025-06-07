@@ -762,7 +762,10 @@ Comparison with the spreadsheet:
 
 * Test modifiers
 
+Note the blank line between tblname and the actual table
+
 #+tblname: bigprec
+
 | A  | Q     |                   N |
 |----+-------+---------------------|
 | a  | 12    |                  20 |
@@ -868,6 +871,9 @@ In a :cond lisp formula, only double quotes work.
 ** Quoted names
 
 #+NAME: funnynames
+  # some additional ignored directives
+  # and blank lines
+
 | first column | observed;number | computed/expected |
 |--------------+-----------------+-------------------|
 | a/experiment |             2.3 |               2.4 |

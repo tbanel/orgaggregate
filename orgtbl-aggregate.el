@@ -111,27 +111,30 @@
 ;;  │ ▲
 ;;  ╰─╯
 
-(defsubst orgtbl-aggregate--list-create ()
-  "Create an appendable list."
-  (let ((x (cons nil nil)))
-    (setcar x x)))
+(eval-when-compile
 
-(defmacro orgtbl-aggregate--list-append (ls value)
-  "Append VALUE at the end of LS in O(1) time."
-  `(setcar ,ls (setcdr (car ,ls) (cons ,value nil))))
+  (defmacro orgtbl-aggregate--list-create ()
+    "Create an appendable list."
+    `(let ((x (cons nil nil)))
+       (setcar x x)))
 
-(defmacro orgtbl-aggregate--list-get (ls)
-  "Return the regular Lisp list from LS."
-  `(cdr ,ls))
+  (defmacro orgtbl-aggregate--list-append (ls value)
+    "Append VALUE at the end of LS in O(1) time."
+    `(setcar ,ls (setcdr (car ,ls) (cons ,value nil))))
 
-(defmacro orgtbl-aggregate--pop-simple (place)
-  "Like (pop PLACE), but without returning (car PLACE)."
-  `(setq ,place (cdr ,place)))
+  (defmacro orgtbl-aggregate--list-get (ls)
+    "Return the regular Lisp list from LS."
+    `(cdr ,ls))
 
-(defmacro orgtbl-aggregate--pop-leading-hline (table)
-  "Remove leading hlines from TABLE, if any."
-  `(while (not (listp (car ,table)))
-     (orgtbl-aggregate--pop-simple ,table)))
+  (defmacro orgtbl-aggregate--pop-simple (place)
+    "Like (pop PLACE), but without returning (car PLACE)."
+    `(setq ,place (cdr ,place)))
+
+  (defmacro orgtbl-aggregate--pop-leading-hline (table)
+    "Remove leading hlines from TABLE, if any."
+    `(while (not (listp (car ,table)))
+       (orgtbl-aggregate--pop-simple ,table)))
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The function (org-table-to-lisp) have been greatly enhanced
@@ -1188,17 +1191,19 @@ Result is the FMT-SETTINGS assoc list."
 	(plist-put fmt-settings :fmt fmt)))
     fmt-settings))
 
-(defmacro orgtbl-aggregate--calc-setting (setting &optional setting0)
-  "Retrieve a Calc setting.
+(eval-when-compile
+  (defmacro orgtbl-aggregate--calc-setting (setting &optional setting0)
+    "Retrieve a Calc setting.
 The setting comes either from `org-calc-default-modes'
 or from SETTING itself.
 SETTING0 is a default to use if both fail."
-  ;; plist-get would be fine, except that there is no way
-  ;; to distinguish a value of nil from no value
-  ;; so we fallback to memq
-  `(let ((x (memq (quote ,setting) org-calc-default-modes)))
-     (if x (cadr x)
-       (or ,setting ,setting0))))
+    ;; plist-get would be fine, except that there is no way
+    ;; to distinguish a value of nil from no value
+    ;; so we fallback to memq
+    `(let ((x (memq (quote ,setting) org-calc-default-modes)))
+       (if x (cadr x)
+         (or ,setting ,setting0))))
+  )
 
 (defun orgtbl-aggregate--compute-sums-on-one-column (groups result coldesc all-$list)
   "Apply COLDESC over all GROUPS of rows.

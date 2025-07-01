@@ -346,9 +346,9 @@ otherwise nil is returned."
       (setq colname (match-string 1 colname)))
   ;; skip first hlines if any
   (orgtbl-aggregate--pop-leading-hline table)
-  (cond ((equal colname "")
+  (cond ((string= colname "")
 	 (and err (user-error "Empty column name")))
-	((equal colname "hline")
+	((string= colname "hline")
 	 0)
 	((string-match (rx bol "$" (group (+ (any "0-9"))) eol) colname)
 	 (let ((n (string-to-number (match-string 1 colname))))
@@ -361,7 +361,7 @@ otherwise nil is returned."
 	  (cl-loop
 	   for h in (car table)
 	   for i from 1
-	   thereis (and (equal h colname) i))))
+	   thereis (and (string= h colname) i))))
         (err
 	 (user-error "Column %s not found in table" colname))))
 
@@ -434,7 +434,7 @@ special symbol `hline' to mean an horizontal line."
 		      		(setcar cell (setq cellnp (format "%s" cellnp)))))
 		      if (string-match-p org-table-number-regexp cellnp)
 		      do (setcar nu (1+ (car nu)))
-		      unless (equal cellnp "")
+		      unless (string= cellnp "")
 		      do (setcar ne (1+ (car ne)))
 		      if (< (car mx) (string-width cellnp))
 		      do (setcar mx (string-width cellnp))))
@@ -446,7 +446,7 @@ special symbol `hline' to mean an horizontal line."
 	     do
 	     (setcar nu (< (car nu) (* org-table-number-fraction ne))))
 
-    ;; creage well padded and aligned cells
+    ;; create well padded and aligned cells
     (let ((bits (orgtbl-aggregate--list-create)))
       (cl-loop for row in table
 	       do
@@ -482,10 +482,7 @@ special symbol `hline' to mean an horizontal line."
 	       (orgtbl-aggregate--list-append bits "|\n"))
       ;; remove the last \n because Org Mode re-adds it
       (setcar (car bits) "|")
-      (mapconcat
-       #'identity
-       (orgtbl-aggregate--list-get bits)
-       ""))))
+      (mapconcat #'identity (orgtbl-aggregate--list-get bits)))))
 
 (defun orgtbl-aggregate--insert-elisp-table (table)
   "Insert TABLE in current buffer at point.
@@ -615,7 +612,7 @@ Doing so, EXPRESSION is ready to be computed against a TABLE row."
    (t
     (let ((n (orgtbl-aggregate--colname-to-int expression table)))
       (if n
-	  (list 'nth n 'orgtbl-aggregate--row)
+          `(nth ,n orgtbl-aggregate--row)
 	expression)))))
 
 ;; dynamic binding
@@ -783,31 +780,31 @@ The list contains sorting specifications as follows:
 	   for sorting = (orgtbl-aggregate--outcol-sort col)
 	   for colnum from 0
 	   if sorting
-	   do (progn
-		(unless (string-match
-                         (rx bol
-                             (group (any "aAnNtTfF"))
-                             (group (* (any num)))
-                             eol)
-                         sorting)
-		  (user-error
-                   "Bad sorting specification: ^%s, expecting a/A/n/N/t/T and an optional number"
-                   sorting))
-		(orgtbl-aggregate--list-append
-		 orgtbl-aggregate--columns-sorting
-		 (let ((strength
-			(if (equal (match-string 2 sorting) "")
-			    nil
-			  (string-to-number (match-string 2 sorting)))))
-		   (pcase (match-string 1 sorting)
-		     ("a" (record 'orgtbl-aggregate--sorting strength colnum nil #'identity              #'string-lessp))
-		     ("A" (record 'orgtbl-aggregate--sorting strength colnum t   #'identity              #'string-lessp))
-		     ("n" (record 'orgtbl-aggregate--sorting strength colnum nil #'string-to-number                 #'<))
-		     ("N" (record 'orgtbl-aggregate--sorting strength colnum t   #'string-to-number                 #'<))
-		     ("t" (record 'orgtbl-aggregate--sorting strength colnum nil #'orgtbl-aggregate--string-to-time #'<))
-		     ("T" (record 'orgtbl-aggregate--sorting strength colnum t   #'orgtbl-aggregate--string-to-time #'<))
-		     ((or "f" "F") (user-error "f/F sorting specification not (yet) implemented"))
-		     (_ (user-error "Bad sorting specification ^%s" sorting)))))))
+	   do
+	   (unless (string-match
+                    (rx bol
+                        (group (any "aAnNtTfF"))
+                        (group (* (any num)))
+                        eol)
+                    sorting)
+	     (user-error
+              "Bad sorting specification: ^%s, expecting a/A/n/N/t/T and an optional number"
+              sorting))
+	   (orgtbl-aggregate--list-append
+	    orgtbl-aggregate--columns-sorting
+	    (let ((strength
+		   (if (string= (match-string 2 sorting) "")
+		       nil
+		     (string-to-number (match-string 2 sorting)))))
+	      (pcase (match-string 1 sorting)
+		("a" (record 'orgtbl-aggregate--sorting strength colnum nil #'identity              #'string-lessp))
+		("A" (record 'orgtbl-aggregate--sorting strength colnum t   #'identity              #'string-lessp))
+		("n" (record 'orgtbl-aggregate--sorting strength colnum nil #'string-to-number                 #'<))
+		("N" (record 'orgtbl-aggregate--sorting strength colnum t   #'string-to-number                 #'<))
+		("t" (record 'orgtbl-aggregate--sorting strength colnum nil #'orgtbl-aggregate--string-to-time #'<))
+		("T" (record 'orgtbl-aggregate--sorting strength colnum t   #'orgtbl-aggregate--string-to-time #'<))
+		((or "f" "F") (user-error "f/F sorting specification not (yet) implemented"))
+		(_ (user-error "Bad sorting specification ^%s" sorting))))))
 
   ;; major sorting columns must come before minor sorting columns
   (setq orgtbl-aggregate--columns-sorting
@@ -859,7 +856,7 @@ a hash-table, whereas GROUPS is a Lisp list."
    ((not expr) nil)
    ;; empty cell returned as nil,
    ;; to be processed later depending on modifier flags
-   ((equal expr "") nil)
+   ((string= expr "") nil)
    ;; the purely numerical cell case arises very often
    ;; short-circuiting general functions boosts performance (a lot)
    ((and
@@ -1053,7 +1050,7 @@ which do not pass the filter found in PARAMS entry :cond."
                 nil
                 (cl-loop for column in aggcols
                          collect
-                         (if (equal (length (orgtbl-aggregate--outcol-involved column)) 1)
+                         (if (eq (length (orgtbl-aggregate--outcol-involved column)) 1)
                              (let ((n (1- (car (orgtbl-aggregate--outcol-involved column)))))
                                (if (>= n 0)
                                    (nth n (nth i table))
@@ -1138,7 +1135,7 @@ hlines are added in-place"
 	     (or (null oldrow)
 		 (cl-loop for c in colnums
 			  always
-                          (equal
+                          (string=
 			   (nth c (orgtbl-aggregate--list-get (car row)))
 			   (nth c (orgtbl-aggregate--list-get (car oldrow))))))
 	     do (setcdr oldrow (cons 'hline (cdr oldrow)))
@@ -1158,10 +1155,10 @@ Result is the FMT-SETTINGS assoc list."
 	      (n (string-to-number (match-string 2 fmt))))
           (cl-case c
             (?p (setq calc-internal-prec n))
-	    (?n (setq calc-float-format (list 'float n)))
-	    (?f (setq calc-float-format (list 'fix   n)))
-	    (?s (setq calc-float-format (list 'sci   n)))
-	    (?e (setq calc-float-format (list 'eng   n)))))
+	    (?n (setq calc-float-format `(float ,n)))
+	    (?f (setq calc-float-format `(fix   ,n)))
+	    (?s (setq calc-float-format `(sci   ,n)))
+	    (?e (setq calc-float-format `(eng   ,n)))))
 	(setq fmt (replace-match "" t t fmt)))
       (while (string-match "[tTUNLEDRFSuQqCc]" fmt)
         (cl-case (string-to-char (match-string 0 fmt))
@@ -1639,8 +1636,8 @@ Note:
 	    header)
 	   nil 'orgtbl-aggregate-history-cols))
 	 (params (list :name "aggregate" :table table :cols aggcols)))
-    (unless (equal aggcond "")
-      (nconc params (list :cond (read aggcond))))
+    (unless (string= aggcond "")
+      (nconc params `(:cond ,(read aggcond))))
     (org-create-dblock params)
     (org-update-dblock)))
 
@@ -1671,6 +1668,7 @@ If AGGCOND is nil, all source rows are taken."
       (setq aggcond
             (orgtbl-aggregate--replace-colnames-nth table aggcond)))
   (let ((result (cl-loop for _x in cols collect (list t)))
+        ;; '(t) or `(t) would be incorrect╶────────▷─╯
         (nhline 0))
     (cl-loop for row in table
 	     do
@@ -1688,7 +1686,7 @@ If AGGCOND is nil, all source rows are taken."
 	     do (orgtbl-aggregate--pop-simple row)
 	     collect
 	     (if (cl-loop for x in row
-			  always (equal "" x))
+			  always (string= "" x))
 		 'hline
 	       row))))
 
@@ -1821,10 +1819,10 @@ Note:
 	     (let ((case-fold-search t))
 	       (string-match
 		(rx bos
-                    (* (any " \t"))
-                    (group "#+" (? "tbl") "name:" (* not-newline)))
+                    (+
+                     (* (any " \t")) "#+" (* not-newline) "\n"))
 		content)))
-	(insert (match-string 1 content) "\n"))
+	(insert (match-string 0 content)))
     (orgtbl-aggregate--insert-elisp-table
      (orgtbl-aggregate--post-process
       (orgtbl-aggregate--create-table-transposed
@@ -1836,7 +1834,9 @@ Note:
     (if (and content
 	     (let ((case-fold-search t))
 	       (string-match
-		(rx bol (* (any " \t")) (group "#+tblfm:" (* not-newline)))
+		(rx bol
+                    (* (any " \t"))
+                    (group "#+tblfm:" (* not-newline)))
 		content)))
 	(setq tblfm (match-string 1 content)))
     (when (stringp formula)
@@ -1881,9 +1881,9 @@ Note:
 	    header)
 	   nil 'orgtbl-aggregate-history-cols))
 	 (params (list :name "transpose" :table table)))
-    (unless (equal aggcols "")
+    (unless (string= aggcols "")
       (nconc params (list :cols aggcols)))
-    (unless (equal aggcond "")
+    (unless (string= aggcond "")
       (nconc params (list :cond (read aggcond))))
     (org-create-dblock params)
     (org-update-dblock)))

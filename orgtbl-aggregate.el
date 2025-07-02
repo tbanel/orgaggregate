@@ -702,7 +702,9 @@ into the column number."
 			   (push i involved))
 			 (format "Frux(%s)" i))
 		     var)))))
-	   formula))
+	   formula
+           t ;; if nil, Frux is sometimes converted in FRUX
+           ))
 
 	 ;; create a derived formula where input column names
 	 ;; are replaced with $N
@@ -1344,7 +1346,7 @@ in the current group, given by COUNT."
   (cond
    ((not (consp formula-frux))
     formula-frux)
-   ((memq (car formula-frux) '(calcFunc-Frux calcFunc-FRUX))
+   ((eq (car formula-frux) 'calcFunc-Frux)
     (nth (cadr formula-frux) calc-dollar-values-oo))
    ((eq (car formula-frux) 'calcFunc-vcount)
     count)

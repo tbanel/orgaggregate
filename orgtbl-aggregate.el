@@ -85,7 +85,8 @@
 (require 'thingatpt) ;; just for thing-at-point--read-from-whole-string
 (eval-when-compile (require 'cl-lib))
 (require 'rx)
-(cl-proclaim '(optimize (speed 3) (safety 0)))
+(eval-when-compile
+  (cl-proclaim '(optimize (speed 3) (safety 0))))
 
 ;;; Code:
 

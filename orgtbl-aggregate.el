@@ -619,7 +619,11 @@ Doing so, EXPRESSION is ready to be computed against a TABLE row."
 ;; dynamic binding
 (defvar orgtbl-aggregate--var-keycols)
 
-(cl-defstruct orgtbl-aggregate--outcol
+(cl-defstruct
+    (orgtbl-aggregate--outcol
+     ;; (:predicate nil) ; worse with this directive
+     (:copier nil))
+  ;; (formula	nil :readonly t) ;; :readonly has no effect
   formula	; user-entered formula to compute output cells
   format	; user-entered formatter of output cell
   sort		; user-entered sorting instruction for output column
@@ -750,12 +754,17 @@ into the column number."
 ;; dynamic binding
 (defvar orgtbl-aggregate--columns-sorting)
 
-(cl-defstruct orgtbl-aggregate--sorting
-  strength
-  colnum
-  ascending
-  extract
-  compare)
+(cl-defstruct
+    (orgtbl-aggregate--sorting
+     ;; (:predicate nil) ; worse with this directive
+     (:copier nil))
+  ;; (strength  nil :readonly t) ;; :readonly has no effect
+  strength        ; the 3 in a user specification like ;^a3
+  colnum          ; the number of the output column to sort
+  ascending       ; ;^n is ascending, ;^N is descending
+  extract         ; extract Lisp function, eg string-to-number for ;^n
+  compare         ; comparison Lisp function for 2 cells, eg string< for ;^a
+  )
 
 (defun orgtbl-aggregate--prepare-sorting (aggcols)
   "Create a list of columns to be sorted.
@@ -1094,21 +1103,21 @@ which do not pass the filter found in PARAMS entry :cond."
 
       result)))
 
-(defun orgtbl-aggregate--sort-predicate (linea lineb)
-  "Compares LINEA & LINEB (which are Org Mode table rows)
+(defun orgtbl-aggregate--sort-predicate (rowa rowb)
+  "Compares ROWA & ROWB (which are Org Mode table rows)
 according to orgtbl-aggregate--columns-sorting instructions.
-Return nil if LINEA already comes before LINEB."
-  (setq linea (orgtbl-aggregate--list-get linea))
-  (setq lineb (orgtbl-aggregate--list-get lineb))
+Return nil if ROWA already comes before ROWB."
+  (setq rowa (orgtbl-aggregate--list-get rowa))
+  (setq rowb (orgtbl-aggregate--list-get rowb))
   (cl-loop for col in orgtbl-aggregate--columns-sorting
 	   for colnum  = (orgtbl-aggregate--sorting-colnum    col)
 	   for desc    = (orgtbl-aggregate--sorting-ascending col)
 	   for extract = (orgtbl-aggregate--sorting-extract   col)
 	   for compare = (orgtbl-aggregate--sorting-compare   col)
-	   for cola = (funcall extract (nth colnum (if desc lineb linea)))
-	   for colb = (funcall extract (nth colnum (if desc linea lineb)))
-	   thereis (funcall compare cola colb)
-	   until   (funcall compare colb cola)))
+	   for cella   = (funcall extract (nth colnum (if desc rowb rowa)))
+	   for cellb   = (funcall extract (nth colnum (if desc rowa rowb)))
+	   thereis (funcall compare cella cellb)
+	   until   (funcall compare cellb cella)))
 
 (defun orgtbl-aggregate--string-to-time (f)
   "Interprete the string F into a duration in minutes.

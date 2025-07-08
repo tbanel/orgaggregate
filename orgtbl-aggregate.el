@@ -288,10 +288,10 @@ A cookie is an alignment instruction like:
            if (and hline
                    (cl-loop for cell in (car line)
                             thereis (string-match
-                                     (rx bol "<"
+                                     (rx bos "<"
                                          (? (any "lcr"))
                                          (* (any "0-9"))
-                                         ">" eol)
+                                         ">" eos)
                                      cell)))
            do (setcar line t)
            if (eq (car line) 'hline)
@@ -338,11 +338,11 @@ otherwise nil is returned."
       (setq colname (symbol-name colname)))
   (if (string-match
        (rx
-	bol
+	bos
 	(or
 	 (seq ?'  (group-n 1 (* (not (any ?' )))) ?' )
 	 (seq ?\" (group-n 1 (* (not (any ?\")))) ?\"))
-	eol)
+	eos)
        colname)
       (setq colname (match-string 1 colname)))
   ;; skip first hlines if any
@@ -351,7 +351,7 @@ otherwise nil is returned."
 	 (and err (user-error "Empty column name")))
 	((string= colname "hline")
 	 0)
-	((string-match (rx bol "$" (group (+ (any "0-9"))) eol) colname)
+	((string-match (rx bos "$" (group (+ (any "0-9"))) eos) colname)
 	 (let ((n (string-to-number (match-string 1 colname))))
 	   (if (<= n (length (car table)))
 	       n
@@ -509,7 +509,7 @@ Actual column names which are not fully alphanumeric are quoted."
 	     (cl-loop for x in (car table)
 		      collect
 		      (if (string-match
-                           (rx bol (+ (in "$._" word)) eol)
+                           (rx bos (+ (in "$._" word)) eos)
                            x)
 			  x
 			(format "\"%s\"" x)))
@@ -647,7 +647,7 @@ into the column number."
   ;; parse user specification
   (unless (string-match
 	   (rx
-	    bol
+	    bos
 	    (group-n 1
 		     (* (or
 			 (seq ?'  (* (not (any ?')))  ?' )
@@ -660,7 +660,7 @@ into the column number."
 	      (seq "^" (group-n 3 (* (not (any "^;'\"<")))))
 	      (seq "<" (group-n 4 (* (not (any "^;'\">")))) ">")
 	      (seq "'" (group-n 5 (* (not (any "'")))) "'")))
-	    eol)
+	    eos)
 	   col)
     (user-error "Bad column specification: %S" col))
   (let* ((formula   (match-string 1 col))
@@ -729,12 +729,12 @@ into the column number."
 	 (key
 	  (if (string-match
 	       (rx
-		bol
+		bos
 		(group
 		 (or (seq "'"  (* (not (any "'" ))) "'" )
 		     (seq "\"" (* (not (any "\""))) "\"")
 		     (+ (any word "_$."))))
-		eol)
+		eos)
 	       formula)
 	      (orgtbl-aggregate--colname-to-int formula table t))))
 
@@ -974,9 +974,9 @@ which do not pass the filter found in PARAMS entry :cond."
 		 0)
 		((numberp hline)
 		 hline)
-		((string-match-p (rx bol (or "yes" "t") eol) hline)
+		((string-match-p (rx bos (or "yes" "t") eos) hline)
 		 1)
-		((string-match-p (rx bol (or "no" "nil") eol) hline)
+		((string-match-p (rx bos (or "no" "nil") eos) hline)
 		 0)
 		((string-match-p "[0-9]+" hline)
 		 (string-to-number hline))
@@ -1846,7 +1846,7 @@ Note:
     (if (and content
 	     (let ((case-fold-search t))
 	       (string-match
-		(rx bol
+		(rx bos
                     (* (any " \t"))
                     (group "#+tblfm:" (* not-newline)))
 		content)))

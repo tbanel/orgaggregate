@@ -1496,6 +1496,55 @@ Note:
 
 ;; aggregation in Pull mode
 
+(defun orgtbl-aggregate--table-recalculate (content formula)
+  "Wrapper arround `org-table-recalculate'.
+The computed table may have formulas which need to be recomputed.
+This function adds a #+TBLFM: line at the end of the table.
+It merges old formulas (if any) contained in CONTENT,
+with new formulas (if any) given in the `formula' directive.
+The standard `org-table-recalculate' function is slow because
+it must handle lots of cases. Here the table is freshely created,
+therefore a lot of special handling and cache updates can be
+safely bypassed. Moreover, the alignment of the resulting table
+is delegated to orgtbl-aggregate, which is fast.
+The result is a speedup up to x6, and a memory consumption
+divided by up to 5. This makes a difference for large tables."
+  (let ((tblfm
+         (and content
+	      (let ((case-fold-search t))
+	        (string-match
+	         (rx bol
+                     (* (any " \t"))
+                     (group "#+tblfm:" (* not-newline)))
+	         content))
+              (match-string 1 content))))
+    (if (stringp formula)
+        (if tblfm
+	    (unless (string-match (rx-to-string formula) tblfm)
+	      (setq tblfm (format "%s::%s" tblfm formula)))
+	  (setq tblfm (format "#+TBLFM: %s" formula))))
+    (when tblfm
+      (end-of-line)
+      (insert "\n" tblfm)
+      (forward-line -1)
+      (cl-letf (((symbol-function 'org-fold-core--fix-folded-region)
+                 (lambda (_a _b _c))))
+        (let ((org-table-formula-create-columns t))
+          (condition-case nil
+              (org-table-recalculate 'all t)
+            (args-out-of-range nil))))
+      (let* ((table (orgtbl-aggregate--table-to-lisp))
+             (width
+              (cl-loop for row in table
+                       if (consp row)
+                       maximize (length row))))
+        (cl-loop
+         for row in table
+         if (and (consp row) (< (length row) width))
+         do (nconc row (make-list (- width (length row)) nil)))
+        (delete-region (org-table-begin) (org-table-end))
+        (insert (orgtbl-aggregate--elisp-table-to-string table) "\n")))))
+
 ;;;###autoload
 (defun org-dblock-write:aggregate (params)
   "Create a table which is the aggregation of material from another table.
@@ -1576,8 +1625,7 @@ Note:
   (interactive)
   (let ((formula (plist-get params :formula))
 	(content (plist-get params :content))
-	(post    (plist-get params :post))
-	(tblfm nil))
+	(post    (plist-get params :post)))
     (if (and content
 	     (let ((case-fold-search t))
 	       (string-match
@@ -1593,27 +1641,7 @@ Note:
         (orgtbl-aggregate--get-distant-table (plist-get params :table)))
        params)
       post))
-    (if (and content
-	     (let ((case-fold-search t))
-	       (string-match
-		(rx bol
-                    (* (any " \t"))
-                    (group "#+tblfm:" (* not-newline)))
-		content)))
-	(setq tblfm (match-string 1 content)))
-    (when (stringp formula)
-      (if tblfm
-	  (unless (string-match (rx-to-string formula) tblfm)
-	    (setq tblfm (format "%s::%s" tblfm formula)))
-	(setq tblfm (format "#+TBLFM: %s" formula))))
-    (when tblfm
-      (end-of-line)
-      (insert "\n" tblfm)
-      (forward-line -1)
-      (let ((org-table-formula-create-columns t))
-	(condition-case nil
-	    (org-table-recalculate 'iterate)
-	  (args-out-of-range nil))))))
+    (orgtbl-aggregate--table-recalculate content formula)))
 
 ;; This variable contains history of user entered
 ;; :cols and :cond parameters, so that they can be entered
@@ -1825,8 +1853,7 @@ Note:
   (interactive)
   (let ((formula (plist-get params :formula))
 	(content (plist-get params :content))
-	(post    (plist-get params :post))
-	(tblfm nil))
+	(post    (plist-get params :post)))
     (if (and content
 	     (let ((case-fold-search t))
 	       (string-match
@@ -1843,27 +1870,7 @@ Note:
        (plist-get params :cols)
        (plist-get params :cond))
       post))
-    (if (and content
-	     (let ((case-fold-search t))
-	       (string-match
-		(rx bos
-                    (* (any " \t"))
-                    (group "#+tblfm:" (* not-newline)))
-		content)))
-	(setq tblfm (match-string 1 content)))
-    (when (stringp formula)
-      (if tblfm
-	  (unless (string-match (rx-to-string formula) tblfm)
-	    (setq tblfm (format "%s::%s" tblfm formula)))
-	(setq tblfm (format "#+TBLFM: %s" formula))))
-    (when tblfm
-      (end-of-line)
-      (insert "\n" tblfm)
-      (forward-line -1)
-      (let ((org-table-formula-create-columns t))
-	(condition-case nil
-	    (org-table-recalculate 'iterate)
-	  (args-out-of-range nil))))))
+    (orgtbl-aggregate--table-recalculate content formula)))
 
 ;;;###autoload
 (defun orgtbl-aggregate-insert-dblock-transpose ()

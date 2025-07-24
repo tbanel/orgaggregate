@@ -1508,8 +1508,9 @@ therefore a lot of special handling and cache updates can be
 safely bypassed. Moreover, the alignment of the resulting table
 is delegated to orgtbl-aggregate, which is fast.
 The result is a speedup up to x6, and a memory consumption
-divided by up to 5. This makes a difference for large tables."
+divided by up to 5. It makes a difference for large tables."
   (let ((tblfm
+         ;; Was there already a #+tblfm: line ? Recover it.
          (and content
 	      (let ((case-fold-search t))
 	        (string-match
@@ -1519,20 +1520,45 @@ divided by up to 5. This makes a difference for large tables."
 	         content))
               (match-string 1 content))))
     (if (stringp formula)
+        ;; There is a :formula directive. Add it if not already there
         (if tblfm
 	    (unless (string-match (rx-to-string formula) tblfm)
 	      (setq tblfm (format "%s::%s" tblfm formula)))
 	  (setq tblfm (format "#+TBLFM: %s" formula))))
+
     (when tblfm
+      ;; There are formulas. They need to be evaluated.
       (end-of-line)
       (insert "\n" tblfm)
       (forward-line -1)
-      (cl-letf (((symbol-function 'org-fold-core--fix-folded-region)
-                 (lambda (_a _b _c))))
-        (let ((org-table-formula-create-columns t))
+
+      (let ((old (symbol-function 'org-table-goto-column)))
+        (cl-letf (((symbol-function 'org-fold-core--fix-folded-region)
+                   (lambda (_a _b _c)))
+                  ((symbol-function 'jit-lock-after-change)
+                   (lambda (_a _b _c)))
+                  ;; Warning: this org-table-goto-column trick fixes a bug
+                  ;; in org-table.el around line 3084, when computing
+                  ;; column-count. The bug prevents single-cell formulas
+                  ;; creating the cell in some rare cases.
+                  ((symbol-function 'org-table-goto-column)
+                   (lambda (n &optional on-delim _force)
+                     ;;                            △
+                     ;;╭───────────────────────────╯
+                     ;;╰╴parameter is forcibly changed to t╶─╮
+                     ;;                      ╭───────────────╯
+                     ;;                      ▽
+                     (funcall old n on-delim t))))
           (condition-case nil
-              (org-table-recalculate 'all t)
+              (org-table-recalculate t t)
+            ;;                       △ △
+            ;; for all lines╶────────╯ │
+            ;; do not re-align╶────────╯
             (args-out-of-range nil))))
+
+      ;; Realign table after org-table-recalculate have changed or added
+      ;; some cells. It is way faster to re-read and re-write the table
+      ;; through orgtbl-aggregate routines than letting org-mode do the job.
       (let* ((table (orgtbl-aggregate--table-to-lisp))
              (width
               (cl-loop for row in table

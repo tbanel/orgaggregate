@@ -2095,6 +2095,9 @@ Contributors
 - Speedup of resulting table recalculation when there are formulas in
   =#+tblfm:= or in =:formula=. The overall aggregation may be up to x6
   faster and ÷5 less memory hungry.
+- Circumvent an Org Mode bug in case there are a column-formula along
+  with a cell-formula, the cell-one not being calculated. (Bonus: 15%
+  speedup).
 
 * GPL 3 License
 :PROPERTIES:

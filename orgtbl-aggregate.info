@@ -2040,6 +2040,9 @@ File: orgtbl-aggregate.info,  Node: Changes,  Next: GPL 3 License,  Prev: Author
    • Speedup of resulting table recalculation when there are formulas in
      ‘#+tblfm:’ or in ‘:formula’.  The overall aggregation may be up to
      x6 faster and ÷5 less memory hungry.
+   • Circumvent an Org Mode bug in case there are a column-formula along
+     with a cell-formula, the cell-one not being calculated.  (Bonus:
+     15% speedup).
 
 
 File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
@@ -2104,7 +2107,7 @@ Node: Span of values72811
 Node: Installation73347
 Node: Authors contributors73989
 Node: Changes75526
-Node: GPL 3 License78785
+Node: GPL 3 License78949
 
 End Tag Table
 

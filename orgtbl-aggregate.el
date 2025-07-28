@@ -195,17 +195,17 @@ The table is taken from the parameter TXT, or from the buffer at point."
 (defun orgtbl-aggregate--list-local-tables ()
   "Search for available tables in the current file."
   (interactive)
-  (let ((tables))
-    (save-excursion
-      (goto-char (point-min))
-      (while (let ((case-fold-search t))
-	       (re-search-forward
-		(rx bol
-		    (* (any " \t")) "#+" (? "tbl") "name:"
-		    (* (any " \t")) (group (* not-newline)))
-		nil t))
-	(push (match-string-no-properties 1) tables)))
-    tables))
+  (save-excursion
+    (goto-char (point-min))
+    (let ((case-fold-search t))
+      (cl-loop
+       while
+       (re-search-forward
+        (rx bol
+	    (* (any " \t")) "#+" (? "tbl") "name:"
+	    (* (any " \t")) (group (* not-newline)))
+        nil t)
+       collect (match-string-no-properties 1)))))
 
 (defun orgtbl-aggregate--get-table-from-babel (name-or-id)
   "Retrieve an input table as the result of running a Babel block.
@@ -714,15 +714,11 @@ into the column number."
 	 ;; create a derived formula where input column names
 	 ;; are replaced with $N
 	 (formula$
-	  (replace-regexp-in-string
-	   (rx "Frux(" (+ (any "0-9")) ")")
-	   (lambda (var)
-	     (save-match-data
-	       (string-match
-		(rx (group (+ (any "0-9"))))
-		var)
-	       (format "$%s" (match-string 1 var))))
-	   frux))
+          (replace-regexp-in-string
+           (rx "Frux(" (group (+ (any "0-9"))) ")")
+           (lambda (var)
+             (format "$%s" (match-string 1 var)))
+           frux))
 
 	 ;; if a formula is just an input column name,
 	 ;; then it is a key-grouping-column
@@ -1685,9 +1681,7 @@ Note:
 	   nil
 	   'confirm))
 	 (header
-	  (condition-case
-              _err
-              (orgtbl-aggregate--get-header-table table t)
+	  (condition-case _err (orgtbl-aggregate--get-header-table table t)
 	    (t "$1 $2 $3 $4 ...")))
 	 (aggcols
 	  (replace-regexp-in-string

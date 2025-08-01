@@ -1981,6 +1981,8 @@ File: orgtbl-aggregate.info,  Node: Changes,  Next: GPL 3 License,  Prev: Author
 35 Changes
 **********
 
+Top: earliest change.  Bottom: latest change.
+
    • Wizard now correctly asks for columns with ‘$1, $2...’ names when
      table header is missing
    • Handle tables beginning with hlines
@@ -2043,6 +2045,7 @@ File: orgtbl-aggregate.info,  Node: Changes,  Next: GPL 3 License,  Prev: Author
    • Circumvent an Org Mode bug in case there are a column-formula along
      with a cell-formula, the cell-one not being calculated.  (Bonus:
      15% speedup).
+   • Fix issue #24: bug in date parsing.
 
 
 File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
@@ -2107,7 +2110,7 @@ Node: Span of values72811
 Node: Installation73347
 Node: Authors contributors73989
 Node: Changes75526
-Node: GPL 3 License78949
+Node: GPL 3 License79039
 
 End Tag Table
 

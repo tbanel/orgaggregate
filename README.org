@@ -2040,6 +2040,8 @@ Contributors
 :PROPERTIES:
 :CUSTOM_ID: changes
 :END:
+Top: earliest change. Bottom: latest change.
+
 - Wizard now correctly asks for columns with =$1, $2...= names
   when table header is missing
 - Handle tables beginning with hlines
@@ -2098,6 +2100,7 @@ Contributors
 - Circumvent an Org Mode bug in case there are a column-formula along
   with a cell-formula, the cell-one not being calculated. (Bonus: 15%
   speedup).
+- Fix issue #24: bug in date parsing.
 
 * GPL 3 License
 :PROPERTIES:

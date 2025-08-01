@@ -880,10 +880,7 @@ a hash-table, whereas GROUPS is a Lisp list."
    ;; Convert an Org-mode date to Calc internal representation
    ((string-match org-ts-regexp0 expr)
     (math-parse-date
-     (replace-regexp-in-string
-      (rx (* " ") (+ (any "a-z")) (opt ".") (* " "))
-      " "
-      expr)))
+     (replace-regexp-in-string (rx (any "[<>].a-zA-Z")) " " expr)))
    ;; Convert a duration into a number of seconds
    ((string-match
      (rx bos

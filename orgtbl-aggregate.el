@@ -485,6 +485,39 @@ special symbol `hline' to mean an horizontal line."
       (setcar (car bits) "|")
       (mapconcat #'identity (orgtbl-aggregate--list-get bits)))))
 
+(defun orgtbl-aggregate--recalculate-fast ()
+  "Wrapper arround `org-table-recalculate'.
+The standard `org-table-recalculate' function is slow because
+it must handle lots of cases. Here the table is freshely created,
+therefore a lot of special handling and cache updates can be
+safely bypassed. Moreover, the alignment of the resulting table
+is delegated to orgtbl-aggregate, which is fast.
+The result is a speedup up to x6, and a memory consumption
+divided by up to 5. It makes a difference for large tables."
+  (let ((old (symbol-function 'org-table-goto-column)))
+    (cl-letf (((symbol-function 'org-fold-core--fix-folded-region)
+               (lambda (_a _b _c)))
+              ((symbol-function 'jit-lock-after-change)
+               (lambda (_a _b _c)))
+              ;; Warning: this org-table-goto-column trick fixes a bug
+              ;; in org-table.el around line 3084, when computing
+              ;; column-count. The bug prevents single-cell formulas
+              ;; creating the cell in some rare cases.
+              ((symbol-function 'org-table-goto-column)
+               (lambda (n &optional on-delim _force)
+                 ;;                            △
+                 ;;╭───────────────────────────╯
+                 ;;╰╴parameter is forcibly changed to t╶─╮
+                 ;;                      ╭───────────────╯
+                 ;;                      ▽
+                 (funcall old n on-delim t))))
+      (condition-case nil
+          (org-table-recalculate t t)
+        ;;                       △ △
+        ;; for all lines╶────────╯ │
+        ;; do not re-align╶────────╯
+        (args-out-of-range nil)))))
+
 (defun orgtbl-aggregate--insert-elisp-table (table)
   "Insert TABLE in current buffer at point.
 TABLE is a list of lists of cells.  The list may contain the
@@ -616,6 +649,60 @@ Doing so, EXPRESSION is ready to be computed against a TABLE row."
           `(nth ,n orgtbl-aggregate--row)
 	expression)))))
 
+(defun orgtbl-aggregate--to-frux (formula table involved)
+  "Parse FORMULA replacing column names with Frux(NN).
+NN is the column position as it appears in TABLE.
+Take into account protection of non-alphanumeric names
+by single or double quotes.
+Also replace sum, mean, etc. with vsum, vmean, etc.
+the v names being understandable by Calc.
+INVOLVED is a list to which column numbers of columns
+referenced by formula are added."
+  (replace-regexp-in-string
+   (rx
+    (or
+     (seq ?'  (* (not (any ?' ))) ?')
+     (seq ?\" (* (not (any ?\"))) ?\")
+     (seq (+ (any word "_$."))))
+    (? (* space) "("))
+   (lambda (var)
+     (save-match-data ;; save because we are called within a replace-regexp
+       (if (string-match
+            (rx (group (+ (not (any "(")))) (* space) "(")
+            var)
+	   (if (member
+		(match-string 1 var)
+		'("mean" "meane" "gmean" "hmean" "median" "sum"
+		  "min" "max" "prod" "pvar" "sdev" "psdev"
+		  "corr" "cov" "pcov" "count" "span" "var"))
+	       ;; aggregate functions with or without the leading "v"
+	       ;; for example, sum(X) and vsum(X) are equivalent
+	       (format "v%s" var)
+	     var)
+	 ;; replace VAR if it is a column name
+	 (let ((i (orgtbl-aggregate--colname-to-int
+		   var
+		   table)))
+	   (if i
+	       (progn
+		 (unless
+                     (memq i (orgtbl-aggregate--list-get involved))
+		   (orgtbl-aggregate--list-append involved i))
+		 (format "Frux(%s)" i))
+	     var)))))
+   formula
+   t ;; if nil, Frux is sometimes converted to FRUX
+   ))
+
+(defun orgtbl-aggregate--frux-to-$ (frux)
+  "Replace all occurences of Frux(NN) by $NN in FRUX"
+  (replace-regexp-in-string
+   (rx "Frux(" (group (+ (any "0-9"))) ")")
+   (lambda (var)
+     (format "$%s" (match-string 1 var))
+     )
+   frux))
+
 ;; dynamic binding
 (defvar orgtbl-aggregate--var-keycols)
 
@@ -671,54 +758,16 @@ into the column number."
 
 	 ;; list the input column numbers which are involved
 	 ;; into formula
-	 (involved  nil)
+	 (involved (orgtbl-aggregate--list-create))
 
 	 ;; create a derived formula in Calc format,
 	 ;; where names of input columns are replaced with
 	 ;; frux(N)
-	 (frux
-	  (replace-regexp-in-string
-	   (rx
-	    (or
-	     (seq ?'  (* (not (any ?' ))) ?')
-	     (seq ?\" (* (not (any ?\"))) ?\")
-	     (seq (+ (any word "_$."))))
-	    (? (* space) "("))
-	   (lambda (var)
-	     (save-match-data ;; save because we are called within a replace-regexp
-	       (if (string-match
-                    (rx (group (+ (not (any "(")))) (* space) "(") var)
-		   (if (member
-			(match-string 1 var)
-			'("mean" "meane" "gmean" "hmean" "median" "sum"
-			  "min" "max" "prod" "pvar" "sdev" "psdev"
-			  "corr" "cov" "pcov" "count" "span" "var"))
-		       ;; aggregate functions with or without the leading "v"
-		       ;; for example, sum(X) and vsum(X) are equivalent
-		       (format "v%s" var)
-		     var)
-		 ;; replace VAR if it is a column name
-		 (let ((i (orgtbl-aggregate--colname-to-int
-			   var
-			   table)))
-		   (if i
-		       (progn
-			 (unless (member i involved)
-			   (push i involved))
-			 (format "Frux(%s)" i))
-		     var)))))
-	   formula
-           t ;; if nil, Frux is sometimes converted in FRUX
-           ))
+	 (frux (orgtbl-aggregate--to-frux formula table involved))
 
 	 ;; create a derived formula where input column names
 	 ;; are replaced with $N
-	 (formula$
-          (replace-regexp-in-string
-           (rx "Frux(" (group (+ (any "0-9"))) ")")
-           (lambda (var)
-             (format "$%s" (match-string 1 var)))
-           frux))
+	 (formula$ (orgtbl-aggregate--frux-to-$ frux))
 
 	 ;; if a formula is just an input column name,
 	 ;; then it is a key-grouping-column
@@ -744,7 +793,7 @@ into the column number."
      :name         name
      :formula$     formula$
      :formula-frux (math-read-expr frux)
-     :involved     involved
+     :involved     (orgtbl-aggregate--list-get involved)
      :key          key)))
 
 ;; dynamic binding
@@ -931,6 +980,89 @@ a hash-table, whereas GROUPS is a Lisp list."
                10007)))
     h))
 
+(defun orgtbl-aggregate--enrich-table (table formulas)
+  "Enrich TABLE with new columns computed by FORMULAS.
+The FORMULAS are supposed to be those used in spreadsheets,
+as given after the #+TBLFM: tag.
+Actually, FORMULAS are evaluated by Org, not by orgtbl-aggregate."
+  (let ((start (point))
+        (len (length (car table))))
+    ;; formulas is a list of strings
+    ;; change it to ((formula1 . name1) (formula2 . name2) …)
+    ;; name1 etc. default to a dollar name like "$8"
+    (if (stringp formulas)
+        (setq formulas
+              (split-string
+               formulas
+               (rx (* space) "::" (* space))
+               t)))
+    (setq
+     formulas
+     (cl-loop
+      for formula in formulas
+      for i from (1+ len)
+      collect
+      (if (string-match
+           (rx bos
+               (group-n 1 (+ any))
+               ";"
+               (* space)
+               (or
+                (seq "'" (group-n 2 (* (not (any "'")))) "'")
+                (group-n 2 (+ (any word "$"))))
+               (* space)
+               eos)
+           formula)
+          (cons (match-string 1 formula)
+                (match-string 2 formula))
+        (cons formula (format "$%s" i)))))
+
+    (if (memq 'hline table)
+        ;; table has a header? add it the names of the new columns
+        (cl-loop
+         for formula in formulas
+         do (nconc (car table) (list (cdr formula))))
+      ;; table does not have a header? add one with of the form:
+      ;; ("$1" "$2" … "$7" "name1" "name2" …)
+      (setq
+       table
+       (cons
+        (append
+         (cl-loop for i from 1 to len collect (format "$%s" i))
+         (cl-loop for formula in formulas collect (cdr formula)))
+        (cons 'hline table))))
+
+    (insert "\n#+TBLFM: ")
+    (let ((involved (orgtbl-aggregate--list-create)))
+      (cl-loop
+       for formula in formulas
+       for i from (1+ len)
+       do
+       (insert
+        (format
+         "::$%s=%s"
+         i
+         (orgtbl-aggregate--frux-to-$
+          (orgtbl-aggregate--to-frux (car formula) table involved))))))
+    (forward-line -1)
+    (orgtbl-aggregate--insert-elisp-table table)
+
+    ;; ask Org to evaluate the formulas and fill the new columns
+    (orgtbl-aggregate--recalculate-fast)
+    (prog1
+        ;; recover the enriched table a Lisp structure
+        (orgtbl-aggregate--table-to-lisp)
+      ;; leave the buffer space between #+begin: and #+end:
+      ;; as empty as it was prior to entering this function
+      (delete-region
+       start
+       (let ((case-fold-search t))
+         (search-forward-regexp (rx bol "#+end:" eol))
+         (beginning-of-line)
+         (point)))
+      (insert "\n")
+      (goto-char start))))
+
 (defun orgtbl-aggregate--create-table-aggregated (table params)
   "Convert the source TABLE into an aggregated table.
 The source TABLE is a list of lists of cells.
@@ -944,13 +1076,18 @@ which do not pass the filter found in PARAMS entry :cond."
     #'orgtbl-aggregate--hash-test-hash)
   (let ((groups (orgtbl-aggregate--list-create))
 	(hgroups (make-hash-table :test 'orgtbl-aggregate--hash-test-name))
-	(aggcols (plist-get params :cols))
-	(aggcond (plist-get params :cond))
-	(hline   (plist-get params :hline))
+	(aggcols    (plist-get params :cols))
+	(aggcond    (plist-get params :cond))
+	(hline      (plist-get params :hline))
+        (precompute (plist-get params :precompute))
 	;; a global variable, passed to the sort predicate
 	(orgtbl-aggregate--columns-sorting (orgtbl-aggregate--list-create))
 	;; another global variable
 	(orgtbl-aggregate--var-keycols))
+
+    (if precompute
+        (setq table (orgtbl-aggregate--enrich-table table precompute)))
+    
     (unless aggcols
       (setq aggcols (orgtbl-aggregate--get-header-table table)))
     (if (stringp aggcols)
@@ -1490,18 +1627,11 @@ Note:
 ;; aggregation in Pull mode
 
 (defun orgtbl-aggregate--table-recalculate (content formula)
-  "Wrapper arround `org-table-recalculate'.
+  "Update the #+TBLFM: line and recompute all formulas.
 The computed table may have formulas which need to be recomputed.
 This function adds a #+TBLFM: line at the end of the table.
 It merges old formulas (if any) contained in CONTENT,
-with new formulas (if any) given in the `formula' directive.
-The standard `org-table-recalculate' function is slow because
-it must handle lots of cases. Here the table is freshely created,
-therefore a lot of special handling and cache updates can be
-safely bypassed. Moreover, the alignment of the resulting table
-is delegated to orgtbl-aggregate, which is fast.
-The result is a speedup up to x6, and a memory consumption
-divided by up to 5. It makes a difference for large tables."
+with new formulas (if any) given in the `formula' directive."
   (let ((tblfm
          ;; Was there already a #+tblfm: line ? Recover it.
          (and content
@@ -1524,30 +1654,7 @@ divided by up to 5. It makes a difference for large tables."
       (end-of-line)
       (insert "\n" tblfm)
       (forward-line -1)
-
-      (let ((old (symbol-function 'org-table-goto-column)))
-        (cl-letf (((symbol-function 'org-fold-core--fix-folded-region)
-                   (lambda (_a _b _c)))
-                  ((symbol-function 'jit-lock-after-change)
-                   (lambda (_a _b _c)))
-                  ;; Warning: this org-table-goto-column trick fixes a bug
-                  ;; in org-table.el around line 3084, when computing
-                  ;; column-count. The bug prevents single-cell formulas
-                  ;; creating the cell in some rare cases.
-                  ((symbol-function 'org-table-goto-column)
-                   (lambda (n &optional on-delim _force)
-                     ;;                            △
-                     ;;╭───────────────────────────╯
-                     ;;╰╴parameter is forcibly changed to t╶─╮
-                     ;;                      ╭───────────────╯
-                     ;;                      ▽
-                     (funcall old n on-delim t))))
-          (condition-case nil
-              (org-table-recalculate t t)
-            ;;                       △ △
-            ;; for all lines╶────────╯ │
-            ;; do not re-align╶────────╯
-            (args-out-of-range nil))))
+      (orgtbl-aggregate--recalculate-fast)
 
       ;; Realign table after org-table-recalculate have changed or added
       ;; some cells. It is way faster to re-read and re-write the table

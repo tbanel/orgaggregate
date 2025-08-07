@@ -42,6 +42,7 @@ averages, and so on, out of material from the first table.
 - [[#post-aggregation-spreadsheet-formulas][Post-aggregation spreadsheet formulas]]
 - [[#post-processing][Post processing]]
 - [[#virtual-input-table-from-babel][Virtual input table from Babel]]
+- [[#virtual-columns-as-computed-bins][Virtual columns as computed bins]]
 - [[#chaining][Chaining]]
 - [[#tricks][Tricks]]
 - [[#installation][Installation]]
@@ -1275,7 +1276,7 @@ single column.
 | yellow |   85 |  2 |    42.5 |
 | green  |   55 |  1 |      11 |
 | orange |   80 |  1 |      40 |
-,#+END:
+#+END:
 #+end_example
 
 Note that the last aggregated column has just =leveled= in its header.
@@ -1791,8 +1792,8 @@ The input table may be the result of executing a Babel script. In this
 case, the table is virtual in the sense that is appears nowhere.
 
 (Babel is the Org Mode infrastructure to run scripts in any language,
-like Python, R, C++, Java, D, shell, whatever, with inputs and outputs
-connected to Org Mode).
+like Python, R, C++, Java, D, Rust, shell, whatever, with inputs and
+outputs connected to Org Mode).
 
 Example:
 
@@ -1847,6 +1848,150 @@ output:
 
 Here the parameter =:table= specifies the name of the script to be
 executed.
+
+* Virtual input columns
+:PROPERTIES:
+:CUSTOM_ID: virtual-columns-as-computed-bins
+:END:
+What if we want to aggregate on months? But the input table contains
+only plain dates. Example:
+
+#+begin_example
+#+name: without-months
+| Date             | Quantity |
+|------------------+----------|
+| [2037-03-12 thu] |    56.93 |
+| [2037-03-25 wed] |    20.99 |
+| [2037-04-07 tue] |    80.81 |
+| [2037-04-20 mon] |    22.26 |
+| [2037-05-03 sun] |    69.75 |
+| [2037-05-16 sat] |    39.91 |
+| [2037-05-29 fri] |    93.13 |
+| [2037-06-11 thu] |    17.11 |
+| [2037-06-24 wed] |    24.21 |
+| [2037-07-07 tue] |    82.38 |
+| [2037-07-20 mon] |    39.94 |
+| [2037-08-02 sun] |    81.90 |
+| [2037-08-15 sat] |    71.67 |
+| [2037-08-28 fri] |    82.81 |
+| [2037-09-10 thu] |    42.50 |
+| [2037-09-23 wed] |    62.52 |
+| [2037-10-06 tue] |     5.13 |
+#+end_example
+
+We would like to specify the aggregation over =month(Date)=. But only
+plain columns may be used as aggregating keys.
+
+One way is to add a =Month= column to the input table. The new table
+looks like:
+
+#+begin_example
+#+name: with-months
+| Date             | Quantity | Month |
+|------------------+----------+-------|
+| [2037-03-12 thu] |    56.93 |     3 |
+| [2037-03-25 wed] |    20.99 |     3 |
+| [2037-04-07 tue] |    80.81 |     4 |
+| [2037-04-20 mon] |    22.26 |     4 |
+| [2037-05-03 sun] |    69.75 |     5 |
+| [2037-05-16 sat] |    39.91 |     5 |
+| [2037-05-29 fri] |    93.13 |     5 |
+| [2037-06-11 thu] |    17.11 |     6 |
+| [2037-06-24 wed] |    24.21 |     6 |
+| [2037-07-07 tue] |    82.38 |     7 |
+| [2037-07-20 mon] |    39.94 |     7 |
+| [2037-08-02 sun] |    81.90 |     8 |
+| [2037-08-15 sat] |    71.67 |     8 |
+| [2037-08-28 fri] |    82.81 |     8 |
+| [2037-09-10 thu] |    42.50 |     9 |
+| [2037-09-23 wed] |    62.52 |     9 |
+| [2037-10-06 tue] |     5.13 |    10 |
+#+TBLFM: $3=month($1)
+#+end_example
+
+OrgAggregate allows adding input columns like this computed =Month=
+column, without modifying the input table. The =:precompute= parameter
+does that. Example:
+
+#+begin_example
+#+BEGIN: aggregate :table "without-months" :cols "Month vsum(Quantity)" :precompute ("month(Date);'Month'")
+| Month | vsum(Quantity) |
+|-------+----------------|
+|     3 |          77.92 |
+|     4 |         103.07 |
+|     5 |         202.79 |
+|     6 |          41.32 |
+|     7 |         122.32 |
+|     8 |         236.38 |
+|     9 |         105.02 |
+|    10 |           5.13 |
+#+END:
+#+end_example
+
+The specification =month(Date);'Month'= means:
+- add a third column to the input table,
+- fill it with the formula =month(Date)=, which is a Calc formula,
+- give this new column the =Month= title,
+- make this new column available for aggregation, as any other column.
+All this process is virtual. The input table is not modified in any
+way.
+
+If the title =Month= is not specified, then the new virtual column can
+be referred to as =$3=.
+
+Note that here the title was specified with single quotes. This is not
+required for simple alphanumeric names. Single quotes are useful for
+instance if the title includes a blank character.
+
+The precompute may also be Lisp expressions, exactly like in the
+usual Org table spreadsheet. In this example, we want to aggregate on
+coarse bins. Bins are just hundredths of the first column:
+
+#+begin_example
+#+name: want-bins
+| 109 | 41.24 |
+| 140 | 40.60 |
+| 174 |  7.68 |
+| 288 | 33.96 |
+| 334 | 21.42 |
+| 418 | 74.73 |
+| 455 | 79.62 |
+| 479 | 22.23 |
+| 554 | 28.03 |
+| 678 | 64.12 |
+| 797 | 70.91 |
+| 947 | 93.48 |
+#+end_example
+
+#+begin_example
+#+BEGIN: aggregate :table "want-bins" :cols "$3 vmean($2)" :precompute ("'(floor (/ (string-to-number $1) 100))")
+| $3 | vmean($2) |
+|----+-----------|
+|  1 |     29.84 |
+|  2 |     33.96 |
+|  3 |     21.42 |
+|  4 |     58.86 |
+|  5 |     28.03 |
+|  6 |     64.12 |
+|  7 |     70.91 |
+|  9 |     93.48 |
+#+END:
+#+end_example
+
+Of course, those additional virtual input columns may be used for
+other purposes than key columns. They may enter in aggregating
+formulas. Or they may be used by the optional row filter. There is no
+difference between actual and virtual columns.
+
+The =:precompute= parameter may be
+- a list of strings, example:
+: ("month(Date);'Month'" "day(Date);'Day'")
+- a single string with fields separated by =::=, like in the =#+tblfm:=
+  tags of a spreadsheet. Example:
+: "month(Date);'Month' :: day(Date);'Day'"
+- a string containing a single formula (actually this is a special
+  case of the previous one). Example:
+: "month(Date);'Month'"
 
 * Chaining
 :PROPERTIES:
@@ -2101,6 +2246,7 @@ Top: earliest change. Bottom: latest change.
   with a cell-formula, the cell-one not being calculated. (Bonus: 15%
   speedup).
 - Fix issue #24: bug in date parsing.
+- Virtual pre-computed input columns.
 
 * GPL 3 License
 :PROPERTIES:

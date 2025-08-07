@@ -48,6 +48,7 @@ and so on, out of material from the first table.
 * Post-aggregation spreadsheet formulas::
 * Post processing::
 * Virtual input table from Babel::
+* Virtual input columns::
 * Chaining::
 * Tricks::
 * Installation::
@@ -1720,7 +1721,7 @@ to the ‘:post’ parameter:
      #+end_src
 
 
-File: orgtbl-aggregate.info,  Node: Virtual input table from Babel,  Next: Chaining,  Prev: Post processing,  Up: Top
+File: orgtbl-aggregate.info,  Node: Virtual input table from Babel,  Next: Virtual input columns,  Prev: Post processing,  Up: Top
 
 30 Virtual input table from Babel
 *********************************
@@ -1729,8 +1730,8 @@ The input table may be the result of executing a Babel script.  In this
 case, the table is virtual in the sense that is appears nowhere.
 
    (Babel is the Org Mode infrastructure to run scripts in any language,
-like Python, R, C++, Java, D, shell, whatever, with inputs and outputs
-connected to Org Mode).
+like Python, R, C++, Java, D, Rust, shell, whatever, with inputs and
+outputs connected to Org Mode).
 
    Example:
 
@@ -1781,9 +1782,148 @@ output:
 executed.
 
 
-File: orgtbl-aggregate.info,  Node: Chaining,  Next: Tricks,  Prev: Virtual input table from Babel,  Up: Top
+File: orgtbl-aggregate.info,  Node: Virtual input columns,  Next: Chaining,  Prev: Virtual input table from Babel,  Up: Top
 
-31 Chaining
+31 Virtual input columns
+************************
+
+What if we want to aggregate on months?  But the input table contains
+only plain dates.  Example:
+
+     #+name: without-months
+     | Date             | Quantity |
+     |------------------+----------|
+     | [2037-03-12 thu] |    56.93 |
+     | [2037-03-25 wed] |    20.99 |
+     | [2037-04-07 tue] |    80.81 |
+     | [2037-04-20 mon] |    22.26 |
+     | [2037-05-03 sun] |    69.75 |
+     | [2037-05-16 sat] |    39.91 |
+     | [2037-05-29 fri] |    93.13 |
+     | [2037-06-11 thu] |    17.11 |
+     | [2037-06-24 wed] |    24.21 |
+     | [2037-07-07 tue] |    82.38 |
+     | [2037-07-20 mon] |    39.94 |
+     | [2037-08-02 sun] |    81.90 |
+     | [2037-08-15 sat] |    71.67 |
+     | [2037-08-28 fri] |    82.81 |
+     | [2037-09-10 thu] |    42.50 |
+     | [2037-09-23 wed] |    62.52 |
+     | [2037-10-06 tue] |     5.13 |
+
+   We would like to specify the aggregation over ‘month(Date)’.  But
+only plain columns may be used as aggregating keys.
+
+   One way is to add a ‘Month’ column to the input table.  The new table
+looks like:
+
+     #+name: with-months
+     | Date             | Quantity | Month |
+     |------------------+----------+-------|
+     | [2037-03-12 thu] |    56.93 |     3 |
+     | [2037-03-25 wed] |    20.99 |     3 |
+     | [2037-04-07 tue] |    80.81 |     4 |
+     | [2037-04-20 mon] |    22.26 |     4 |
+     | [2037-05-03 sun] |    69.75 |     5 |
+     | [2037-05-16 sat] |    39.91 |     5 |
+     | [2037-05-29 fri] |    93.13 |     5 |
+     | [2037-06-11 thu] |    17.11 |     6 |
+     | [2037-06-24 wed] |    24.21 |     6 |
+     | [2037-07-07 tue] |    82.38 |     7 |
+     | [2037-07-20 mon] |    39.94 |     7 |
+     | [2037-08-02 sun] |    81.90 |     8 |
+     | [2037-08-15 sat] |    71.67 |     8 |
+     | [2037-08-28 fri] |    82.81 |     8 |
+     | [2037-09-10 thu] |    42.50 |     9 |
+     | [2037-09-23 wed] |    62.52 |     9 |
+     | [2037-10-06 tue] |     5.13 |    10 |
+     #+TBLFM: $3=month($1)
+
+   OrgAggregate allows adding input columns like this computed ‘Month’
+column, without modifying the input table.  The ‘:precompute’ parameter
+does that.  Example:
+
+     #+BEGIN: aggregate :table "without-months" :cols "Month vsum(Quantity)" :precompute ("month(Date);'Month'")
+     | Month | vsum(Quantity) |
+     |-------+----------------|
+     |     3 |          77.92 |
+     |     4 |         103.07 |
+     |     5 |         202.79 |
+     |     6 |          41.32 |
+     |     7 |         122.32 |
+     |     8 |         236.38 |
+     |     9 |         105.02 |
+     |    10 |           5.13 |
+     #+END:
+
+   The specification ‘month(Date);'Month'’ means:
+   • add a third column to the input table,
+   • fill it with the formula ‘month(Date)’, which is a Calc formula,
+   • give this new column the ‘Month’ title,
+   • make this new column available for aggregation, as any other
+     column.
+   All this process is virtual.  The input table is not modified in any
+way.
+
+   If the title ‘Month’ is not specified, then the new virtual column
+can be referred to as ‘$3’.
+
+   Note that here the title was specified with single quotes.  This is
+not required for simple alphanumeric names.  Single quotes are useful
+for instance if the title includes a blank character.
+
+   The precompute may also be Lisp expressions, exactly like in the
+usual Org table spreadsheet.  In this example, we want to aggregate on
+coarse bins.  Bins are just hundredths of the first column:
+
+     #+name: want-bins
+     | 109 | 41.24 |
+     | 140 | 40.60 |
+     | 174 |  7.68 |
+     | 288 | 33.96 |
+     | 334 | 21.42 |
+     | 418 | 74.73 |
+     | 455 | 79.62 |
+     | 479 | 22.23 |
+     | 554 | 28.03 |
+     | 678 | 64.12 |
+     | 797 | 70.91 |
+     | 947 | 93.48 |
+
+     #+BEGIN: aggregate :table "want-bins" :cols "$3 vmean($2)" :precompute ("'(floor (/ (string-to-number $1) 100))")
+     | $3 | vmean($2) |
+     |----+-----------|
+     |  1 |     29.84 |
+     |  2 |     33.96 |
+     |  3 |     21.42 |
+     |  4 |     58.86 |
+     |  5 |     28.03 |
+     |  6 |     64.12 |
+     |  7 |     70.91 |
+     |  9 |     93.48 |
+     #+END:
+
+   Of course, those additional virtual input columns may be used for
+other purposes than key columns.  They may enter in aggregating
+formulas.  Or they may be used by the optional row filter.  There is no
+difference between actual and virtual columns.
+
+   The ‘:precompute’ parameter may be
+   • a list of strings, example:
+     ("month(Date);'Month'" "day(Date);'Day'")
+
+   • a single string with fields separated by ‘::’, like in the
+     ‘#+tblfm:’ tags of a spreadsheet.  Example:
+     "month(Date);'Month' :: day(Date);'Day'"
+
+   • a string containing a single formula (actually this is a special
+     case of the previous one).  Example:
+     "month(Date);'Month'"
+
+
+File: orgtbl-aggregate.info,  Node: Chaining,  Next: Tricks,  Prev: Virtual input columns,  Up: Top
+
+32 Chaining
 ***********
 
 The result of an aggregation may become the source of further
@@ -1834,7 +1974,7 @@ exchange the ‘#+NAME:’ and ‘#+BEGIN:’ lines:
 
 File: orgtbl-aggregate.info,  Node: Tricks,  Next: Installation,  Prev: Chaining,  Up: Top
 
-32 Tricks
+33 Tricks
 *********
 
 This chapter collects some tricks that may be useful.
@@ -1848,7 +1988,7 @@ This chapter collects some tricks that may be useful.
 
 File: orgtbl-aggregate.info,  Node: Sorting (1),  Next: A few lowest or highest values,  Up: Tricks
 
-32.1 Sorting
+33.1 Sorting
 ============
 
      #+name: trick_table_1
@@ -1876,7 +2016,7 @@ handy:
 
 File: orgtbl-aggregate.info,  Node: A few lowest or highest values,  Next: Span of values,  Prev: Sorting (1),  Up: Tricks
 
-32.2 A few lowest or highest values
+33.2 A few lowest or highest values
 ===================================
 
 Used with ‘subvec()’, ‘sort()’ can retrieve the two lowest or the two
@@ -1905,7 +2045,7 @@ two last values:
 
 File: orgtbl-aggregate.info,  Node: Span of values,  Prev: A few lowest or highest values,  Up: Tricks
 
-32.3 Span of values
+33.3 Span of values
 ===================
 
 ‘vmin()’ and ‘vmax()’ can compute the span of aggregated values:
@@ -1919,7 +2059,7 @@ File: orgtbl-aggregate.info,  Node: Span of values,  Prev: A few lowest or highe
 
 File: orgtbl-aggregate.info,  Node: Installation,  Next: Authors contributors,  Prev: Tricks,  Up: Top
 
-33 Installation
+34 Installation
 ***************
 
 Emacs package on Melpa: add the following lines to your ‘.emacs’ file,
@@ -1942,7 +2082,7 @@ and reload it.
 
 File: orgtbl-aggregate.info,  Node: Authors contributors,  Next: Changes,  Prev: Installation,  Up: Top
 
-34 Authors, contributors
+35 Authors, contributors
 ************************
 
 Authors
@@ -1978,7 +2118,7 @@ Authors
 
 File: orgtbl-aggregate.info,  Node: Changes,  Next: GPL 3 License,  Prev: Authors contributors,  Up: Top
 
-35 Changes
+36 Changes
 **********
 
 Top: earliest change.  Bottom: latest change.
@@ -2046,11 +2186,12 @@ Top: earliest change.  Bottom: latest change.
      with a cell-formula, the cell-one not being calculated.  (Bonus:
      15% speedup).
    • Fix issue #24: bug in date parsing.
+   • Virtual pre-computed input columns.
 
 
 File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
 
-36 GPL 3 License
+37 GPL 3 License
 ****************
 
 Copyright (C) 2013-2025 Thierry Banel
@@ -2072,45 +2213,46 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Tag Table:
 Node: Top93
-Node: Examples1502
-Node: SQL equivalent4947
-Node: R equivalent5264
-Node: Datamash equivalent5752
-Node: Key-binding & Wizard6292
-Node: Other examples6893
-Node: The cols parameter8221
-Node: Grouping specifications in cols9355
-Node: hlines in the input table9897
-Node: hlines in the output table11965
-Node: Aggregation formulas in cols18753
-Node: Where Calc interpretation happens?26260
-Node: The cond filtering31671
-Node: Pull & Push33167
-Node: Symbolic computation37422
-Node: Correlation of two columns39694
-Node: Dates41375
-Node: Durations43355
-Node: Arbitrary column names45163
-Node: Multiple lines header46265
-Node: Custom column names47992
-Node: Empty and malformed input cells49236
-Node: [Almost) any expression can be specified50919
-Node: Modifiers and formatters52390
-Node: Debugging55037
-Node: Sorting59704
-Node: Discarding an output column62365
-Node: Post-aggregation spreadsheet formulas64095
-Node: Post processing65250
-Node: Virtual input table from Babel67022
-Node: Chaining68746
-Node: Tricks70453
-Node: Sorting (1)70711
-Node: A few lowest or highest values71510
-Node: Span of values72811
-Node: Installation73347
-Node: Authors contributors73989
-Node: Changes75526
-Node: GPL 3 License79039
+Node: Examples1528
+Node: SQL equivalent4973
+Node: R equivalent5290
+Node: Datamash equivalent5778
+Node: Key-binding & Wizard6318
+Node: Other examples6919
+Node: The cols parameter8247
+Node: Grouping specifications in cols9381
+Node: hlines in the input table9923
+Node: hlines in the output table11991
+Node: Aggregation formulas in cols18779
+Node: Where Calc interpretation happens?26286
+Node: The cond filtering31697
+Node: Pull & Push33193
+Node: Symbolic computation37448
+Node: Correlation of two columns39720
+Node: Dates41401
+Node: Durations43381
+Node: Arbitrary column names45189
+Node: Multiple lines header46291
+Node: Custom column names48018
+Node: Empty and malformed input cells49262
+Node: [Almost) any expression can be specified50945
+Node: Modifiers and formatters52416
+Node: Debugging55063
+Node: Sorting59730
+Node: Discarding an output column62391
+Node: Post-aggregation spreadsheet formulas64121
+Node: Post processing65276
+Node: Virtual input table from Babel67048
+Node: Virtual input columns68791
+Node: Chaining73770
+Node: Tricks75468
+Node: Sorting (1)75726
+Node: A few lowest or highest values76525
+Node: Span of values77826
+Node: Installation78362
+Node: Authors contributors79004
+Node: Changes80541
+Node: GPL 3 License84097
 
 End Tag Table
 

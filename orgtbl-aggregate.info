@@ -1814,8 +1814,8 @@ only plain dates.  Example:
    We would like to specify the aggregation over ‘month(Date)’.  But
 only plain columns may be used as aggregating keys.
 
-   One way is to add a ‘Month’ column to the input table.  The new table
-looks like:
+   One way is to add a ‘Month’ column to the input table.  The modified
+table looks like:
 
      #+name: with-months
      | Date             | Quantity | Month |
@@ -1866,15 +1866,16 @@ does that.  Example:
 way.
 
    If the title ‘Month’ is not specified, then the new virtual column
-can be referred to as ‘$3’.
+will be referred to as ‘$3’.
 
    Note that here the title was specified with single quotes.  This is
-not required for simple alphanumeric names.  Single quotes are useful
-for instance if the title includes a blank character.
+required to disambiguate with a coming syntax about format.  The syntax
+will be consistent with the one used in the ‘:cols’ parameter and the
+one used by Org Mode for spreadsheet formulas.
 
-   The precompute may also be Lisp expressions, exactly like in the
-usual Org table spreadsheet.  In this example, we want to aggregate on
-coarse bins.  Bins are just hundredths of the first column:
+   The pre-computations may also be Lisp expressions, exactly like in
+the usual Org table spreadsheet.  In this example, we want to aggregate
+on coarse bins.  Bins are just hundredths of the first column:
 
      #+name: want-bins
      | 109 | 41.24 |
@@ -1905,8 +1906,8 @@ coarse bins.  Bins are just hundredths of the first column:
 
    Of course, those additional virtual input columns may be used for
 other purposes than key columns.  They may enter in aggregating
-formulas.  Or they may be used by the optional row filter.  There is no
-difference between actual and virtual columns.
+formulas.  Or they may be used by the optional row filter (the ‘:cond’
+parameter).  There is no difference between actual and virtual columns.
 
    The ‘:precompute’ parameter may be
    • a list of strings, example:
@@ -2244,15 +2245,15 @@ Node: Post-aggregation spreadsheet formulas64121
 Node: Post processing65276
 Node: Virtual input table from Babel67048
 Node: Virtual input columns68791
-Node: Chaining73770
-Node: Tricks75468
-Node: Sorting (1)75726
-Node: A few lowest or highest values76525
-Node: Span of values77826
-Node: Installation78362
-Node: Authors contributors79004
-Node: Changes80541
-Node: GPL 3 License84097
+Node: Chaining73879
+Node: Tricks75577
+Node: Sorting (1)75835
+Node: A few lowest or highest values76634
+Node: Span of values77935
+Node: Installation78471
+Node: Authors contributors79113
+Node: Changes80650
+Node: GPL 3 License84206
 
 End Tag Table
 

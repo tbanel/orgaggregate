@@ -1005,12 +1005,9 @@ Actually, FORMULAS are evaluated by Org, not by orgtbl-aggregate."
       (if (string-match
            (rx bos
                (group-n 1 (+ any))
-               ";"
-               (* space)
-               (or
-                (seq "'" (group-n 2 (* (not (any "'")))) "'")
-                (group-n 2 (+ (any word "$"))))
-               (* space)
+               ";" (* space) "'"
+               (group-n 2 (* (not (any "'"))))
+               "'" (* space)
                eos)
            formula)
           (cons (match-string 1 formula)

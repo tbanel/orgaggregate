@@ -1722,7 +1722,7 @@ Sometimes, input columns are not enough to aggregate on. Virtual computed column
 | [2027-07-14 mer] |    7 |
 | [2027-07-25 dim] |   43 |
 
-#+BEGIN: aggregate :table "want-month" :cols "Month vsum(Quty)" :precompute ("month(Date);Month")
+#+BEGIN: aggregate :table "want-month" :cols "Month vsum(Quty)" :precompute ("month(Date);'Month'")
 | Month | vsum(Quty) |
 |-------+------------|
 |     2 |         96 |

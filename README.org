@@ -1882,8 +1882,8 @@ only plain dates. Example:
 We would like to specify the aggregation over =month(Date)=. But only
 plain columns may be used as aggregating keys.
 
-One way is to add a =Month= column to the input table. The new table
-looks like:
+One way is to add a =Month= column to the input table. The modified
+table looks like:
 
 #+begin_example
 #+name: with-months
@@ -1936,14 +1936,15 @@ The specification =month(Date);'Month'= means:
 All this process is virtual. The input table is not modified in any
 way.
 
-If the title =Month= is not specified, then the new virtual column can
+If the title =Month= is not specified, then the new virtual column will
 be referred to as =$3=.
 
-Note that here the title was specified with single quotes. This is not
-required for simple alphanumeric names. Single quotes are useful for
-instance if the title includes a blank character.
+Note that here the title was specified with single quotes. This is
+required to disambiguate with a coming syntax about format. The syntax
+will be consistent with the one used in the =:cols= parameter and the
+one used by Org Mode for spreadsheet formulas.
 
-The precompute may also be Lisp expressions, exactly like in the
+The pre-computations may also be Lisp expressions, exactly like in the
 usual Org table spreadsheet. In this example, we want to aggregate on
 coarse bins. Bins are just hundredths of the first column:
 
@@ -1980,8 +1981,8 @@ coarse bins. Bins are just hundredths of the first column:
 
 Of course, those additional virtual input columns may be used for
 other purposes than key columns. They may enter in aggregating
-formulas. Or they may be used by the optional row filter. There is no
-difference between actual and virtual columns.
+formulas. Or they may be used by the optional row filter (the =:cond=
+parameter). There is no difference between actual and virtual columns.
 
 The =:precompute= parameter may be
 - a list of strings, example:

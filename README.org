@@ -42,7 +42,7 @@ averages, and so on, out of material from the first table.
 - [[#post-aggregation-spreadsheet-formulas][Post-aggregation spreadsheet formulas]]
 - [[#post-processing][Post processing]]
 - [[#virtual-input-table-from-babel][Virtual input table from Babel]]
-- [[#virtual-columns-as-computed-bins][Virtual columns as computed bins]]
+- [[#virtual-input-columns][Virtual input columns]]
 - [[#chaining][Chaining]]
 - [[#tricks][Tricks]]
 - [[#installation][Installation]]
@@ -1851,7 +1851,7 @@ executed.
 
 * Virtual input columns
 :PROPERTIES:
-:CUSTOM_ID: virtual-columns-as-computed-bins
+:CUSTOM_ID: virtual-input-columns
 :END:
 What if we want to aggregate on months? But the input table contains
 only plain dates. Example:

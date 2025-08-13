@@ -1904,12 +1904,30 @@ on coarse bins.  Bins are just hundredths of the first column:
      |  9 |     93.48 |
      #+END:
 
+   Virtual columns may be formatted as any other column, with the same
+syntax as in ‘:cols’ or in the Org table spreadsheet.  For example here
+we give it 2 digits after dot:
+
+     #+BEGIN: aggregate :table "want-bins" :cols "$3" :precompute "floor($1/100);%.2f"
+     |   $3 |
+     |------|
+     | 1.00 |
+     | 2.00 |
+     | 3.00 |
+     | 4.00 |
+     | 5.00 |
+     | 6.00 |
+     | 7.00 |
+     | 9.00 |
+     #+END:
+
    Of course, those additional virtual input columns may be used for
 other purposes than key columns.  They may enter in aggregating
 formulas.  Or they may be used by the optional row filter (the ‘:cond’
 parameter).  There is no difference between actual and virtual columns.
 
-   The ‘:precompute’ parameter may be
+   The ‘:precompute’ parameter may be:
+
    • a list of strings, example:
      ("month(Date);'Month'" "day(Date);'Day'")
 
@@ -2115,6 +2133,8 @@ Authors
    • Piotr Panasiuk, ‘#+CAPTION:’ and any tags survive
    • Luis Miguel Hernanz, fix regex bug
    • Jason Hemann, output column names no longer have quotes
+   • Tilmann Singer, computed aggregating bins, ‘"month(Date)"’ in his
+     use case
 
 
 File: orgtbl-aggregate.info,  Node: Changes,  Next: GPL 3 License,  Prev: Authors contributors,  Up: Top
@@ -2245,15 +2265,15 @@ Node: Post-aggregation spreadsheet formulas64121
 Node: Post processing65276
 Node: Virtual input table from Babel67048
 Node: Virtual input columns68791
-Node: Chaining73879
-Node: Tricks75577
-Node: Sorting (1)75835
-Node: A few lowest or highest values76634
-Node: Span of values77935
-Node: Installation78471
-Node: Authors contributors79113
-Node: Changes80650
-Node: GPL 3 License84206
+Node: Chaining74300
+Node: Tricks75998
+Node: Sorting (1)76256
+Node: A few lowest or highest values77055
+Node: Span of values78356
+Node: Installation78892
+Node: Authors contributors79534
+Node: Changes81162
+Node: GPL 3 License84718
 
 End Tag Table
 

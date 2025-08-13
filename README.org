@@ -1980,7 +1980,7 @@ coarse bins. Bins are just hundredths of the first column:
 #+end_example
 
 Virtual columns may be formatted as any other column, with the same
-syntax as in :cols or in the Org table spreadsheet. For example here
+syntax as in =:cols= or in the Org table spreadsheet. For example here
 we give it 2 digits after dot:
 
 #+begin_example
@@ -2203,6 +2203,8 @@ Contributors
 - Piotr Panasiuk, =#+CAPTION:= and any tags survive
 - Luis Miguel Hernanz, fix regex bug
 - Jason Hemann, output column names no longer have quotes
+- Tilmann Singer, computed aggregating bins, ="month(Date)"= in his use
+  case
 
 * Changes
 :PROPERTIES:

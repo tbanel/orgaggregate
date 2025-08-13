@@ -1004,14 +1004,21 @@ Actually, FORMULAS are evaluated by Org, not by orgtbl-aggregate."
       collect
       (if (string-match
            (rx bos
-               (group-n 1 (+ any))
-               ";" (* space) "'"
-               (group-n 2 (* (not (any "'"))))
-               "'" (* space)
+               (group-n 1 (+ (not (any ";")))) ; formula to compute column
+               (*
+                ";" (* space) ; maybe something after a semicolon
+                (or
+                 (seq     (group-n 2 (+ (not (any "^;'\"<"))))) ; a formatter
+                 "" ; nothing after semicolon
+                 (seq "'" (group-n 3 (* (not (any "'")))) "'"))) ; column name
+               (* space)
                eos)
            formula)
-          (cons (match-string 1 formula)
-                (match-string 2 formula))
+          (cons
+           (if (match-string 2 formula) ; case formula;formatter
+               (format "%s;%s" (match-string 1 formula) (match-string 2 formula))
+             (match-string 1 formula))  ; case formula without formatter
+           (match-string 3 formula))    ; new column's name
         (cons formula (format "$%s" i)))))
 
     (if (memq 'hline table)

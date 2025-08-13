@@ -1979,17 +1979,39 @@ coarse bins. Bins are just hundredths of the first column:
 #+END:
 #+end_example
 
+Virtual columns may be formatted as any other column, with the same
+syntax as in :cols or in the Org table spreadsheet. For example here
+we give it 2 digits after dot:
+
+#+begin_example
+#+BEGIN: aggregate :table "want-bins" :cols "$3" :precompute "floor($1/100);%.2f"
+|   $3 |
+|------|
+| 1.00 |
+| 2.00 |
+| 3.00 |
+| 4.00 |
+| 5.00 |
+| 6.00 |
+| 7.00 |
+| 9.00 |
+#+END:
+#+end_example
+
 Of course, those additional virtual input columns may be used for
 other purposes than key columns. They may enter in aggregating
 formulas. Or they may be used by the optional row filter (the =:cond=
 parameter). There is no difference between actual and virtual columns.
 
-The =:precompute= parameter may be
+The =:precompute= parameter may be:
+
 - a list of strings, example:
 : ("month(Date);'Month'" "day(Date);'Day'")
+
 - a single string with fields separated by =::=, like in the =#+tblfm:=
   tags of a spreadsheet. Example:
 : "month(Date);'Month' :: day(Date);'Day'"
+
 - a string containing a single formula (actually this is a special
   case of the previous one). Example:
 : "month(Date);'Month'"

@@ -1,0 +1,68 @@
+* Table by name
+
+#+name: distanttable
+| tag |   val |
+|-----+-------|
+| A   | 11.58 |
+| BB  | 98.43 |
+| CCC | 87.74 |
+| BB  | 87.97 |
+| A   | 84.32 |
+| A   | 83.79 |
+| CCC |  4.32 |
+| A   | 31.07 |
+| BB  | 70.82 |
+| BB  | 32.32 |
+| A   | 88.22 |
+| CCC |  8.61 |
+| BB  | 55.17 |
+| BB  | 52.73 |
+| A   | 33.96 |
+| CCC | 23.42 |
+| CCC | 91.62 |
+| BB  | 56.19 |
+| A   | 10.78 |
+| A   | 61.71 |
+
+* Babel by name and parameter
+
+#+name: distantbabel
+#+begin_src elisp :colnames yes :var factor=29
+(append
+ (list
+  '(tag value)
+  'hline)
+ (cl-loop
+  for i from 1 to 50
+  collect
+  (list
+   (aref [A BB CCC] (% i 3))
+   (% (* i factor) 100))))
+#+end_src
+
+* Table by ID
+:PROPERTIES:
+:ID:       55ab27a2-c44b-4a14-9ba4-f6879375207d
+:END:
+
+| ref  |   val |
+|------+-------|
+| S    | 685.6 |
+| TT   | 229.1 |
+| UUU  | 945.2 |
+| VVVV | 115.6 |
+| VVVV | 859.1 |
+| TT   | 767.3 |
+| UUU  | 242.8 |
+| S    | 934.5 |
+| S    | 349.2 |
+| UUU  | 227.8 |
+| VVVV | 784.8 |
+| TT   | 225.4 |
+| VVVV | 880.6 |
+| UUU  | 228.0 |
+| TT   | 882.2 |
+| TT   | 157.4 |
+| VVVV | 504.4 |
+| S    | 521.6 |
+| TT   |  90.9 |

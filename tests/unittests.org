@@ -1676,6 +1676,40 @@ Use dollar to specify columns in =:cols=:
 | a  |       63 |
 #+END:
 
+a script with a parameter:
+
+#+name: ascriptparam
+#+begin_src elisp :colnames yes :var len=20
+`(
+  ("label" value)                       ; cells are symbols or strings
+  hline
+  ,@(cl-loop
+     for i from 1 to len
+     collect
+     (list
+      (format "%c" (+ ?a (% i 3)))      ; cell is a string
+      i)))                              ; cell is a number
+#+end_src
+
+#+BEGIN: aggregate :table "ascriptparam(len=10)" :cols "label vsum(value)"
+| label | vsum(value) |
+|-------+-------------|
+| b     |          22 |
+| c     |          15 |
+| a     |          18 |
+#+END:
+
+a longer table is generated (100 rows),
+but only 10 rows are retained (12 = 10 rows + header + hline)
+
+#+BEGIN: aggregate :table "ascriptparam(len=100)[0:12]" :cols "label vsum(value)"
+| label | vsum(value) |
+|-------+-------------|
+| b     |          22 |
+| c     |          26 |
+| a     |          18 |
+#+END:
+
 * Column & single-cell formulas
 Is the Org Mode bug overcome?
 
@@ -1805,4 +1839,47 @@ Let us format a pre-computed column:
 | 7.000 | 7.4, 7.5, 7.6, 7.9 |
 | 8.000 | 8.3, 8.5, 8.7      |
 | 9.000 | 9.4, 9.7           |
+#+END:
+
+* Distant tables
+
+table by name
+
+#+BEGIN: aggregate :table "distant-tests.org:distanttable" :cols "tag vsum(val)"
+| tag | vsum(val) |
+|-----+-----------|
+| A   |    405.43 |
+| BB  |    453.63 |
+| CCC |    215.71 |
+#+END:
+
+Babel by name
+
+#+BEGIN: aggregate :table "distant-tests.org:distantbabel" :cols "tag vsum(value)"
+| tag | vsum(value) |
+|-----+-------------|
+| BB  |         825 |
+| CCC |         818 |
+| A   |         832 |
+#+END:
+
+Babel by name and parameter
+
+#+BEGIN: aggregate :table "distant-tests.org:distantbabel(factor=17)" :cols "tag vsum(value)"
+| tag | vsum(value) |
+|-----+-------------|
+| BB  |         825 |
+| CCC |        1114 |
+| A   |         536 |
+#+END:
+
+table by ID
+
+#+BEGIN: aggregate :table "55ab27a2-c44b-4a14-9ba4-f6879375207d[0:7]" :cols "ref vsum(val)"
+| ref  | vsum(val) |
+|------+-----------|
+| S    |     685.6 |
+| TT   |     996.4 |
+| UUU  |     945.2 |
+| VVVV |     974.7 |
 #+END:

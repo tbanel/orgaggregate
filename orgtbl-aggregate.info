@@ -48,6 +48,7 @@ and so on, out of material from the first table.
 * Post-aggregation spreadsheet formulas::
 * Post processing::
 * Virtual input table from Babel::
+* Wide variety of input tables::
 * Virtual input columns::
 * Chaining::
 * Tricks::
@@ -1721,7 +1722,7 @@ to the ‘:post’ parameter:
      #+end_src
 
 
-File: orgtbl-aggregate.info,  Node: Virtual input table from Babel,  Next: Virtual input columns,  Prev: Post processing,  Up: Top
+File: orgtbl-aggregate.info,  Node: Virtual input table from Babel,  Next: Wide variety of input tables,  Prev: Post processing,  Up: Top
 
 30 Virtual input table from Babel
 *********************************
@@ -1782,9 +1783,57 @@ output:
 executed.
 
 
-File: orgtbl-aggregate.info,  Node: Virtual input columns,  Next: Chaining,  Prev: Virtual input table from Babel,  Up: Top
+File: orgtbl-aggregate.info,  Node: Wide variety of input tables,  Next: Virtual input columns,  Prev: Virtual input table from Babel,  Up: Top
 
-31 Virtual input columns
+31 Wide variety of input tables
+*******************************
+
+As in any other Org Mode source block, the input table may come from
+several places.  OrgAggregate adds even more kinds of input.
+
+   The parameter after ‘:table’ may be:
+
+   • ‘mytable’ : an ordinary table in the same buffer, named ‘mytable’.
+
+   • ‘/some/dir/file.org:mytable’ : an ordinary table named ‘mytable’,
+     in a distant org file named ‘/some/dir/file.org’.
+
+   • ‘mybabel’ : a Babel block named ‘mybabel’ in the current buffer,
+     generating a table as its output, written in any language.
+
+   • ‘mybabel(param1=123,param2=456)’ : passing parameters to a Babel
+     block named ‘mybabel’ in the current buffer, generating a table as
+     its output, written in any language.
+
+   • ‘/some/dir/file.org:mybabel(param1=123,param2=456)’ : a Babel block
+     named ‘mybabel’ in a distant org file named ‘/some/dir/file.org’,
+     called with parameters.
+
+   • ‘34cbc63a-c664-471e-a620-d654b26ffa31’ : an identifier of an Org
+     Mode sub-tree may be specified; the sub-tree is supposed to contain
+     a table, which is retrieved; those Org Mode identifiers span all
+     known Org Mode files; to add such an identifier, put the cursor on
+     the heading of the sub-tree, and type ‘M-x org-id-get-create’.
+
+   • CSV or JSON coming soon…
+
+   The Org Mode also provides for table slicing.  All of the previous
+references may be followed by an optional slicing.  Examples:
+
+   • ‘mytable[0:5]’ : retain only the first 6 rows of the input table;
+     if the table has a header, then it counts as 2 rows (the header and
+     the separation line); in this example, it would retain rows 0 and 1
+     for the header, and rows 2,3,4,5 for the content.
+
+   • ‘mytable[,0:1]’ : retain only the first 2 columns.
+
+   • ‘mytable[0:5,0:1]’ : retain only the first 6 rows and the first 2
+     columns.
+
+
+File: orgtbl-aggregate.info,  Node: Virtual input columns,  Next: Chaining,  Prev: Wide variety of input tables,  Up: Top
+
+32 Virtual input columns
 ************************
 
 What if we want to aggregate on months?  But the input table contains
@@ -1942,7 +1991,7 @@ parameter).  There is no difference between actual and virtual columns.
 
 File: orgtbl-aggregate.info,  Node: Chaining,  Next: Tricks,  Prev: Virtual input columns,  Up: Top
 
-32 Chaining
+33 Chaining
 ***********
 
 The result of an aggregation may become the source of further
@@ -1993,7 +2042,7 @@ exchange the ‘#+NAME:’ and ‘#+BEGIN:’ lines:
 
 File: orgtbl-aggregate.info,  Node: Tricks,  Next: Installation,  Prev: Chaining,  Up: Top
 
-33 Tricks
+34 Tricks
 *********
 
 This chapter collects some tricks that may be useful.
@@ -2007,7 +2056,7 @@ This chapter collects some tricks that may be useful.
 
 File: orgtbl-aggregate.info,  Node: Sorting (1),  Next: A few lowest or highest values,  Up: Tricks
 
-33.1 Sorting
+34.1 Sorting
 ============
 
      #+name: trick_table_1
@@ -2035,7 +2084,7 @@ handy:
 
 File: orgtbl-aggregate.info,  Node: A few lowest or highest values,  Next: Span of values,  Prev: Sorting (1),  Up: Tricks
 
-33.2 A few lowest or highest values
+34.2 A few lowest or highest values
 ===================================
 
 Used with ‘subvec()’, ‘sort()’ can retrieve the two lowest or the two
@@ -2064,7 +2113,7 @@ two last values:
 
 File: orgtbl-aggregate.info,  Node: Span of values,  Prev: A few lowest or highest values,  Up: Tricks
 
-33.3 Span of values
+34.3 Span of values
 ===================
 
 ‘vmin()’ and ‘vmax()’ can compute the span of aggregated values:
@@ -2078,7 +2127,7 @@ File: orgtbl-aggregate.info,  Node: Span of values,  Prev: A few lowest or highe
 
 File: orgtbl-aggregate.info,  Node: Installation,  Next: Authors contributors,  Prev: Tricks,  Up: Top
 
-34 Installation
+35 Installation
 ***************
 
 Emacs package on Melpa: add the following lines to your ‘.emacs’ file,
@@ -2101,7 +2150,7 @@ and reload it.
 
 File: orgtbl-aggregate.info,  Node: Authors contributors,  Next: Changes,  Prev: Installation,  Up: Top
 
-35 Authors, contributors
+36 Authors, contributors
 ************************
 
 Authors
@@ -2139,7 +2188,7 @@ Authors
 
 File: orgtbl-aggregate.info,  Node: Changes,  Next: GPL 3 License,  Prev: Authors contributors,  Up: Top
 
-36 Changes
+37 Changes
 **********
 
 Top: earliest change.  Bottom: latest change.
@@ -2208,11 +2257,13 @@ Top: earliest change.  Bottom: latest change.
      15% speedup).
    • Fix issue #24: bug in date parsing.
    • Virtual pre-computed input columns.
+   • Better explanation of the input table reference syntax, including
+     distant tables and virtual table produced by Babel blocks.
 
 
 File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
 
-37 GPL 3 License
+38 GPL 3 License
 ****************
 
 Copyright (C) 2013-2025 Thierry Banel
@@ -2234,46 +2285,47 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Tag Table:
 Node: Top93
-Node: Examples1528
-Node: SQL equivalent4973
-Node: R equivalent5290
-Node: Datamash equivalent5778
-Node: Key-binding & Wizard6318
-Node: Other examples6919
-Node: The cols parameter8247
-Node: Grouping specifications in cols9381
-Node: hlines in the input table9923
-Node: hlines in the output table11991
-Node: Aggregation formulas in cols18779
-Node: Where Calc interpretation happens?26286
-Node: The cond filtering31697
-Node: Pull & Push33193
-Node: Symbolic computation37448
-Node: Correlation of two columns39720
-Node: Dates41401
-Node: Durations43381
-Node: Arbitrary column names45189
-Node: Multiple lines header46291
-Node: Custom column names48018
-Node: Empty and malformed input cells49262
-Node: [Almost) any expression can be specified50945
-Node: Modifiers and formatters52416
-Node: Debugging55063
-Node: Sorting59730
-Node: Discarding an output column62391
-Node: Post-aggregation spreadsheet formulas64121
-Node: Post processing65276
-Node: Virtual input table from Babel67048
-Node: Virtual input columns68791
-Node: Chaining74300
-Node: Tricks75998
-Node: Sorting (1)76256
-Node: A few lowest or highest values77055
-Node: Span of values78356
-Node: Installation78892
-Node: Authors contributors79534
-Node: Changes81162
-Node: GPL 3 License84718
+Node: Examples1561
+Node: SQL equivalent5006
+Node: R equivalent5323
+Node: Datamash equivalent5811
+Node: Key-binding & Wizard6351
+Node: Other examples6952
+Node: The cols parameter8280
+Node: Grouping specifications in cols9414
+Node: hlines in the input table9956
+Node: hlines in the output table12024
+Node: Aggregation formulas in cols18812
+Node: Where Calc interpretation happens?26319
+Node: The cond filtering31730
+Node: Pull & Push33226
+Node: Symbolic computation37481
+Node: Correlation of two columns39753
+Node: Dates41434
+Node: Durations43414
+Node: Arbitrary column names45222
+Node: Multiple lines header46324
+Node: Custom column names48051
+Node: Empty and malformed input cells49295
+Node: [Almost) any expression can be specified50978
+Node: Modifiers and formatters52449
+Node: Debugging55096
+Node: Sorting59763
+Node: Discarding an output column62424
+Node: Post-aggregation spreadsheet formulas64154
+Node: Post processing65309
+Node: Virtual input table from Babel67081
+Node: Wide variety of input tables68831
+Node: Virtual input columns70937
+Node: Chaining76444
+Node: Tricks78142
+Node: Sorting (1)78400
+Node: A few lowest or highest values79199
+Node: Span of values80500
+Node: Installation81036
+Node: Authors contributors81678
+Node: Changes83306
+Node: GPL 3 License86999
 
 End Tag Table
 

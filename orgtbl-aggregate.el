@@ -5,11 +5,12 @@
 ;;   Thierry Banel tbanelwebmin at free dot fr
 ;;   Michael Brand michael dot ch dot brand at gmail dot com
 ;; Contributors:
-;;   Eric Abrahamsen
-;;   Alejandro Erickson alejandro dot erickson at gmail dot com
-;;   Uwe Brauer
-;;   Peking Duck
-;;   Bill Hunker
+;;   Eric Abrahamsen, Alejandro Erickson Uwe Brauer, Peking Duck, Bill
+;;   Hunker, Dirk Schmitt, Dale Sedivec, falloutphil, Baudilio
+;;   Tejerina, Marco Pas, wuqui, Nicolas Viviani, Nils Lehmann,
+;;   Shankar Rao, Misohena, Kevin Brubeck Unhammer, Tilmann Singer,
+;;   Piotr Panasiuk, Luis Miguel Hernanz, Jason Hemann
+
 ;; Package-Requires: ((emacs "26.1"))
 
 ;; Version: 1.0
@@ -207,31 +208,37 @@ The table is taken from the parameter TXT, or from the buffer at point."
         nil t)
        collect (match-string-no-properties 1)))))
 
-(defun orgtbl-aggregate--get-table-from-babel (name-or-id)
+(defun orgtbl-aggregate--table-from-babel (name-or-id)
   "Retrieve an input table as the result of running a Babel block.
+NAME-OR-ID is the usual Org convention for pointing to a distant reference.
+Examples: babel, file:babel, file:babel[1:3,2:5], file:babel(p1=…,p2=…)
+This function could work also for a table,
+but this has already been short-circuited.
 The table cells get stringified."
   ;; A user error is generated in case no Babel block is found
   (let ((table (org-babel-ref-resolve name-or-id)))
-    (cl-loop
-     for row in table
-     if (listp row)
-     do
-     (cl-loop
-      for cell on row
-      unless (stringp (car cell))
-      do (setcar cell (format "%s" (car cell)))))
-    table))
+    (when (and table (consp table)
+               (or (eq (car table) 'hline)
+                   (consp (car table))))
+      (cl-loop
+       for row in table
+       if (listp row)
+       do
+       (cl-loop
+        for cell on row
+        unless (stringp (car cell))
+        do (setcar cell (format "%s" (car cell)))))
+      table)))
 
-(defun orgtbl-aggregate--get-distant-table (name-or-id)
-  "Find a table in the current buffer named NAME-OR-ID.
-Return it as a Lisp list of lists.
-An horizontal line is translated as the special symbol `hline'."
-  (unless (stringp name-or-id)
-    (setq name-or-id (format "%s" name-or-id)))
-  (let (buffer loc)
-    (save-excursion
-      (goto-char (point-min))
-      (if (let ((case-fold-search t))
+(defun orgtbl-aggregate--table-from-name (file name)
+  "Parse an Org table named NAME in a ditant Org file named FILE.
+FILE is a filename with possible relative or absolute path.
+If FILE is nil, look in the current buffer."
+  (if file
+      (find-file-noselect file))
+  (save-excursion
+    (goto-char (point-min))
+    (when (let ((case-fold-search t))
 	    (re-search-forward
 	     ;; This concat is automatically done by new versions of rx
 	     ;; using "literal". This appeared on june 26, 2019
@@ -240,36 +247,103 @@ An horizontal line is translated as the special symbol `hline'."
 	      (rx bol
 		  (* (any " \t")) "#+" (? "tbl") "name:"
 		  (* (any " \t")))
-	      (regexp-quote name-or-id)
+	      (regexp-quote name)
 	      (rx (* (any " \t"))
 		  eol))
 	     nil t))
-	  (setq buffer (current-buffer)
-		loc (match-beginning 0))
-	(let ((id-loc (org-id-find name-or-id 'marker)))
-	  (when (and id-loc (markerp id-loc))
-	    (setq buffer (marker-buffer id-loc)
-		  loc (marker-position id-loc))
-	    (move-marker id-loc nil)))))
-    (or
-     (and buffer
-          (with-current-buffer buffer
-            (save-excursion
-	      (goto-char loc)
-	      (forward-line 1)
-              (beginning-of-line)
-	      (and (re-search-forward
-                    (rx
-                     point
-                     (or
-                      (group (1+ "*") " ")
-                      (seq
-                       (0+ (0+ blank) (? "#" (0+ any)) "\n")
-                       (0+ blank) "|")))
-                    nil t)
-		   (not (match-beginning 1))
-	           (orgtbl-aggregate--table-to-lisp)))))
-     (orgtbl-aggregate--get-table-from-babel name-or-id))))
+      (re-search-forward
+       (rx
+        point
+        (0+ (0+ blank) (? "#" (0+ any)) "\n")
+        (0+ blank)
+        "|")
+       nil t)
+      (orgtbl-aggregate--table-to-lisp))))
+
+(defun orgtbl-aggregate--table-from-id (id)
+  "Parse a table following a header in a distant Org file.
+The header have an ID property equal to ID in a PROPERTY drawer."
+  (let ((id-loc (org-id-find id 'marker)))
+    (when (and id-loc (markerp id-loc))
+      (with-current-buffer (marker-buffer id-loc)
+        (save-excursion
+          (goto-char (marker-position id-loc))
+          (move-marker id-loc nil)
+          (and (re-search-forward
+                (rx
+                 point
+                 (0+ (0+ blank) (? (any "*#:") (0+ any)) "\n")
+                 (0+ blank) "|")
+                nil t)
+	       (not (match-beginning 1))
+               (orgtbl-aggregate--table-to-lisp)))))))
+
+(defun orgtbl-aggregate-table-from-any-ref (name-or-id)
+  "Find a table referenced by NAME-OR-ID.
+The reference is all the accepted Org references.
+The pointed to object may also be a Babel block, which when executed
+returns an Org table. Parameters may be passed to the Babel block
+in parenthesis.
+A slicing may be applied to the table, to select rows or columns.
+The syntax for slicing is like [1:3] or [1:3,2:5].
+Return it as a Lisp list of lists.
+An horizontal line is translated as the special symbol `hline'."
+  (unless (stringp name-or-id)
+    (setq name-or-id (format "%s" name-or-id)))
+  (unless
+      (string-match
+       (rx
+        bos
+        (* space)
+        (opt (group-n 1 (* (not (any ":")))) ":")
+        (* space)
+        (group-n 2 (* (not (any "[]():"))))
+        (* space)
+        (opt (group-n 3 "(" (* any) ")"))
+        (* space)
+        (opt (group-n 4 "[" (* any) "]"))
+        (* space)
+        eos)
+       name-or-id)
+    (user-error "Malformed table reference %S" name-or-id))
+  (let ((file   (match-string 1 name-or-id))
+        (name   (match-string 2 name-or-id))
+        (params (match-string 3 name-or-id))
+        (slice  (match-string 4 name-or-id)))
+    (if (eq (length file) 0)
+        (setq file nil))
+    (if (eq (length name) 0)
+        (setq name nil))
+    (unless (or file name)
+      (user-error "Malformed table reference %S" name-or-id))
+    (let
+        ((table
+          (cond
+           ;; name-or-id = "babel(p=…)" or "file:babel(p=…)"
+           ((and params
+                 (orgtbl-aggregate--table-from-babel
+                  (if file
+                      (format "%s:%s%s" file name params)
+                    (format "%s%s" name params)))))
+           ;;name-or-id = "table" or "file:table"
+           ((orgtbl-aggregate--table-from-name file name))
+           ;; name-or-id = "babel" or "file:babel"
+           ((orgtbl-aggregate--table-from-babel
+             (if file
+                 (format "%s:%s" file name)
+               name)))
+           ;; name-or-id = "34cbc63a-c664-471e-a620-d654b26ffa31"
+           ;; pointing to a header in a distant org file, followed by a table
+           ((and (not file) name (not params)
+                 (orgtbl-aggregate--table-from-id name)))
+           ;; everything failed
+           (t
+            (user-error
+             "Cannot find table or babel block with reference %S"
+             name-or-id)))))
+      (if slice
+          (org-babel-ref-index-list slice table)
+        table))))
 
 (defun orgtbl-aggregate--remove-cookie-lines (table)
   "Remove lines of TABLE which contain cookies.
@@ -535,7 +609,7 @@ possibly missing headers, and in this case returns a list
 of $1, $2, $3... column names.
 Actual column names which are not fully alphanumeric are quoted."
   (unless (consp table)
-    (setq table (orgtbl-aggregate--get-distant-table table)))
+    (setq table (orgtbl-aggregate-table-from-any-ref table)))
   (orgtbl-aggregate--pop-leading-hline table)
   (let ((header
 	 (if (memq 'hline table)
@@ -911,6 +985,8 @@ a hash-table, whereas GROUPS is a Lisp list."
    ;; nil happens when a table is malformed
    ;; some columns are missing in some rows
    ((not expr) nil)
+   ;; already a number? return it
+   ((numberp expr) expr)
    ;; empty cell returned as nil,
    ;; to be processed later depending on modifier flags
    ((string= expr "") nil)
@@ -1768,7 +1844,7 @@ Note:
      (orgtbl-aggregate--post-process
       (orgtbl-aggregate--create-table-aggregated
        (orgtbl-aggregate--remove-cookie-lines
-        (orgtbl-aggregate--get-distant-table (plist-get params :table)))
+        (orgtbl-aggregate-table-from-any-ref (plist-get params :table)))
        params)
       post))
     (orgtbl-aggregate--table-recalculate content formula)))
@@ -1994,7 +2070,7 @@ Note:
      (orgtbl-aggregate--post-process
       (orgtbl-aggregate--create-table-transposed
        (orgtbl-aggregate--remove-cookie-lines
-        (orgtbl-aggregate--get-distant-table (plist-get params :table)))
+        (orgtbl-aggregate-table-from-any-ref (plist-get params :table)))
        (plist-get params :cols)
        (plist-get params :cond))
       post))

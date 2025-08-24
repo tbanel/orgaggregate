@@ -2331,10 +2331,7 @@ Top: earliest change. Bottom: latest change.
 - Virtual pre-computed input columns.
 - Better explanation of the input table reference syntax, including
   distant tables and virtual table produced by Babel blocks.
-<<<<<<< HEAD
-=======
 - Support for CSV and JSON formatted input tables.
->>>>>>> jsoncsv
 
 * GPL 3 License
 :PROPERTIES:

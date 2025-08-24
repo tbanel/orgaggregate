@@ -2269,9 +2269,7 @@ Top: earliest change.  Bottom: latest change.
    • Virtual pre-computed input columns.
    • Better explanation of the input table reference syntax, including
      distant tables and virtual table produced by Babel blocks.
-   <<<<<<< HEAD ‘=====’
    • Support for CSV and JSON formatted input tables.
-   >>>>>>> jsoncsv
 
 
 File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
@@ -2338,7 +2336,7 @@ Node: Span of values81126
 Node: Installation81662
 Node: Authors contributors82304
 Node: Changes83932
-Node: GPL 3 License87728
+Node: GPL 3 License87681
 
 End Tag Table
 

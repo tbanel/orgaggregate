@@ -86,6 +86,7 @@
 (require 'thingatpt) ;; just for thing-at-point--read-from-whole-string
 (eval-when-compile (require 'cl-lib))
 (require 'rx)
+(require 'json)
 (eval-when-compile
   (cl-proclaim '(optimize (speed 3) (safety 0))))
 
@@ -188,6 +189,55 @@ The table is taken from the parameter TXT, or from the buffer at point."
 	  (forward-line))
 	(nreverse table)))))
 
+;; There is no CSV parser bundled with Emacs. In order to avoid a
+;; dependency on a package, here is an implementation of a parser.  It
+;; is made of the same technology as `orgtbl-aggregate--table-to-lisp'
+;; (which is now integrated into the newest versions of Emacs). It is
+;; probably as fast as can be in Emacs-Lisp byte-code.
+
+(defun orgtbl-aggregate--csv-to-lisp ()
+  "Convert current buffer in CSV to Lisp.
+It recognize cells protected by double quotes, and cells not protected.
+When a cell is not protected, blanks are kept.
+When a cell is protected, blanks before the first double quote are ignored.
+Double double quotes are recognized within a cell double-quoted.
+The last line may or may not end in a newline.
+Separators are coma, semicolon, or TAB. They can be mixed."
+  (goto-char (point-min))
+  (let (table)
+    (while (not (eobp))
+      (let (row)
+        (while (not (eolp))
+          (let ((p (point)))
+            (skip-chars-forward " ")
+            (if (eq (following-char) ?\")
+                (let (dquote)
+                  (forward-char 1)
+                  (setq p (point))
+                  (while
+                      (progn
+                        (skip-chars-forward "^\"")
+                        (forward-char 1)
+                        (if (eq (following-char) ?\")
+                            (progn (forward-char 1)
+                                   (setq dquote t)))))
+                  (push
+                   (let ((cell
+                          (buffer-substring-no-properties p (1- (point)))))
+                     (if dquote
+                         (string-replace "\"\"" "\"" cell)
+                       cell))
+                   row)
+                  (skip-chars-forward " "))
+              (skip-chars-forward "^,;\t\n")
+              (push
+               (buffer-substring-no-properties p (point))
+               row))
+            (skip-chars-forward ",;\t" (1+ (point)))))
+        (push (nreverse row) table)
+        (or (eobp) (forward-char 1))))
+    (nreverse table)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Here is a bunch of useful utilities,
 ;; generic enough to be detached from the orgtbl-aggregate package.
@@ -229,6 +279,36 @@ The table cells get stringified."
         unless (stringp (car cell))
         do (setcar cell (format "%s" (car cell)))))
       table)))
+
+(defun orgtbl-aggregate--table-from-csv (file _params)
+  "Parse a CSV formatted table located in FILE.
+The cell-separator is currently guessed.
+Currently, there is no header."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (orgtbl-aggregate--csv-to-lisp)))
+
+(defun orgtbl-aggregate--table-from-json (file _params)
+  "Parse a JSON formatted table located in FILE.
+FILE is a filename with possible relative or absolute path.
+Currently, the accepted format is
+[[\"COL1\",\"COL2\",…]
+ \"hline\"
+ [\"VAL11\",\"COL12\",…]
+ [\"VAL21\",\"COL22\",…]
+ [\"VAL31\",\"COL32\",…]
+Numbers do not need to be quoted.
+ …"
+  (let ((json-object-type 'alist)
+        (json-array-type 'list)
+        (json-key-type 'string))
+    (let ((json (json-read-file file)))
+      (cl-loop
+       for row in json
+       if (stringp row)
+       collect (intern row)
+       else
+       collect (append row ())))))
 
 (defun orgtbl-aggregate--table-from-name (file name)
   "Parse an Org table named NAME in a ditant Org file named FILE.
@@ -280,7 +360,8 @@ The header have an ID property equal to ID in a PROPERTY drawer."
 
 (defun orgtbl-aggregate-table-from-any-ref (name-or-id)
   "Find a table referenced by NAME-OR-ID.
-The reference is all the accepted Org references.
+The reference is all the accepted Org references,
+and additionally pointers to CSV or JSON files.
 The pointed to object may also be a Babel block, which when executed
 returns an Org table. Parameters may be passed to the Babel block
 in parenthesis.
@@ -319,6 +400,14 @@ An horizontal line is translated as the special symbol `hline'."
     (let
         ((table
           (cond
+           ;; name-or-id = "file:(csv …)"
+           ((and file (not name)
+                 (string-match (rx bos "(csv") params))
+            (orgtbl-aggregate--table-from-csv file params))
+           ;; name-or-id = "file:(json …)"
+           ((and file (not name)
+                 (string-match (rx bos "(json") params))
+            (orgtbl-aggregate--table-from-json file params))
            ;; name-or-id = "babel(p=…)" or "file:babel(p=…)"
            ((and params
                  (orgtbl-aggregate--table-from-babel

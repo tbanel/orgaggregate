@@ -1883,3 +1883,112 @@ table by ID
 | UUU  |     945.2 |
 | VVVV |     974.7 |
 #+END:
+
+* CSV table
+
+abundance of large cities per country
+the source CSV file is TAB-separated, which is guessed
+
+#+BEGIN: aggregate :table "geography-a.csv:(csv)" :cols "$2 count();^N vsum($3)"
+| $2             | count() |  vsum($3) |
+|----------------+---------+-----------|
+| China          |      28 | 264183191 |
+| India          |      10 | 140092165 |
+| Japan          |       4 |  71117892 |
+| Brazil         |       4 |  48284586 |
+| Mexico         |       3 |  33697146 |
+| Bangladesh     |       2 |  30197563 |
+| Egypt          |       2 |  28897566 |
+| Pakistan       |       2 |  32895483 |
+| Nigeria        |       2 |  21763797 |
+| Turkey         |       2 |  21777496 |
+| Russia         |       2 |  18346030 |
+| Vietnam        |       2 |  15392473 |
+| Saudi Arabia   |       2 |  12980333 |
+| Spain          |       2 |  12577695 |
+| South Africa   |       2 |  11501203 |
+| Australia      |       2 |  10663074 |
+| DR Congo       |       1 |  17815364 |
+| Argentina      |       1 |  15714124 |
+| Philippines    |       1 |  15211511 |
+| Colombia       |       1 |  11779275 |
+| Indonesia      |       1 |  11628728 |
+| Peru           |       1 |  11529982 |
+| Thailand       |       1 |  11415533 |
+| France         |       1 |  11352823 |
+| Angola         |       1 |  10049628 |
+| South Korea    |       1 |  10059272 |
+| United Kingdom |       1 |   9818142 |
+| Iran           |       1 |   9738111 |
+| Malaysia       |       1 |   8980578 |
+| Tanzania       |       1 |   8529744 |
+| Iraq           |       1 |   8154140 |
+| United States  |       1 |   7966324 |
+| Hong Kong      |       1 |   7791531 |
+| Chile          |       1 |   6973392 |
+| Sudan          |       1 |   6778168 |
+| Canada         |       1 |   6513813 |
+| Singapore      |       1 |   6167759 |
+| Ivory Coast    |       1 |   6054358 |
+| Ethiopia       |       1 |   5961711 |
+| Myanmar        |       1 |   5829964 |
+| Kenya          |       1 |   5772121 |
+| Afghanistan    |       1 |   4862586 |
+| Cameroon       |       1 |   4859198 |
+| Israel         |       1 |   4577871 |
+| Taiwan         |       1 |   4570576 |
+#+END:
+
+* JSON table
+
+same as in CSV
+
+#+BEGIN: aggregate :table "geography-a.json:(json)" :cols "$2 count();^N vsum($3)"
+| $2             | count() |  vsum($3) |
+|----------------+---------+-----------|
+| China          |      28 | 264183191 |
+| India          |      10 | 140092165 |
+| Japan          |       4 |  71117892 |
+| Brazil         |       4 |  48284586 |
+| Mexico         |       3 |  33697146 |
+| Bangladesh     |       2 |  30197563 |
+| Egypt          |       2 |  28897566 |
+| Pakistan       |       2 |  32895483 |
+| Nigeria        |       2 |  21763797 |
+| Turkey         |       2 |  21777496 |
+| Russia         |       2 |  18346030 |
+| Vietnam        |       2 |  15392473 |
+| Saudi Arabia   |       2 |  12980333 |
+| Spain          |       2 |  12577695 |
+| South Africa   |       2 |  11501203 |
+| Australia      |       2 |  10663074 |
+| DR Congo       |       1 |  17815364 |
+| Argentina      |       1 |  15714124 |
+| Philippines    |       1 |  15211511 |
+| Colombia       |       1 |  11779275 |
+| Indonesia      |       1 |  11628728 |
+| Peru           |       1 |  11529982 |
+| Thailand       |       1 |  11415533 |
+| France         |       1 |  11352823 |
+| Angola         |       1 |  10049628 |
+| South Korea    |       1 |  10059272 |
+| United Kingdom |       1 |   9818142 |
+| Iran           |       1 |   9738111 |
+| Malaysia       |       1 |   8980578 |
+| Tanzania       |       1 |   8529744 |
+| Iraq           |       1 |   8154140 |
+| United States  |       1 |   7966324 |
+| Hong Kong      |       1 |   7791531 |
+| Chile          |       1 |   6973392 |
+| Sudan          |       1 |   6778168 |
+| Canada         |       1 |   6513813 |
+| Singapore      |       1 |   6167759 |
+| Ivory Coast    |       1 |   6054358 |
+| Ethiopia       |       1 |   5961711 |
+| Myanmar        |       1 |   5829964 |
+| Kenya          |       1 |   5772121 |
+| Afghanistan    |       1 |   4862586 |
+| Cameroon       |       1 |   4859198 |
+| Israel         |       1 |   4577871 |
+| Taiwan         |       1 |   4570576 |
+#+END:

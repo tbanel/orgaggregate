@@ -1809,13 +1809,23 @@ several places.  OrgAggregate adds even more kinds of input.
      named ‘mybabel’ in a distant org file named ‘/some/dir/file.org’,
      called with parameters.
 
+   • ‘/some/dir/file.csv:(csv params…)’ : a coma-separated-values file
+     in the CSV format, in the file ‘/some/dir/file.csv’; the separator
+     my be TAB, comma, or semicolon, and it is guessed; there is no
+     header; no parameters are recognized yet; in the future it may be
+     possible to specify a header or a separator.
+
+   • ‘/some/dir/file.json:(json params…)’ : a file containing a JSON
+     formatted table, in the file ‘/some/dir/file.csv’; currently, the
+     only accepted format is an array of arrays; there are currently no
+     parameters; in the future it may be possible to specify alternative
+     sub-formats.
+
    • ‘34cbc63a-c664-471e-a620-d654b26ffa31’ : an identifier of an Org
      Mode sub-tree may be specified; the sub-tree is supposed to contain
      a table, which is retrieved; those Org Mode identifiers span all
      known Org Mode files; to add such an identifier, put the cursor on
      the heading of the sub-tree, and type ‘M-x org-id-get-create’.
-
-   • CSV or JSON coming soon…
 
    The Org Mode also provides for table slicing.  All of the previous
 references may be followed by an optional slicing.  Examples:
@@ -2259,6 +2269,9 @@ Top: earliest change.  Bottom: latest change.
    • Virtual pre-computed input columns.
    • Better explanation of the input table reference syntax, including
      distant tables and virtual table produced by Babel blocks.
+   <<<<<<< HEAD ‘=====’
+   • Support for CSV and JSON formatted input tables.
+   >>>>>>> jsoncsv
 
 
 File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
@@ -2316,16 +2329,16 @@ Node: Post-aggregation spreadsheet formulas64154
 Node: Post processing65309
 Node: Virtual input table from Babel67081
 Node: Wide variety of input tables68831
-Node: Virtual input columns70937
-Node: Chaining76444
-Node: Tricks78142
-Node: Sorting (1)78400
-Node: A few lowest or highest values79199
-Node: Span of values80500
-Node: Installation81036
-Node: Authors contributors81678
-Node: Changes83306
-Node: GPL 3 License86999
+Node: Virtual input columns71563
+Node: Chaining77070
+Node: Tricks78768
+Node: Sorting (1)79026
+Node: A few lowest or highest values79825
+Node: Span of values81126
+Node: Installation81662
+Node: Authors contributors82304
+Node: Changes83932
+Node: GPL 3 License87728
 
 End Tag Table
 

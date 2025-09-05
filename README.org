@@ -20,7 +20,8 @@ averages, and so on, out of material from the first table.
 - [[#other-examples][Other examples]]
 - [[#the-cols-parameter][The :cols parameter]]
 - [[#grouping-specifications-in-cols][Grouping specifications in :cols]]
-- [[#hlines-in-the-input-table][hlines in the input table]]
+- [[#the--column][The @# column]]
+- [[#the-hline-column][The hline column]]
 - [[#hlines-in-the-output-table][hlines in the output table]]
 - [[#aggregation-formulas-in-cols][Aggregation formulas in :cols]]
 - [[#where-calc-interpretation-happens][Where Calc interpretation happens?]]
@@ -296,12 +297,66 @@ horizontal lines should be grouped.
 Key columns and =hline= are used to group rows of the source
 table with unique combinations of those columns.
 
-* hlines in the input table
+* The @# column
 :PROPERTIES:
-:CUSTOM_ID: hlines-in-the-input-table
+:CUSTOM_ID: the--column
+:END:
+
+The special column named =@#= gives the row number in the source
+table. The =@#= name is the same as in the Org table spreadsheet
+formulas. It is a virtual column in the sense that it does not appear
+in the input table. Other than that, it is usable as any real column.
+
+Example: we compute the average of the row number for colors =Red= &
+=Blue=. This gives a sense of whether each colors appears rather at the
+beginning or the end of the table.
+
+#+begin_example
+#+BEGIN: aggregate :table "original" :cols "Color vmean(@#)"
+| Color | vmean(@#) |
+|-------+-----------|
+| Red   | 6.2857143 |
+| Blue  | 8.7142857 |
+#+END:
+#+end_example
+
+Example: we recover the input table in reverse order. We use =@#= as a
+key column sorted in decreasing order with =;^N=. Then we make it
+invisible with =,<>= so that it does not appear in the output.
+
+#+begin_example
+#+BEGIN: aggregate :table "original" :cols "Day Color Level Quantity @#;^N;<>"
+| Day       | Color | Level | Quantity |
+|-----------+-------+-------+----------|
+| Friday    | Blue  |    11 |        9 |
+| Friday    | Blue  |     6 |        8 |
+| Friday    | Blue  |     7 |        5 |
+| Thursday  | Red   |    49 |       30 |
+| Thursday  | Red   |    41 |       29 |
+| Thursday  | Red   |    39 |       24 |
+| Wednesday | Blue  |    15 |       15 |
+| Wednesday | Blue  |    12 |       16 |
+| Wednesday | Red   |    27 |       23 |
+| Tuesday   | Blue  |    33 |       18 |
+| Tuesday   | Red   |    45 |       15 |
+| Tuesday   | Red   |    51 |       12 |
+| Monday    | Blue  |    25 |        3 |
+| Monday    | Red   |    30 |       11 |
+#+END:
+#+end_example
+
+* The hline column
+:PROPERTIES:
+:CUSTOM_ID: the-hline-column
 :END:
 
 hline = "horizontal line"
+
+The special column named =hline= gives the block number in the source
+table. A block is the rows separated by horizontal lines in the input
+table. The first block is numbered =0=. It is a virtual column in the
+sense that it does not appear in the input table. Other than that, it
+is usable as any real column.
 
 Here is a source table containing 3 blocks separated by horizontal
 lines:
@@ -2199,6 +2254,56 @@ last values:
 #+END:
 #+end_example
 
+** No aggregation
+Why would one want to use OrgAggregate while not aggregating? To
+benefit from the other features of OrgAggregate:
+- column rearrangement
+- sorting
+- formatting
+- =#+TBLFM= survival
+- row filtering
+- preprocess
+- postprocess
+
+To do so, mention the virtual column =@#= in =:cols= and make it invisible
+with =;<>=. As =@#= is different for each row, the aggregation will
+consider each row as a group. Therefore, no aggregation on another
+column will do anything more.
+
+For example, here we:
+- put =Color= as the first column (it is the second in the input),
+- ignore the =Day= column,
+- sort by =Level=,
+- compute =Quantity/7=,
+- format it with 2 digits after dot.
+
+#+begin_example
+#+BEGIN: aggregate :table "original" :cols "@#;<> Color Level;^n vmax(Quantity/7);'Q10';f2"
+| Color | Level |  Q10 |
+|-------+-------+------|
+| Blue  |     6 | 1.14 |
+| Blue  |     7 | 0.71 |
+| Blue  |    11 | 1.29 |
+| Blue  |    12 | 2.29 |
+| Blue  |    15 | 2.14 |
+| Blue  |    25 | 0.43 |
+| Red   |    27 | 3.29 |
+| Red   |    30 | 1.57 |
+| Blue  |    33 | 2.57 |
+| Red   |    39 | 3.43 |
+| Red   |    41 | 4.14 |
+| Red   |    45 | 2.14 |
+| Red   |    49 | 4.29 |
+| Red   |    51 | 1.71 |
+#+END:
+#+end_example
+
+We used the =vmax()= aggregating function on =Quantity/7=, because
+otherwise we would get a vector with a single value. As there is a
+single value, any aggregating function will do the trick: =vmin()=,
+=head()=, =rtail()=, =vsum()=, =vprod()=, =vmean()=, =vgmean()=, =vhmean()=, =vspan()=,
+=vmedian()=.
+
 * Installation
 :PROPERTIES:
 :CUSTOM_ID: installation
@@ -2332,6 +2437,8 @@ Top: earliest change. Bottom: latest change.
 - Better explanation of the input table reference syntax, including
   distant tables and virtual table produced by Babel blocks.
 - Support for CSV and JSON formatted input tables.
+- New =@#= virtual column giving the number of each row, pretty much
+  like the Org table spreadsheet =@#= virtual column.
 
 * GPL 3 License
 :PROPERTIES:

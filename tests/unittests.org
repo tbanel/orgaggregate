@@ -447,6 +447,35 @@ The =hline= column groups data
 | b |     3 |        2 |
 #+END
 
+* Test @# row numbering
+
+are a's & b's near the beginning or the end of the input table?
+#+BEGIN: aggregate :table "hlinetable" :cols "q vmean(@#)"
+| q |     vmean(@#) |
+|---+---------------|
+| b | 9.16666666667 |
+| a | 7.57142857143 |
+#+END:
+
+p & q columns in reverse order
+#+BEGIN: aggregate :table "hlinetable" :cols "p q hline @#;^N2;<>"
+| p | q | hline |
+|---+---+-------|
+| 5 | b |     3 |
+| 4 | b |     3 |
+| 5 | a |     3 |
+| 4 | a |     2 |
+| 3 | b |     2 |
+| 2 | b |     2 |
+| 1 | a |     1 |
+| 3 | a |     1 |
+| 3 | a |     0 |
+| 2 | a |     0 |
+| 1 | a |     0 |
+| 3 | b |     0 |
+| 1 | b |     0 |
+#+END:
+
 * Test dates [YYYY-MM-DD day. HH:MM] style
 Some (limited) handling of dates is available.
 
@@ -977,6 +1006,15 @@ Missing cells are handled as though they were empty
 | Thursday  |       3 |            83 |
 | Friday    |       2 |            14 |
 #+END:
+
+#+BEGIN: aggregate :table "malformed" :cols "Color vlist(l10)" :precompute "Level*10;'l10'"
+| Color | vlist(l10)                      |
+|-------+---------------------------------|
+| Red   | 300, 450, 270, 390, 410, 490    |
+| Blue  | 250, 330, 120, 150, 70, 60, 110 |
+|       |                                 |
+#+END:
+
 * Test vlist($) vs. ($)
 
 #+name: suitableforlist

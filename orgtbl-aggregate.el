@@ -512,8 +512,10 @@ otherwise nil is returned."
   (orgtbl-aggregate--pop-leading-hline table)
   (cond ((string= colname "")
 	 (and err (user-error "Empty column name")))
-	((string= colname "hline")
+	((string= colname "@#")
 	 0)
+	((string= colname "hline")
+	 (1+ (length (car table))))
 	((string-match (rx bos "$" (group (+ (any "0-9"))) eos) colname)
 	 (let ((n (string-to-number (match-string 1 colname))))
 	   (if (<= n (length (car table)))
@@ -826,7 +828,7 @@ referenced by formula are added."
     (or
      (seq ?'  (* (not (any ?' ))) ?')
      (seq ?\" (* (not (any ?\"))) ?\")
-     (seq (+ (any word "_$."))))
+     (seq (+ (any word "_$.#@"))))
     (? (* space) "("))
    (lambda (var)
      (save-match-data ;; save because we are called within a replace-regexp
@@ -941,7 +943,7 @@ into the column number."
 		(group
 		 (or (seq "'"  (* (not (any "'" ))) "'" )
 		     (seq "\"" (* (not (any "\""))) "\"")
-		     (+ (any word "_$."))))
+		     (+ (any word "_$.#@"))))
 		eos)
 	       formula)
 	      (orgtbl-aggregate--colname-to-int formula table t))))
@@ -1296,21 +1298,31 @@ which do not pass the filter found in PARAMS entry :cond."
     (orgtbl-aggregate--prepare-sorting aggcols)
 
     ; split table into groups of rows
-    (cl-loop with b = 0
-	     with bs = "0"
-	     for row in
-	     (or (cdr (memq 'hline table)) ;; skip header if any
-		 table)
-	     do
-	     (cond ((eq row 'hline)
-		    (setq b (1+ b)
-			  bs (number-to-string b)))
-		   ((listp row)
-		    (orgtbl-aggregate--table-add-group
-		     groups
-		     hgroups
-		     (cons bs row)
-		     aggcond))))
+    (cl-loop
+     with nbcols
+     = (cl-loop
+        for row in table
+        maximize (if (listp row) (length row) 0))
+     with b = 0
+     with bs = "0"
+     for rownum from 1
+     for row in
+     (or (cdr (memq 'hline table)) ;; skip header if any
+	 table)
+     do
+     (cond ((eq row 'hline)
+	    (setq b (1+ b)
+		  bs (number-to-string b)))
+	   ((listp row)
+            ;; fix malformed table
+            (if (< (length row) nbcols)
+                (setq row (nconc row (make-list (- nbcols (length row)) ""))))
+	    (orgtbl-aggregate--table-add-group
+	     groups
+	     hgroups
+             ;; add rownum at beginning and hline at end
+             (cons (number-to-string rownum) (nconc row (list bs)))
+	     aggcond))))
 
     (let ((result ;; pre-allocate all resulting rows
 	   (cl-loop for _x in (orgtbl-aggregate--list-get groups)
@@ -1319,7 +1331,8 @@ which do not pass the filter found in PARAMS entry :cond."
 	   (cl-loop for _x in (orgtbl-aggregate--list-get groups)
 		    collect
                     (make-vector
-                     (1+ (length (car table))) ;; 1+ for hline at 0
+                     ;; + 2 for rownum at 0 & hline at the end
+                     (+ 2 (length (car table)))
                      nil))))
 
       ;; inactivating those two functions boosts performance

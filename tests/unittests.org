@@ -1977,6 +1977,41 @@ the source CSV file is TAB-separated, which is guessed
 | Taiwan         |       1 |   4570576 |
 #+END:
 
+A CVS table oddly formatted, with a header:
+
+#+BEGIN: aggregate :table "hline.csv:(csv header)" :cols "cc vsum(bb) vmean(aa)"
+| cc    | vsum(bb) | vmean(aa) |
+|-------+----------+-----------|
+| apple |      831 |      62.2 |
+| grape |      -22 |     13.75 |
+#+END:
+
+Here we add an external header, even though there is already a header
+in the CSV file, and see what happens:
+
+#+BEGIN: aggregate :table "hline.csv:(csv colnames (level quantity fruit))" :cols "fruit vsum(quantity)"
+| fruit | vsum(quantity) |
+|-------+----------------|
+| cc    |             bb |
+| apple |            831 |
+| grape |            -22 |
+#+END:
+
+Check if horizontal separators are recognized:
+
+#+BEGIN: aggregate :table "hline.csv:(csv header)" :cols "hline cc vsum(bb)" :hline 1
+| hline | cc    | vsum(bb) |
+|-------+-------+----------|
+|     0 | apple |      654 |
+|     0 | grape |      -78 |
+|-------+-------+----------|
+|     1 | grape |       45 |
+|     1 | apple |      192 |
+|-------+-------+----------|
+|     2 | apple |      -15 |
+|     2 | grape |       11 |
+#+END:
+
 * JSON table
 
 same as in CSV

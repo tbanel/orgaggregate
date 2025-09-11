@@ -1846,51 +1846,62 @@ several places.  OrgAggregate adds even more kinds of input.
 
    The parameter after ‘:table’ may be:
 
-   • ‘mytable’ : an ordinary table in the same buffer, named ‘mytable’.
+   • ‘mytable’: an ordinary Org Mode table in the same buffer, named
+     ‘mytable’.
 
-   • ‘/some/dir/file.org:mytable’ : an ordinary table named ‘mytable’,
-     in a distant org file named ‘/some/dir/file.org’.
+   • ‘/some/dir/file.org:mytable’: an ordinary Org Mode table named
+     ‘mytable’, in a distant Org file named ‘/some/dir/file.org’.
 
-   • ‘mybabel’ : a Babel block named ‘mybabel’ in the current buffer,
-     generating a table as its output, written in any language.
+   • ‘mybabel’: an Org Mode Babel block named ‘mybabel’ in the current
+     buffer, generating a table as its output, written in any language.
 
-   • ‘mybabel(param1=123,param2=456)’ : passing parameters to a Babel
-     block named ‘mybabel’ in the current buffer, generating a table as
-     its output, written in any language.
+   • ‘mybabel(param1=123,param2=456)’: passing parameters to an Org Mode
+     Babel block named ‘mybabel’ in the current buffer, generating a
+     table as its output, written in any language.
 
-   • ‘/some/dir/file.org:mybabel(param1=123,param2=456)’ : a Babel block
-     named ‘mybabel’ in a distant org file named ‘/some/dir/file.org’,
-     called with parameters.
+   • ‘/some/dir/file.org:mybabel(param1=123,param2=456)’: an Org Mode
+     Babel block named ‘mybabel’ in a distant org file named
+     ‘/some/dir/file.org’, called with parameters.
 
-   • ‘/some/dir/file.csv:(csv params…)’ : a coma-separated-values file
-     in the CSV format, in the file ‘/some/dir/file.csv’; the separator
-     my be TAB, comma, or semicolon, and it is guessed; there is no
-     header; no parameters are recognized yet; in the future it may be
-     possible to specify a header or a separator.
+   • ‘/some/dir/file.csv:(csv params…)’: a comma-separated-values file
+     in the CSV format, in the file ‘/some/dir/file.csv’.  The
+     separators may be TAB, comma, or semicolon, they are guessed and
+     different separators may be mixed.  Any empty row in the CSV file
+     is interpreted as an horizontal separator (‘hline’ in Org table
+     parlance).
 
-   • ‘/some/dir/file.json:(json params…)’ : a file containing a JSON
-     formatted table, in the file ‘/some/dir/file.csv’; currently, the
-     only accepted format is an array of arrays; there are currently no
-     parameters; in the future it may be possible to specify alternative
-     sub-formats.
+     Parameters may be:
+        • ‘header’: the first row in the CSV file is interpreted as a
+          header containing the column names.
+        • ‘colnames (column1 column2 column3 …)’: the column names are
+          given explicitly, in case the CSV file contains only data, no
+          header.
+     In any case, the columns may be references as ‘$1, $2, $3, …’ as
+     usual.
 
-   • ‘34cbc63a-c664-471e-a620-d654b26ffa31’ : an identifier of an Org
-     Mode sub-tree may be specified; the sub-tree is supposed to contain
-     a table, which is retrieved; those Org Mode identifiers span all
-     known Org Mode files; to add such an identifier, put the cursor on
-     the heading of the sub-tree, and type ‘M-x org-id-get-create’.
+   • ‘/some/dir/file.json:(json params…)’: a file containing a JSON
+     formatted table, in the file ‘/some/dir/file.csv’.  Currently, the
+     only accepted format is an array of arrays.  There are currently no
+     parameters.  In the future it may be possible to specify
+     alternative sub-formats.
+
+   • ‘34cbc63a-c664-471e-a620-d654b26ffa31’: an identifier of an Org
+     Mode sub-tree.  The sub-tree is supposed to contain a table, which
+     is retrieved.  Those Org Mode identifiers span all known Org Mode
+     files.  To add such an identifier, put the cursor on the heading of
+     the sub-tree, and type ‘M-x org-id-get-create’.
 
    The Org Mode also provides for table slicing.  All of the previous
 references may be followed by an optional slicing.  Examples:
 
-   • ‘mytable[0:5]’ : retain only the first 6 rows of the input table;
-     if the table has a header, then it counts as 2 rows (the header and
+   • ‘mytable[0:5]’: retain only the first 6 rows of the input table; if
+     the table has a header, then it counts as 2 rows (the header and
      the separation line); in this example, it would retain rows 0 and 1
      for the header, and rows 2,3,4,5 for the content.
 
-   • ‘mytable[,0:1]’ : retain only the first 2 columns.
+   • ‘mytable[,0:1]’: retain only the first 2 columns.
 
-   • ‘mytable[0:5,0:1]’ : retain only the first 6 rows and the first 2
+   • ‘mytable[0:5,0:1]’: retain only the first 6 rows and the first 2
      columns.
 
 
@@ -2379,6 +2390,8 @@ Top: earliest change.  Bottom: latest change.
    • Support for CSV and JSON formatted input tables.
    • New ‘@#’ virtual column giving the number of each row, pretty much
      like the Org table spreadsheet ‘@#’ virtual column.
+   • Header and column names can be specified for CSV input tables, as
+     well as horizontal separators (‘hline’).
 
 
 File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
@@ -2437,17 +2450,17 @@ Node: Post-aggregation spreadsheet formulas66313
 Node: Post processing67468
 Node: Virtual input table from Babel69240
 Node: Wide variety of input tables70990
-Node: Virtual input columns73722
-Node: Chaining79229
-Node: Tricks80927
-Node: Sorting (1)81204
-Node: A few lowest or highest values82003
-Node: Span of values83304
-Node: No aggregation83863
-Node: Installation85708
-Node: Authors contributors86350
-Node: Changes87978
-Node: GPL 3 License91866
+Node: Virtual input columns74190
+Node: Chaining79697
+Node: Tricks81395
+Node: Sorting (1)81672
+Node: A few lowest or highest values82471
+Node: Span of values83772
+Node: No aggregation84331
+Node: Installation86176
+Node: Authors contributors86818
+Node: Changes88446
+Node: GPL 3 License92457
 
 End Tag Table
 

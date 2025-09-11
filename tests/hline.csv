@@ -1,0 +1,12 @@
+aa;bb;cc
+122;654;apple
+34;-78;grape
+
+12;+45;   "grape"
+24;+35; "apple"
+33;+66; "apple"
+10;+91 ; "apple"
+
+122,-15, "apple"
+8   ,  7,  "grape"
+  1, 4  ,  "grape"

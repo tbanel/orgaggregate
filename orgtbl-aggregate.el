@@ -195,14 +195,18 @@ The table is taken from the parameter TXT, or from the buffer at point."
 ;; (which is now integrated into the newest versions of Emacs). It is
 ;; probably as fast as can be in Emacs-Lisp byte-code.
 
-(defun orgtbl-aggregate--csv-to-lisp ()
+(defun orgtbl-aggregate--csv-to-lisp (header colnames)
   "Convert current buffer in CSV to Lisp.
 It recognize cells protected by double quotes, and cells not protected.
 When a cell is not protected, blanks are kept.
 When a cell is protected, blanks before the first double quote are ignored.
 Double double quotes are recognized within a cell double-quoted.
 The last line may or may not end in a newline.
-Separators are coma, semicolon, or TAB. They can be mixed."
+Separators are comma, semicolon, or TAB. They can be mixed.
+If a row is empty, it is considered as a separator, and translated
+to `hline', the Org table horizontal separator.
+HEADER non nil means that the first row must be interpreted as a header.
+COLNAMES, if not nil, is a list of column names."
   (goto-char (point-min))
   (let (table)
     (while (not (eobp))
@@ -234,9 +238,16 @@ Separators are coma, semicolon, or TAB. They can be mixed."
                (buffer-substring-no-properties p (point))
                row))
             (skip-chars-forward ",;\t" (1+ (point)))))
-        (push (nreverse row) table)
+        (push
+         (if row (nreverse row) 'hline)
+         table)
         (or (eobp) (forward-char 1))))
-    (nreverse table)))
+    (setq table (nreverse table))
+    (if header
+        (setcdr table (cons 'hline (cdr table))))
+    (if colnames
+        (setq table (cons colnames (cons 'hline table))))
+    table))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Here is a bunch of useful utilities,
@@ -280,13 +291,25 @@ The table cells get stringified."
         do (setcar cell (format "%s" (car cell)))))
       table)))
 
-(defun orgtbl-aggregate--table-from-csv (file _params)
+(defun orgtbl-aggregate--table-from-csv (file params)
   "Parse a CSV formatted table located in FILE.
 The cell-separator is currently guessed.
 Currently, there is no header."
-  (with-temp-buffer
-    (insert-file-contents file)
-    (orgtbl-aggregate--csv-to-lisp)))
+  (let ((header) (colnames))
+    (cl-loop
+     for p on (cdr (read params))
+     do
+     (cond
+      ((eq (car p) 'header)
+       (setq header t))
+      ((eq (car p) 'colnames)
+       (setq p (cdr p))
+       (setq colnames (car p)))
+      (t
+       (message "parameter %S not recognized" (car p)))))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (orgtbl-aggregate--csv-to-lisp header colnames))))
 
 (defun orgtbl-aggregate--table-from-json (file _params)
   "Parse a JSON formatted table located in FILE.

@@ -83,7 +83,7 @@ No need to name it.
 #+ORGTBL: SEND aggtable6 orgtbl-to-aggregated-table :cols "q prod(z) sdev(z) pvar(z) psdev(z)"
 #+ORGTBL: SEND aggtable7 orgtbl-to-aggregated-table :cols "q prod(z) cov(x,y) corr(z,z)"
 #+ORGTBL: SEND aggtable8 orgtbl-to-aggregated-table :cols "hline min(d) max(d) mean(d)"
-#+ORGTBL: SEND aggtable9 orgtbl-to-aggregated-table :cols "sum(x) q sum(y) mean(z) x*x min(z) max(z)" :cond (equal hline "2")
+#+ORGTBL: SEND aggtable9 orgtbl-to-aggregated-table :cols "sum(x) q sum(y) mean(z) x*x min(z) max(z)" :cond (equal hline 2)
 #+ORGTBL: SEND aggtablea orgtbl-to-aggregated-table :cols "sum(x) q sum(y) mean(z) x*x min(z) max(z)" :cond (equal q "b")
 | p | q |   x |    y | z | f | d                      |
 |---+---+-----+------+---+---+------------------------|
@@ -272,7 +272,7 @@ Note the additional =$8= column automatically computed after the aggregation
 ** Source table
 Only the second group (5 rows) is considered with the test =hline=1=.
 
-#+ORGTBL: SEND aggtable15 orgtbl-to-aggregated-table :cond (equal hline "1") :cols "count() q mean(x) mean(y) mean(z) hline"
+#+ORGTBL: SEND aggtable15 orgtbl-to-aggregated-table :cond (equal hline 1) :cols "count() q mean(x) mean(y) mean(z) hline"
 | p | q |   x |    y | z |
 |---+---+-----+------+---|
 | 1 | b |  12 |    8 | 9 |

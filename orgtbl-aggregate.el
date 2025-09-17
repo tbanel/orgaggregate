@@ -274,22 +274,15 @@ COLNAMES, if not nil, is a list of column names."
 NAME-OR-ID is the usual Org convention for pointing to a distant reference.
 Examples: babel, file:babel, file:babel[1:3,2:5], file:babel(p1=…,p2=…)
 This function could work also for a table,
-but this has already been short-circuited.
-The table cells get stringified."
+but this has already been short-circuited."
   ;; A user error is generated in case no Babel block is found
   (let ((table (org-babel-ref-resolve name-or-id)))
-    (when (and table (consp table)
-               (or (eq (car table) 'hline)
-                   (consp (car table))))
-      (cl-loop
-       for row in table
-       if (listp row)
-       do
-       (cl-loop
-        for cell on row
-        unless (stringp (car cell))
-        do (setcar cell (format "%s" (car cell)))))
-      table)))
+    (and
+     table
+     (consp table)
+     (or (eq (car table) 'hline)
+         (consp (car table)))
+     table)))
 
 (defun orgtbl-aggregate--table-from-csv (file params)
   "Parse a CSV formatted table located in FILE.
@@ -337,31 +330,33 @@ Numbers do not need to be quoted.
   "Parse an Org table named NAME in a ditant Org file named FILE.
 FILE is a filename with possible relative or absolute path.
 If FILE is nil, look in the current buffer."
-  (if file
-      (find-file-noselect file))
-  (save-excursion
-    (goto-char (point-min))
-    (when (let ((case-fold-search t))
-	    (re-search-forward
-	     ;; This concat is automatically done by new versions of rx
-	     ;; using "literal". This appeared on june 26, 2019
-	     ;; For older versions of Emacs, we fallback to concat
-	     (concat
-	      (rx bol
-		  (* (any " \t")) "#+" (? "tbl") "name:"
-		  (* (any " \t")))
-	      (regexp-quote name)
-	      (rx (* (any " \t"))
-		  eol))
-	     nil t))
-      (re-search-forward
-       (rx
-        point
-        (0+ (0+ blank) (? "#" (0+ any)) "\n")
-        (0+ blank)
-        "|")
-       nil t)
-      (orgtbl-aggregate--table-to-lisp))))
+  (with-current-buffer
+      (if file
+          (find-file-noselect file)
+        (current-buffer))
+    (save-excursion
+      (goto-char (point-min))
+      (when (let ((case-fold-search t))
+	      (re-search-forward
+	       ;; This concat is automatically done by new versions of rx
+	       ;; using "literal". This appeared on june 26, 2019
+	       ;; For older versions of Emacs, we fallback to concat
+	       (concat
+	        (rx bol
+		    (* (any " \t")) "#+" (? "tbl") "name:"
+		    (* (any " \t")))
+	        (regexp-quote name)
+	        (rx (* (any " \t"))
+		    eol))
+	       nil t))
+        (re-search-forward
+         (rx
+          point
+          (0+ (0+ blank) (? "#" (0+ any)) "\n")
+          (0+ blank)
+          "|")
+         nil t)
+        (orgtbl-aggregate--table-to-lisp)))))
 
 (defun orgtbl-aggregate--table-from-id (id)
   "Parse a table following a header in a distant Org file.
@@ -473,12 +468,14 @@ A cookie is an alignment instruction like:
            for line on table
            if (and hline
                    (cl-loop for cell in (car line)
-                            thereis (string-match
-                                     (rx bos "<"
-                                         (? (any "lcr"))
+                            thereis
+                            (and (stringp cell)
+                                 (string-match
+                                  (rx bos "<"
+                                      (? (any "lcr"))
                                          (* (any "0-9"))
                                          ">" eos)
-                                     cell)))
+                                  cell))))
            do (setcar line t)
            if (eq (car line) 'hline)
            do (setq hline t))
@@ -1042,12 +1039,12 @@ The list contains sorting specifications as follows:
 		       nil
 		     (string-to-number (match-string 2 sorting)))))
 	      (pcase (match-string 1 sorting)
-		("a" (record 'orgtbl-aggregate--sorting strength colnum nil #'identity              #'string-lessp))
-		("A" (record 'orgtbl-aggregate--sorting strength colnum t   #'identity              #'string-lessp))
-		("n" (record 'orgtbl-aggregate--sorting strength colnum nil #'string-to-number                 #'<))
-		("N" (record 'orgtbl-aggregate--sorting strength colnum t   #'string-to-number                 #'<))
-		("t" (record 'orgtbl-aggregate--sorting strength colnum nil #'orgtbl-aggregate--string-to-time #'<))
-		("T" (record 'orgtbl-aggregate--sorting strength colnum t   #'orgtbl-aggregate--string-to-time #'<))
+		("a" (record 'orgtbl-aggregate--sorting strength colnum nil #'orgtbl-aggregate--cell-to-string #'string-lessp))
+		("A" (record 'orgtbl-aggregate--sorting strength colnum t   #'orgtbl-aggregate--cell-to-string #'string-lessp))
+		("n" (record 'orgtbl-aggregate--sorting strength colnum nil #'orgtbl-aggregate--cell-to-number #'<))
+		("N" (record 'orgtbl-aggregate--sorting strength colnum t   #'orgtbl-aggregate--cell-to-number #'<))
+		("t" (record 'orgtbl-aggregate--sorting strength colnum nil #'orgtbl-aggregate--cell-to-time   #'<))
+		("T" (record 'orgtbl-aggregate--sorting strength colnum t   #'orgtbl-aggregate--cell-to-time   #'<))
 		((or "f" "F") (user-error "f/F sorting specification not (yet) implemented"))
 		(_ (user-error "Bad sorting specification ^%s" sorting))))))
 
@@ -1142,7 +1139,7 @@ a hash-table, whereas GROUPS is a Lisp list."
 (defun orgtbl-aggregate--hash-test-equal (row1 row2)
   "Are ROW1 & ROW2 equal regarding the key columns?"
   (cl-loop for idx in orgtbl-aggregate--var-keycols
-	   always (string= (nth idx row1) (nth idx row2))))
+	   always (equal (nth idx row1) (nth idx row2))))
 
 ;; Use standard sxhash-equal to hash strings
 ;; Unfortunately sxhash-equal is weak.
@@ -1326,26 +1323,25 @@ which do not pass the filter found in PARAMS entry :cond."
      = (cl-loop
         for row in table
         maximize (if (listp row) (length row) 0))
-     with b = 0
-     with bs = "0"
+     with hline = 0
      for rownum from 1
      for row in
      (or (cdr (memq 'hline table)) ;; skip header if any
 	 table)
      do
-     (cond ((eq row 'hline)
-	    (setq b (1+ b)
-		  bs (number-to-string b)))
-	   ((listp row)
-            ;; fix malformed table
-            (if (< (length row) nbcols)
-                (setq row (nconc row (make-list (- nbcols (length row)) ""))))
-	    (orgtbl-aggregate--table-add-group
-	     groups
-	     hgroups
-             ;; add rownum at beginning and hline at end
-             (cons (number-to-string rownum) (nconc row (list bs)))
-	     aggcond))))
+     (cond
+      ((eq row 'hline)
+       (setq hline (1+ hline)))
+      ((listp row)
+       ;; fix too short rows
+       (if (< (length row) nbcols)
+           (setq row (nconc row (make-list (- nbcols (length row)) ""))))
+       (orgtbl-aggregate--table-add-group
+	groups
+	hgroups
+        ;; add rownum at beginning and hline at end
+        (cons rownum (nconc row (list hline)))
+	aggcond))))
 
     (let ((result ;; pre-allocate all resulting rows
 	   (cl-loop for _x in (orgtbl-aggregate--list-get groups)
@@ -1454,18 +1450,37 @@ Return nil if ROWA already comes before ROWB."
 	   thereis (funcall compare cella cellb)
 	   until   (funcall compare cellb cella)))
 
-(defun orgtbl-aggregate--string-to-time (f)
-  "Interprete the string F into a duration in minutes.
+(defun orgtbl-aggregate--cell-to-time (cell)
+  "Interprete the string CELL into a duration in minutes.
 The code was borrowed from org-table.el."
-  (cond ((string-match org-ts-regexp-both f)
-	 (float-time
-	  (org-time-string-to-time (match-string 0 f))))
-	((org-duration-p f) (org-duration-to-minutes f))
-	((string-match
-          (rx bow (+ (any "0-9")) ":" (= 2 (any "0-9")) eow)
-          f)
-	 (org-duration-to-minutes (match-string 0 f)))
-	(t 0)))
+  (cond
+   ((numberp cell) cell)
+   ((not (stringp cell))
+    (error "cell %S is neither a string nor a number to be converted to time"
+           cell))
+   ((string-match org-ts-regexp-both cell)
+    (float-time
+     (org-time-string-to-time (match-string 0 cell))))
+   ((org-duration-p cell) (org-duration-to-minutes cell))
+   ((string-match
+     (rx bow (+ (any "0-9")) ":" (= 2 (any "0-9")) eow)
+     cell)
+    (org-duration-to-minutes (match-string 0 cell)))
+   (t 0)))
+
+(defun orgtbl-aggregate--cell-to-number (cell)
+  "Convert CELL (a cell in the input table) to a number if it is not already."
+  (cond
+   ((numberp cell) cell)
+   ((stringp cell) (string-to-number cell))
+   (t (error "cell %S is not a number neither a string" cell))))
+
+(defun orgtbl-aggregate--cell-to-string (cell)
+  "Convert CELL (a cell in the input table) to a string if it is not already."
+  (cond
+   ((stringp cell) cell)
+   ((numberp cell) (number-to-string cell))
+   (t (error "cell %S is not a number neither a string" cell))))
 
 (defun orgtbl-aggregate--add-hlines (result hline)
   "Add hlines to RESULT between different blocks of rows.
@@ -1482,7 +1497,7 @@ hlines are added in-place"
 	     (or (null oldrow)
 		 (cl-loop for c in colnums
 			  always
-                          (string=
+                          (equal
 			   (nth c (orgtbl-aggregate--list-get (car row)))
 			   (nth c (orgtbl-aggregate--list-get (car oldrow))))))
 	     do (setcdr oldrow (cons 'hline (cdr oldrow)))
@@ -1636,12 +1651,12 @@ and a cell from any row in the group is returned."
 	 (* (any " \t")) ")" (* (any " \t")) eos)
      (orgtbl-aggregate--outcol-formula$ coldesc))
     (mapconcat
-     #'identity
+     #'identity ;; there is fast path when `identity' is requested
      (cl-loop with i =
 	      (string-to-number
                (match-string 1 (orgtbl-aggregate--outcol-formula$ coldesc)))
 	      for row in (orgtbl-aggregate--list-get group)
-	      collect (nth i row))
+	      collect (orgtbl-aggregate--cell-to-string (nth i row)))
      ", "))
    (t
     ;; all other cases: handle them to Calc

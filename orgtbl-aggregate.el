@@ -250,6 +250,41 @@ COLNAMES, if not nil, is a list of column names."
     table))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; A few rx abbreviations
+;; each time a bit of a regexp is used twice or more,
+;; it makes sense to define an abbrev
+
+(eval-when-compile ;; not used at runtime
+
+  ;; search for table name, such as:
+  ;; #+tablename: mytable
+  (rx-define tblname
+    (seq bol (* blank) "#+" (? "tbl") "name:" (* blank)))
+
+  ;; skip lines beginning with # in order to reach the start of table
+  (rx-define skipmetatable (firstchars)
+    (seq point
+         (0+ (0+ blank) (? firstchars (0+ any)) "\n")
+         (0+ blank) "|"))
+
+  ;; just to get ride of a few parenthesis
+  (rx-define notany (&rest list)
+    (not (any list)))
+
+  ;; match quoted column names, like
+  ;; 'col a' "col b" colc
+  (rx-define quotedcolname (&rest bare)
+    (or
+     (seq ?'  (* (notany ?' )) ?' )
+     (seq ?\" (* (notany ?\")) ?\")
+     bare))
+
+  ;; match a column name not protected by quotes
+  (rx-define nakedname
+    (+ (any "$._#@" word)))
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Here is a bunch of useful utilities,
 ;; generic enough to be detached from the orgtbl-aggregate package.
 ;; For the time being, they are here.
@@ -263,9 +298,7 @@ COLNAMES, if not nil, is a list of column names."
       (cl-loop
        while
        (re-search-forward
-        (rx bol
-	    (* (any " \t")) "#+" (? "tbl") "name:"
-	    (* (any " \t")) (group (* not-newline)))
+        (rx tblname (group (*? any)) (* blank) eol)
         nil t)
        collect (match-string-no-properties 1)))))
 
@@ -338,24 +371,9 @@ If FILE is nil, look in the current buffer."
       (goto-char (point-min))
       (when (let ((case-fold-search t))
 	      (re-search-forward
-	       ;; This concat is automatically done by new versions of rx
-	       ;; using "literal". This appeared on june 26, 2019
-	       ;; For older versions of Emacs, we fallback to concat
-	       (concat
-	        (rx bol
-		    (* (any " \t")) "#+" (? "tbl") "name:"
-		    (* (any " \t")))
-	        (regexp-quote name)
-	        (rx (* (any " \t"))
-		    eol))
+	       (rx tblname (literal name) (* blank) eol)
 	       nil t))
-        (re-search-forward
-         (rx
-          point
-          (0+ (0+ blank) (? "#" (0+ any)) "\n")
-          (0+ blank)
-          "|")
-         nil t)
+        (re-search-forward (rx (skipmetatable "#")) nil t)
         (orgtbl-aggregate--table-to-lisp)))))
 
 (defun orgtbl-aggregate--table-from-id (id)
@@ -367,14 +385,9 @@ The header have an ID property equal to ID in a PROPERTY drawer."
         (save-excursion
           (goto-char (marker-position id-loc))
           (move-marker id-loc nil)
-          (and (re-search-forward
-                (rx
-                 point
-                 (0+ (0+ blank) (? (any "*#:") (0+ any)) "\n")
-                 (0+ blank) "|")
-                nil t)
-	       (not (match-beginning 1))
-               (orgtbl-aggregate--table-to-lisp)))))))
+          (and
+           (re-search-forward (rx (skipmetatable (any "*#:"))) nil t)
+           (orgtbl-aggregate--table-to-lisp)))))))
 
 (defun orgtbl-aggregate-table-from-any-ref (name-or-id)
   "Find a table referenced by NAME-OR-ID.
@@ -394,13 +407,13 @@ An horizontal line is translated as the special symbol `hline'."
        (rx
         bos
         (* space)
-        (opt (group-n 1 (* (not (any ":")))) ":")
+        (? (group-n 1 (* (notany ":"))) ":")
         (* space)
-        (group-n 2 (* (not (any "[]():"))))
+        (   group-n 2 (* (notany "[]():")))
         (* space)
-        (opt (group-n 3 "(" (* any) ")"))
+        (? (group-n 3 "(" (* any) ")"))
         (* space)
-        (opt (group-n 4 "[" (* any) "]"))
+        (? (group-n 4 "[" (* any) "]"))
         (* space)
         eos)
        name-or-id)
@@ -464,21 +477,20 @@ A cookie is an alignment instruction like:
   <r>   right align
   <15>  make this column 15 characters wide."
   (orgtbl-aggregate--pop-leading-hline table)
-  (cl-loop with hline = nil
-           for line on table
-           if (and hline
-                   (cl-loop for cell in (car line)
-                            thereis
-                            (and (stringp cell)
-                                 (string-match
-                                  (rx bos "<"
-                                      (? (any "lcr"))
-                                         (* (any "0-9"))
-                                         ">" eos)
-                                  cell))))
-           do (setcar line t)
-           if (eq (car line) 'hline)
-           do (setq hline t))
+  (cl-loop
+   with hline = nil
+   for line on table
+   if (and hline
+           (cl-loop
+            for cell in (car line)
+            thereis
+            (and (stringp cell)
+                 (string-match
+                  (rx bos "<" (? (any "lcr")) (* digit) ">" eos)
+                  cell))))
+   do (setcar line t)
+   if (eq (car line) 'hline)
+   do (setq hline t))
   (delq t table))
 
 (defun orgtbl-aggregate--split-string-with-quotes (string)
@@ -492,13 +504,9 @@ and the other way around."
     (save-match-data
       (while (and (< start l)
 		  (string-match
-		   (rx
-		    (* (any " \f\t\n\r\v"))
-		    (group
-		     (+ (or
-			 (seq ?'  (* (not (any ?')))  ?' )
-			 (seq ?\" (* (not (any ?\"))) ?\")
-			 (not (any " '\""))))))
+                   (rx
+                    (* blank)
+                    (group (+ (quotedcolname (notany " '\"")))))
 		   string start))
 	(orgtbl-aggregate--list-append result (match-string 1 string))
 	(setq start (match-end 1))))
@@ -523,8 +531,8 @@ otherwise nil is returned."
        (rx
 	bos
 	(or
-	 (seq ?'  (group-n 1 (* (not (any ?' )))) ?' )
-	 (seq ?\" (group-n 1 (* (not (any ?\")))) ?\"))
+	 (seq ?'  (group-n 1 (* (notany ?' ))) ?' )
+	 (seq ?\" (group-n 1 (* (notany ?\"))) ?\"))
 	eos)
        colname)
       (setq colname (match-string 1 colname)))
@@ -536,7 +544,7 @@ otherwise nil is returned."
 	 0)
 	((string= colname "hline")
 	 (1+ (length (car table))))
-	((string-match (rx bos "$" (group (+ (any "0-9"))) eos) colname)
+	((string-match (rx bos "$" (group (+ digit)) eos) colname)
 	 (let ((n (string-to-number (match-string 1 colname))))
 	   (if (<= n (length (car table)))
 	       n
@@ -727,7 +735,7 @@ Actual column names which are not fully alphanumeric are quoted."
 	     (cl-loop for x in (car table)
 		      collect
 		      (if (string-match
-                           (rx bos (+ (in "$._" word)) eos)
+                           (rx bos nakedname eos)
                            x)
 			  x
 			(format "\"%s\"" x)))
@@ -844,16 +852,11 @@ the v names being understandable by Calc.
 INVOLVED is a list to which column numbers of columns
 referenced by formula are added."
   (replace-regexp-in-string
-   (rx
-    (or
-     (seq ?'  (* (not (any ?' ))) ?')
-     (seq ?\" (* (not (any ?\"))) ?\")
-     (seq (+ (any word "_$.#@"))))
-    (? (* space) "("))
+   (rx (quotedcolname nakedname) (? (* space) "("))
    (lambda (var)
      (save-match-data ;; save because we are called within a replace-regexp
        (if (string-match
-            (rx (group (+ (not (any "(")))) (* space) "(")
+            (rx (group (+ (notany "("))) (* space) "(")
             var)
 	   (if (member
 		(match-string 1 var)
@@ -882,7 +885,7 @@ referenced by formula are added."
 (defun orgtbl-aggregate--frux-to-$ (frux)
   "Replace all occurences of Frux(NN) by $NN in FRUX"
   (replace-regexp-in-string
-   (rx "Frux(" (group (+ (any "0-9"))) ")")
+   (rx "Frux(" (group (+ digit)) ")")
    (lambda (var)
      (format "$%s" (match-string 1 var))
      )
@@ -918,21 +921,17 @@ TABLE is used to convert a column name
 into the column number."
   ;; parse user specification
   (unless (string-match
-	   (rx
-	    bos
-	    (group-n 1
-		     (* (or
-			 (seq ?'  (* (not (any ?')))  ?' )
-			 (seq ?\" (* (not (any ?\"))) ?\")
-			 (not (any ";'\"")))))
-	    (*
-	     ";"
-	     (or
-	      (seq     (group-n 2 (* (not (any "^;'\"<")))))
-	      (seq "^" (group-n 3 (* (not (any "^;'\"<")))))
-	      (seq "<" (group-n 4 (* (not (any "^;'\">")))) ">")
-	      (seq "'" (group-n 5 (* (not (any "'")))) "'")))
-	    eos)
+           (rx
+            bos
+            (group-n 1 (+ (quotedcolname (notany " ;'\""))))
+            (*
+             ";"
+             (or
+              (seq     (group-n 2 (* (notany "^;'\"<"))))
+              (seq "^" (group-n 3 (* (notany "^;'\"<"))))
+              (seq "<" (group-n 4 (* (notany "^;'\">"))) ">")
+              (seq "'" (group-n 5 (* (notany "'"))) "'")))
+            eos)
 	   col)
     (user-error "Bad column specification: %S" col))
   (let* ((formula   (match-string 1 col))
@@ -958,13 +957,7 @@ into the column number."
 	 ;; then it is a key-grouping-column
 	 (key
 	  (if (string-match
-	       (rx
-		bos
-		(group
-		 (or (seq "'"  (* (not (any "'" ))) "'" )
-		     (seq "\"" (* (not (any "\""))) "\"")
-		     (+ (any word "_$.#@"))))
-		eos)
+               (rx bos (group (quotedcolname nakedname)) eos)
 	       formula)
 	      (orgtbl-aggregate--colname-to-int formula table t))))
 
@@ -1026,7 +1019,7 @@ The list contains sorting specifications as follows:
 	   (unless (string-match
                     (rx bol
                         (group (any "aAnNtTfF"))
-                        (group (* (any num)))
+                        (group (* digit))
                         eol)
                     sorting)
 	     (user-error
@@ -1106,9 +1099,9 @@ a hash-table, whereas GROUPS is a Lisp list."
    ((and
      (string-match
       (rx bos
-	  (? (any "+-")) (* (any "0-9"))
-	  (? "." (* (any "0-9")))
-	  (? "e" (? (any "+-")) (+ (any "0-9")))
+	  (? (any "+-")) (* digit)
+	  (? "." (* digit))
+	  (? "e" (? (any "+-")) (+ digit))
 	  eos)
       expr)
      (not (string-match (rx bos (* (any "+-.")) "e") expr)))
@@ -1120,10 +1113,10 @@ a hash-table, whereas GROUPS is a Lisp list."
    ;; Convert a duration into a number of seconds
    ((string-match
      (rx bos
-	 (group (one-or-more (any "0-9")))
+	 (group (+ digit))
 	 ":"
-	 (group (any "0-9") (any "0-9"))
-	 (? ":" (group (any "0-9") (any "0-9")))
+	 (group digit digit)
+	 (? ":" (group digit digit))
 	 eos)
      expr)
     (+
@@ -1191,13 +1184,13 @@ Actually, FORMULAS are evaluated by Org, not by orgtbl-aggregate."
       collect
       (if (string-match
            (rx bos
-               (group-n 1 (+ (not (any ";")))) ; formula to compute column
+               (group-n 1 (+ (notany ";"))) ; formula to compute column
                (*
                 ";" (* space) ; maybe something after a semicolon
                 (or
-                 (seq     (group-n 2 (+ (not (any "^;'\"<"))))) ; a formatter
-                 "" ; nothing after semicolon
-                 (seq "'" (group-n 3 (* (not (any "'")))) "'"))) ; column name
+                 (seq     (group-n 2 (+ (notany "^;'\"<")))) ; a formatter
+                 (seq "'" (group-n 3 (* (notany "'"))) "'") ; column name
+                 (seq "")))             ; nothing after semicolon
                (* space)
                eos)
            formula)
@@ -1463,7 +1456,7 @@ The code was borrowed from org-table.el."
      (org-time-string-to-time (match-string 0 cell))))
    ((org-duration-p cell) (org-duration-to-minutes cell))
    ((string-match
-     (rx bow (+ (any "0-9")) ":" (= 2 (any "0-9")) eow)
+     (rx bow (+ digit) ":" (= 2 digit) eow)
      cell)
     (org-duration-to-minutes (match-string 0 cell)))
    (t 0)))
@@ -1511,7 +1504,7 @@ Result is the FMT-SETTINGS assoc list."
       ;; the following code was freely borrowed from org-table-eval-formula
       ;; not all settings extracted from fmt are used
       (while (string-match
-              (rx (group (any "pnfse")) (group (opt "-") (+ (any "0-9"))))
+              (rx (group (any "pnfse")) (group (? "-") (+ digit)))
               fmt)
 	(let ((c (string-to-char   (match-string 1 fmt)))
 	      (n (string-to-number (match-string 2 fmt))))
@@ -1646,9 +1639,9 @@ and a cell from any row in the group is returned."
    ;; vlist($3) alone, without parenthesis or other decoration
    ((string-match
      (rx bos (? ?v) "list"
-	 (* (any " \t")) "(" (* (any " \t"))
-	 "$" (group (+ (any "0-9")))
-	 (* (any " \t")) ")" (* (any " \t")) eos)
+	 (* blank) "(" (* blank)
+	 "$" (group (+ digit))
+	 (* blank) ")" (* blank) eos)
      (orgtbl-aggregate--outcol-formula$ coldesc))
     (mapconcat
      #'identity ;; there is fast path when `identity' is requested
@@ -1857,15 +1850,13 @@ with new formulas (if any) given in the `formula' directive."
          (and content
 	      (let ((case-fold-search t))
 	        (string-match
-	         (rx bol
-                     (* (any " \t"))
-                     (group "#+tblfm:" (* not-newline)))
+	         (rx bol (* blank) (group "#+tblfm:" (* any)))
 	         content))
               (match-string 1 content))))
     (if (stringp formula)
         ;; There is a :formula directive. Add it if not already there
         (if tblfm
-	    (unless (string-match (rx-to-string formula) tblfm)
+	    (unless (string-match (regexp-quote formula) tblfm)
 	      (setq tblfm (format "%s::%s" tblfm formula)))
 	  (setq tblfm (format "#+TBLFM: %s" formula))))
 
@@ -1975,9 +1966,7 @@ Note:
     (if (and content
 	     (let ((case-fold-search t))
 	       (string-match
-		(rx bos
-                    (+
-                     (* (any " \t")) "#+" (* not-newline) "\n"))
+		(rx bos (+ (* blank) "#+" (* any) "\n"))
 		content)))
 	(insert (match-string 0 content)))
     (orgtbl-aggregate--insert-elisp-table
@@ -2201,9 +2190,7 @@ Note:
     (if (and content
 	     (let ((case-fold-search t))
 	       (string-match
-		(rx bos
-                    (+
-                     (* (any " \t")) "#+" (* not-newline) "\n"))
+		(rx bos (+ (* blank) "#+" (* any) "\n"))
 		content)))
 	(insert (match-string 0 content)))
     (orgtbl-aggregate--insert-elisp-table

@@ -30,14 +30,15 @@
 #+begin_src elisp :colnames yes :var factor=29
 (append
  (list
-  '(tag value)
+  '(tag value inv)
   'hline)
  (cl-loop
   for i from 1 to 50
   collect
   (list
    (aref [A BB CCC] (% i 3))
-   (% (* i factor) 100))))
+   (% (* i factor) 100)
+   (/ 1000.0 (+ 999.0 i)))))
 #+end_src
 
 * Table by ID

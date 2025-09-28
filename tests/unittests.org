@@ -1911,6 +1911,16 @@ Babel by name and parameter
 | A   |         536 |
 #+END:
 
+Babel, mean of floating points
+
+#+BEGIN: aggregate :table "distant-tests.org:distantbabel(factor=17)" :cols "tag vmean(inv) count()"
+| tag |     vmean(inv) | count() |
+|-----+----------------+---------|
+| BB  | 0.976763739953 |      17 |
+| CCC | 0.975810407486 |      17 |
+| A   | 0.976263808395 |      16 |
+#+END:
+
 table by ID
 
 #+BEGIN: aggregate :table "55ab27a2-c44b-4a14-9ba4-f6879375207d[0:7]" :cols "ref vsum(val)"

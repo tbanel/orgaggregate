@@ -1089,8 +1089,10 @@ a hash-table, whereas GROUPS is a Lisp list."
    ;; nil happens when a table is malformed
    ;; some columns are missing in some rows
    ((not expr) nil)
-   ;; already a number? return it
-   ((numberp expr) expr)
+   ;; already an integer? return it
+   ((integerp expr) expr)
+   ;; a floating point? must convert it to Calc
+   ((numberp expr) (math-read-number (number-to-string expr)))
    ;; empty cell returned as nil,
    ;; to be processed later depending on modifier flags
    ((string= expr "") nil)

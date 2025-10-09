@@ -289,18 +289,21 @@ COLNAMES, if not nil, is a list of column names."
 ;; generic enough to be detached from the orgtbl-aggregate package.
 ;; For the time being, they are here.
 
-(defun orgtbl-aggregate--list-local-tables ()
-  "Search for available tables in the current file."
+(defun orgtbl-aggregate--list-local-tables (file)
+  "Search for available tables in FILE.
+If FILE is nil, use current buffer."
   (interactive)
-  (save-excursion
-    (goto-char (point-min))
-    (let ((case-fold-search t))
-      (cl-loop
-       while
-       (re-search-forward
-        (rx tblname (group (*? any)) (* blank) eol)
-        nil t)
-       collect (match-string-no-properties 1)))))
+  (with-current-buffer
+      (if file (find-file-noselect file) (current-buffer))
+    (save-excursion
+      (goto-char (point-min))
+      (let ((case-fold-search t))
+        (cl-loop
+         while
+         (re-search-forward
+          (rx tblname (group (*? any)) (* blank) eol)
+          nil t)
+         collect (match-string-no-properties 1))))))
 
 (defun orgtbl-aggregate--table-from-babel (name-or-id)
   "Retrieve an input table as the result of running a Babel block.
@@ -728,11 +731,16 @@ possibly missing headers, and in this case returns a list
 of $1, $2, $3... column names.
 Actual column names which are not fully alphanumeric are quoted."
   (unless (consp table)
-    (setq table (orgtbl-aggregate-table-from-any-ref table)))
+    (setq table
+          (condition-case _err
+              (orgtbl-aggregate-table-from-any-ref table)
+            (error
+             '(("$1" "$2" "$3" "…") hline)))))
   (orgtbl-aggregate--pop-leading-hline table)
   (let ((header
 	 (if (memq 'hline table)
 	     (cl-loop for x in (car table)
+                      do (setq x (orgtbl-aggregate--cell-to-string x))
 		      collect
 		      (if (string-match
                            (rx bos nakedname eos)
@@ -1162,13 +1170,12 @@ a hash-table, whereas GROUPS is a Lisp list."
                10007)))
     h))
 
-(defun orgtbl-aggregate--enrich-table (table formulas)
-  "Enrich TABLE with new columns computed by FORMULAS.
-The FORMULAS are supposed to be those used in spreadsheets,
-as given after the #+TBLFM: tag.
-Actually, FORMULAS are evaluated by Org, not by orgtbl-aggregate."
-  (let ((start (point))
-        (len (length (car table))))
+(defun orgtbl-aggregate--parse-preprocess (formulas width)
+  "Parse the :precompute parameter's value, FORMULAS.
+WIDTH is the number of columns of the input table, without
+the precomputed columns.
+Return a list:
+((formula1 . name1) (formula2 . name2) …)"
     ;; formulas is a list of strings
     ;; change it to ((formula1 . name1) (formula2 . name2) …)
     ;; name1 etc. default to a dollar name like "$8"
@@ -1178,11 +1185,10 @@ Actually, FORMULAS are evaluated by Org, not by orgtbl-aggregate."
                formulas
                (rx (* space) "::" (* space))
                t)))
-    (setq
-     formulas
-     (cl-loop
+    (cl-loop
       for formula in formulas
-      for i from (1+ len)
+      for i from (1+ width)
+      for dollari = (format "$%s" i)
       collect
       (if (string-match
            (rx bos
@@ -1200,21 +1206,31 @@ Actually, FORMULAS are evaluated by Org, not by orgtbl-aggregate."
            (if (match-string 2 formula) ; case formula;formatter
                (format "%s;%s" (match-string 1 formula) (match-string 2 formula))
              (match-string 1 formula))  ; case formula without formatter
-           (match-string 3 formula))    ; new column's name
-        (cons formula (format "$%s" i)))))
+           (or (match-string 3 formula) dollari))    ; new column's name
+        (cons formula dollari))))
 
+(defun orgtbl-aggregate--enrich-table (table formulas)
+  "Enrich TABLE with new columns computed by FORMULAS.
+The FORMULAS are supposed to be those used in spreadsheets,
+as given after the #+TBLFM: tag.
+Actually, FORMULAS are evaluated by Org, not by orgtbl-aggregate."
+  (let ((start (point))
+        (width (length (car table))))
+    (setq
+     formulas
+     (orgtbl-aggregate--parse-preprocess formulas width))
     (if (memq 'hline table)
         ;; table has a header? add it the names of the new columns
         (cl-loop
          for formula in formulas
          do (nconc (car table) (list (cdr formula))))
-      ;; table does not have a header? add one with of the form:
+      ;; table does not have a header? add one of the form:
       ;; ("$1" "$2" … "$7" "name1" "name2" …)
       (setq
        table
        (cons
         (append
-         (cl-loop for i from 1 to len collect (format "$%s" i))
+         (cl-loop for i from 1 to width collect (format "$%s" i))
          (cl-loop for formula in formulas collect (cdr formula)))
         (cons 'hline table))))
 
@@ -1222,7 +1238,7 @@ Actually, FORMULAS are evaluated by Org, not by orgtbl-aggregate."
     (let ((involved (orgtbl-aggregate--list-create)))
       (cl-loop
        for formula in formulas
-       for i from (1+ len)
+       for i from (1+ width)
        do
        (insert
         (format
@@ -1473,8 +1489,10 @@ The code was borrowed from org-table.el."
 (defun orgtbl-aggregate--cell-to-string (cell)
   "Convert CELL (a cell in the input table) to a string if it is not already."
   (cond
+   ((not cell) cell)
    ((stringp cell) cell)
    ((numberp cell) (number-to-string cell))
+   ((symbolp cell) (symbol-name cell))
    (t (error "cell %S is not a number neither a string" cell))))
 
 (defun orgtbl-aggregate--add-hlines (result hline)
@@ -1670,7 +1688,6 @@ and a cell from any row in the group is returned."
 	      (orgtbl-aggregate--outcol-formula-frux coldesc)
 	      calc-dollar-values-oo
 	      (length (orgtbl-aggregate--list-get group)))))
-
         (cond
          ((eq (plist-get fmt-settings :debug) ?C)
           (math-format-value ev))
@@ -1985,34 +2002,241 @@ Note:
 ;; again or edited
 (defvar orgtbl-aggregate-history-cols ())
 
+(defun orgtbl-aggregate--parse-header-arguments ()
+  (let ((line (buffer-substring-no-properties
+               (line-beginning-position)
+               (line-end-position))))
+    (if (string-match
+         (rx bos (* blank) "#+begin:" (* blank) "aggregate")
+         line)
+        (cdr (org-babel-parse-header-arguments line t)))))
+
+(defun orgtbl-aggregate--display-help (explain &rest args)
+  "Display help for each field the wizard queries."
+  (with-current-buffer "*orgtbl-aggregate-help*"
+    (erase-buffer)
+    (insert (apply #'format explain args))))
+
+(defun orgtbl-aggregate--wizard-create-update (oldline)
+  "Update OLDLINE parameters by interactivly querying user.
+OLDLINE is an alist containing parameter-value pairs.
+Example: \\'((:table . \"thetable\") (:cols . \"day vsum(quty)\") …)
+OLDLINE is supposed to be extracted from an Org Mode block such as:
+#+begin: aggregate :table \"thetable\" :cols \"day vsum(quty)\" …
+If (point) is not on such a line, OLDLINE is nil.
+The function returns a plist which is an updated version of OLDLINE
+amended by the user."
+  (let (oldfile oldname oldslice
+                file tablenames table slice headerlist header precompute
+                aggcols aggcond hline postprocess params)
+    (when (and
+           (setq table (alist-get :table oldline))
+           (string-match
+            (rx bos
+                (? (group (+ (not (any ":[]")))) ":")
+                (group (+ (not "[")))
+                (?  (group "[" (* any) "]"))
+                eos)
+            table))
+      (setq oldfile  (match-string 1 table))
+      (setq oldname  (match-string 2 table))
+      (setq oldslice (match-string 3 table)))
+
+    (save-window-excursion
+      (save-selected-window
+        (split-window nil 15 'above)
+        (switch-to-buffer "*orgtbl-aggregate-help*")
+        (org-mode))
+
+      (orgtbl-aggregate--display-help "* Which file?
+The input table may be in another file.")
+      (let ((insert-default-directory nil))
+        (setq file
+              (read-file-name "File (RET for current buffer): "
+                              nil
+                              nil
+                              nil
+                              oldfile)))
+
+      (if (equal file "") (setq file nil))
+
+      (setq tablenames (orgtbl-aggregate--list-local-tables file))
+      (if file
+          (setq tablenames (nconc tablenames '("(csv)" "(json)"))))
+
+      (and
+       file
+       (not oldname)
+       (cond
+        ((string-match (rx ".csv"  eos) file)
+         (setq oldname "(csv)"))
+        ((string-match (rx ".json" eos) file)
+         (setq oldname "(json)"))))
+
+      (orgtbl-aggregate--display-help "* The input table may be:
+- a regular Org table,
+- a Babel block whose output will be the input table,
+- a ~CSV~ or ~JSON~ formatted file.
+Org table & Babel block names are available at completion (type ~TAB~).
+Alternatly, it may be an Org ID pointing to a table or Babel block
+  (no completion).
+For a Babel block, the name of the Babel may be followed by
+  parematers in parenthesis. Example: ~mybabel(p=\"a\",quty=12)~
+for a ~CSV~ table, type ~(csv params…)~
+for a ~JSON~ table, type ~(json params…)~")
+      (setq table
+            (completing-read
+             "Table, Babel, ID, (csv…), (json…): "
+             tablenames
+             nil
+             nil ;; user is free to input anything
+             oldname))
+
+      (orgtbl-aggregate--display-help "* Slicing
+Slicing is an Org Mode feature allowing to slice an input table.
+Examples:
+- ~mytable[0:5]~     retains only the first 6 rows of the input table
+- ~mytable[*,0:1]~   retains only the first 2 columns
+- ~mytable[0:5,0:1]~ retains 5 rows and 2 columns")
+      (setq slice
+            (read-string
+             "Input slicing (optional): "
+             oldslice
+             'orgtbl-aggregate-history-cols))
+
+      (setq headerlist
+            (orgtbl-aggregate--get-header-table
+             (if file (format "%s:%s" file table) table)))
+
+      (setq header
+            (mapconcat
+             (lambda (x) (format " ~%s~" x))
+             headerlist))
+         
+      (orgtbl-aggregate--display-help "* Precompute
+The input table may be enriched with additional columns prior to aggregating.
+The syntax is the regular Org table spreadsheet formulas for columns,
+including formatting.
+Additionnaly, the name of new columns can be specified after a semicolumn.
+** Available columns
+%s
+** Example
+  ~quty*10;f1;'q10'~
+means:
+- add a new column to the input table named ~q10~
+- compute it as ~10~ times the ~quty~ input column
+- format it with ~f1~, 1 digit after dot"
+                                      header)
+      (setq precompute
+            (read-string
+             "Formulas for additional input columns (optional): "
+             (alist-get :precompute oldline)
+             'orgtbl-aggregate-history-cols))
+
+      (unless (eq (length precompute) 0)
+        (setq headerlist
+              (append headerlist
+                      (cl-loop
+                       for pair in
+                       (orgtbl-aggregate--parse-preprocess
+                        precompute
+                        (length headerlist))
+                       collect (cdr pair))))
+        (setq header
+              (mapconcat
+               (lambda (x) (format " ~%s~" x))
+               headerlist)))
+
+      (orgtbl-aggregate--display-help "* Target columns
+** They may be
+- bare input columns, acting as grouping keys,
+- formulas in the syntax of Org spreadsheet.
+** Formatting
+Each target column may be followed optionally by semicolon separated parameters:
+- alternate name, example ;'alternate-name'
+- formating, examples ~;f2~ ~;%%.2f~
+- sorting, examples ~;^a~ ~;^A~ ~;^n~ ~;^N~
+- invisibility  ~;<>~
+** Available input columns
+%s"
+                                      header)
+      (setq aggcols
+            (replace-regexp-in-string
+             "\"" "'"
+             (read-string
+              "Target columns & formulas: "
+              (alist-get :cols oldline)
+              'orgtbl-aggregate-history-cols)))
+         
+      (orgtbl-aggregate--display-help "* Filter rows
+Lisp function, lambda, or Babel block to filter out rows.
+** Available input columns
+%s"
+                                      header)
+      (setq aggcond
+            (read-string
+             "Row filter (optional): "
+             (alist-get :cond oldline)
+             'orgtbl-aggregate-history-cols))
+
+      (orgtbl-aggregate--display-help "* Output horizonal separators level
+- 0 or empty means no lines in the output
+- 1 means separate rows of identical values on 1 column
+- 2 means separate rows of identical values on 2 columns
+- larger values are allowed, but questionably useful")
+      (setq hline
+             (completing-read
+         "hline (optional): "
+         '("0" "1" "2" "3")
+         nil
+         'confirm
+         (orgtbl-aggregate--cell-to-string (alist-get :hline oldline))))
+         
+      (orgtbl-aggregate--display-help "* Post-process
+The output aggregated table may be post-processed prior to printing it
+in the current buffer.
+The processor may be a Lisp function, a lambda, or a Babel block.")
+      (setq postprocess
+            (read-string
+             "Post process (optional): "
+             (alist-get :post oldline)
+             'orgtbl-aggregate-history-cols))
+      )
+
+    (setq params
+          (list
+           :name "aggregate"
+           :table
+           (concat
+            (or file "")
+            (if file ":" "")
+            table
+            (or slice ""))
+           :cols aggcols))
+    (unless (eq (length aggcond) 0)
+      (nconc params `(:cond ,(read aggcond))))
+    (unless (eq (length hline) 0)
+      (nconc params `(:hline ,hline)))
+    (unless (eq (length precompute) 0)
+      (nconc params `(:precompute ,precompute)))
+    (unless (eq (length postprocess) 0)
+      (nconc params `(:post ,postprocess)))
+    (cl-loop
+     for pair in oldline
+     unless (memq (car pair)
+                  '(:table :precompute :cols :cond :hline :post))
+     do (nconc params `(,(car pair) ,(cdr pair))))
+    params))
+
 ;;;###autoload
 (defun orgtbl-aggregate-insert-dblock-aggregate ()
   "Wizard to interactively insert an aggregate dynamic block."
   (interactive)
-  (let* ((table
-	  (completing-read
-	   "Table name: "
-	   (orgtbl-aggregate--list-local-tables)
-	   nil
-	   'confirm))
-	 (header
-	  (condition-case _err (orgtbl-aggregate--get-header-table table t)
-	    (t "$1 $2 $3 $4 ...")))
-	 (aggcols
-	  (replace-regexp-in-string
-	   "\"" "'"
-	   (read-string
-	    (format "target columns (source columns are: %s): " header)
-	    nil 'orgtbl-aggregate-history-cols)))
-	 (aggcond
-	  (read-string
-	   (format
-	    "condition (optional lisp function operating on: %s): "
-	    header)
-	   nil 'orgtbl-aggregate-history-cols))
-	 (params (list :name "aggregate" :table table :cols aggcols)))
-    (unless (string= aggcond "")
-      (nconc params `(:cond ,(read aggcond))))
+  (let* ((oldline (orgtbl-aggregate--parse-header-arguments))
+         (params (orgtbl-aggregate--wizard-create-update oldline)))
+    (when oldline
+      (org-mark-element)
+      (delete-region (region-beginning) (1- (region-end))))
     (org-create-dblock params)
     (org-update-dblock)))
 
@@ -2212,7 +2436,7 @@ Note:
   (let* ((table
 	  (completing-read
 	   "Table name: "
-	   (orgtbl-aggregate--list-local-tables)
+	   (orgtbl-aggregate--list-local-tables nil)
 	   nil
 	   'confirm))
 	 (header

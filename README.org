@@ -5,6 +5,13 @@
 Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the first table.
 
+* New
+The wizard (see [[#key-binding--wizard][Key-binding & Wizard]]) has been extended. It can now
+modify an existing block, as well as creating a new one. It is more
+fine grained. It features a more extensive help for each query.
+
+Still call it with =C-c C-x x aggregate=.
+
 * Table of Contents
 :PROPERTIES:
 :TOC:      :include siblings :depth 1 :force () :ignore (this) :local (nothing)
@@ -200,14 +207,35 @@ Friday         8           22
 :CUSTOM_ID: key-binding--wizard
 :END:
 
-Type =C-c C-x x= to launch a wizard for creating new /dynamic blocks/.
-Then answer =aggregate= for the type of block, and follow the instructions.
-(There are several other /dynamic blocks/ that can be built this way:
-~columnview~, ~clocktable~, ~propview~, ~invoice~, ~transpose~, and any
-future block).
+Type =C-c C-x x= to launch a wizard for creating new dynamic blocks, or
+amending existing ones.  Then answer =aggregate= for the type of block,
+and follow the instructions.  (There are several other /dynamic blocks/
+that can be built this way: ~columnview~, ~clocktable~, ~propview~, ~invoice~,
+~transpose~, and any future block).
 
 =C-c C-x x aggregate= is equivalent to
 =M-x orgtbl-aggregate-insert-dblock-aggregate=.
+
+The wizard has been enhanced & extended.
+
+It can update an existing block. Put the cursor on a line beginning
+with =#+begin: aggregate …= and type =C-c C-x x=. The wizard will use
+values picked from this line as defaults for user queries.
+
+The wizard now takes into account the multiple forms of input
+tables. Tables may lie in distant files as well in the current
+buffer. They may be computed on the fly by Babel blocks as well as
+regular Org Mode tables. They may also be pointed to by Org
+IDs.
+
+Regular Org Mode table slicing is now recognized. Pre & post
+processors are now handled by the wizard, as well as the hline
+parameter.
+
+When invoking the wizard, a small window opens to display help
+relative to each field the wizard queries. This help window is in Org
+Mode for an easy reading. The window will be closed when the wizard is
+done or when aborting.
 
 * Other examples
 :PROPERTIES:
@@ -1967,7 +1995,7 @@ references may be followed by an optional slicing. Examples:
   separation line); in this example, it would retain rows 0 and 1 for
   the header, and rows 2,3,4,5 for the content.
 
-- =mytable[,0:1]=: retain only the first 2 columns.
+- =mytable[*,0:1]=: retain only the first 2 columns.
 
 - =mytable[0:5,0:1]=: retain only the first 6 rows and the first 2
   columns.

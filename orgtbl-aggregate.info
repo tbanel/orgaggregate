@@ -8,7 +8,7 @@ START-INFO-DIR-ENTRY
 END-INFO-DIR-ENTRY
 
 
-File: orgtbl-aggregate.info,  Node: Top,  Next: Examples,  Up: (dir)
+File: orgtbl-aggregate.info,  Node: Top,  Next: New,  Up: (dir)
 
 Aggregate Values in a Table
 ***************************
@@ -18,6 +18,7 @@ and so on, out of material from the first table.
 
 * Menu:
 
+* New::
 * Examples::
 * SQL equivalent::
 * R equivalent::
@@ -69,9 +70,21 @@ Tricks
 
 
 
-File: orgtbl-aggregate.info,  Node: Examples,  Next: SQL equivalent,  Prev: Top,  Up: Top
+File: orgtbl-aggregate.info,  Node: New,  Next: Examples,  Prev: Top,  Up: Top
 
-1 Examples
+1 New
+*****
+
+The wizard (see *note Key-binding & Wizard::) has been extended.  It can
+now modify an existing block, as well as creating a new one.  It is more
+fine grained.  It features a more extensive help for each query.
+
+   Still call it with ‘C-c C-x x aggregate’.
+
+
+File: orgtbl-aggregate.info,  Node: Examples,  Next: SQL equivalent,  Prev: New,  Up: Top
+
+2 Examples
 **********
 
 A very simple example.  We have a table of activities and quantities
@@ -159,7 +172,7 @@ creation of such a block):
 
 File: orgtbl-aggregate.info,  Node: SQL equivalent,  Next: R equivalent,  Prev: Examples,  Up: Top
 
-2 SQL equivalent
+3 SQL equivalent
 ****************
 
 If you are familiar with SQL, you would get a similar result with the
@@ -172,7 +185,7 @@ If you are familiar with SQL, you would get a similar result with the
 
 File: orgtbl-aggregate.info,  Node: R equivalent,  Next: Datamash equivalent,  Prev: SQL equivalent,  Up: Top
 
-3 R equivalent
+4 R equivalent
 **************
 
 If you are familiar with the R statistical language, you would get a
@@ -186,7 +199,7 @@ similar result with ‘factor’ and ‘aggregate’ functions:
 
 File: orgtbl-aggregate.info,  Node: Datamash equivalent,  Next: Key-binding & Wizard,  Prev: R equivalent,  Up: Top
 
-4 Datamash equivalent
+5 Datamash equivalent
 *********************
 
 The command-line Datamash software operates on CSV files and can achieve
@@ -203,22 +216,42 @@ a similar result:
 
 File: orgtbl-aggregate.info,  Node: Key-binding & Wizard,  Next: Other examples,  Prev: Datamash equivalent,  Up: Top
 
-5 Key-binding & Wizard
+6 Key-binding & Wizard
 **********************
 
-Type ‘C-c C-x x’ to launch a wizard for creating new _dynamic blocks_.
-Then answer ‘aggregate’ for the type of block, and follow the
-instructions.  (There are several other _dynamic blocks_ that can be
-built this way: ‘columnview’, ‘clocktable’, ‘propview’, ‘invoice’,
-‘transpose’, and any future block).
+Type ‘C-c C-x x’ to launch a wizard for creating new dynamic blocks, or
+amending existing ones.  Then answer ‘aggregate’ for the type of block,
+and follow the instructions.  (There are several other _dynamic blocks_
+that can be built this way: ‘columnview’, ‘clocktable’, ‘propview’,
+‘invoice’, ‘transpose’, and any future block).
 
    ‘C-c C-x x aggregate’ is equivalent to ‘M-x
 orgtbl-aggregate-insert-dblock-aggregate’.
 
+   The wizard has been enhanced & extended.
+
+   It can update an existing block.  Put the cursor on a line beginning
+with ‘#+begin: aggregate …’ and type ‘C-c C-x x’.  The wizard will use
+values picked from this line as defaults for user queries.
+
+   The wizard now takes into account the multiple forms of input tables.
+Tables may lie in distant files as well in the current buffer.  They may
+be computed on the fly by Babel blocks as well as regular Org Mode
+tables.  They may also be pointed to by Org IDs.
+
+   Regular Org Mode table slicing is now recognized.  Pre & post
+processors are now handled by the wizard, as well as the hline
+parameter.
+
+   When invoking the wizard, a small window opens to display help
+relative to each field the wizard queries.  This help window is in Org
+Mode for an easy reading.  The window will be closed when the wizard is
+done or when aborting.
+
 
 File: orgtbl-aggregate.info,  Node: Other examples,  Next: The cols parameter,  Prev: Key-binding & Wizard,  Up: Top
 
-6 Other examples
+7 Other examples
 ****************
 
 Maybe we are just interested in the sum of ‘Quantities’, regardless of
@@ -259,7 +292,7 @@ type:
 
 File: orgtbl-aggregate.info,  Node: The cols parameter,  Next: Grouping specifications in cols,  Prev: Other examples,  Up: Top
 
-7 The :cols parameter
+8 The :cols parameter
 *********************
 
 The ‘:cols’ parameter lists the columns of the resulting table.  It
@@ -285,7 +318,7 @@ parenthesis list.  If a column name has spaces, quote it like this:
 
 File: orgtbl-aggregate.info,  Node: Grouping specifications in cols,  Next: The @# column,  Prev: The cols parameter,  Up: Top
 
-8 Grouping specifications in :cols
+9 Grouping specifications in :cols
 **********************************
 
 Grouping is done on columns of the source table acting as key columns.
@@ -300,8 +333,8 @@ with unique combinations of those columns.
 
 File: orgtbl-aggregate.info,  Node: The @# column,  Next: The hline column,  Prev: Grouping specifications in cols,  Up: Top
 
-9 The @# column
-***************
+10 The @# column
+****************
 
 The special column named ‘@#’ gives the row number in the source table.
 The ‘@#’ name is the same as in the Org table spreadsheet formulas.  It
@@ -345,7 +378,7 @@ invisible with ‘,<>’ so that it does not appear in the output.
 
 File: orgtbl-aggregate.info,  Node: The hline column,  Next: hlines in the output table,  Prev: The @# column,  Up: Top
 
-10 The hline column
+11 The hline column
 *******************
 
 hline = "horizontal line"
@@ -409,7 +442,7 @@ See later how to format it.
 
 File: orgtbl-aggregate.info,  Node: hlines in the output table,  Next: Aggregation formulas in cols,  Prev: The hline column,  Up: Top
 
-11 hlines in the output table
+12 hlines in the output table
 *****************************
 
 Example of an input table containing 3 hlines:
@@ -585,7 +618,7 @@ remains).  To do so use the ‘;<>’ specifier:
 
 File: orgtbl-aggregate.info,  Node: Aggregation formulas in cols,  Next: Where Calc interpretation happens?,  Prev: hlines in the output table,  Up: Top
 
-12 Aggregation formulas in :cols
+13 Aggregation formulas in :cols
 ********************************
 
 Aggregation formulas are applied for each of those groupings, on the
@@ -759,7 +792,7 @@ Calc.  The non-v names may be dropped in the future.
 
 File: orgtbl-aggregate.info,  Node: Where Calc interpretation happens?,  Next: The cond filtering,  Prev: Aggregation formulas in cols,  Up: Top
 
-13 Where Calc interpretation happens?
+14 Where Calc interpretation happens?
 *************************************
 
 *Calc* is the standard Emacs desktop calculator.  Actual mathematical
@@ -877,7 +910,7 @@ _vector product_: sum of individual products.  ‘600^2+100^2’
 
 File: orgtbl-aggregate.info,  Node: The cond filtering,  Next: Pull & Push,  Prev: Where Calc interpretation happens?,  Up: Top
 
-14 The :cond filtering
+15 The :cond filtering
 **********************
 
 This parameter is optional.  If present, it specifies a lisp expression
@@ -909,7 +942,7 @@ still occurs.  So duplicate input rows appear only once in the result.
 
 File: orgtbl-aggregate.info,  Node: Pull & Push,  Next: Symbolic computation,  Prev: The cond filtering,  Up: Top
 
-15 Pull & Push
+16 Pull & Push
 **************
 
 Two modes are available: _pull_ & _push_.
@@ -1014,7 +1047,7 @@ happens for the following characters: ‘&%#_^’ To disable that, in the
 
 File: orgtbl-aggregate.info,  Node: Symbolic computation,  Next: Correlation of two columns,  Prev: Pull & Push,  Up: Top
 
-16 Symbolic computation
+17 Symbolic computation
 ***********************
 
 The computations are based on Calc, which is a symbolic calculator.
@@ -1066,7 +1099,7 @@ cells when dealing with symbolic calculations.
 
 File: orgtbl-aggregate.info,  Node: Correlation of two columns,  Next: Dates,  Prev: Symbolic computation,  Up: Top
 
-17 Correlation of two columns
+18 Correlation of two columns
 *****************************
 
 Some aggregations work on two columns (rather than one column for
@@ -1110,7 +1143,7 @@ noise_between_0_and_2’.
 
 File: orgtbl-aggregate.info,  Node: Dates,  Next: Durations,  Prev: Correlation of two columns,  Up: Top
 
-18 Dates
+19 Dates
 ********
 
 Some aggregations are possible on dates.  Example.  Here is a source
@@ -1164,7 +1197,7 @@ Org Mode spreadsheet formulas.
 
 File: orgtbl-aggregate.info,  Node: Durations,  Next: Arbitrary column names,  Prev: Dates,  Up: Top
 
-19 Durations
+20 Durations
 ************
 
 In Org Mode spreadsheet, durations have the forms ‘HH:MM’ or ‘HH:MM:SS’.
@@ -1219,7 +1252,7 @@ example, we have 3 durations as input, and we want the average of them:
 
 File: orgtbl-aggregate.info,  Node: Arbitrary column names,  Next: Multiple lines header,  Prev: Durations,  Up: Top
 
-20 Arbitrary column names
+21 Arbitrary column names
 *************************
 
 Column names are not necessarily alphanumeric words.  They may contain
@@ -1253,7 +1286,7 @@ characters, although not perfectly.
 
 File: orgtbl-aggregate.info,  Node: Multiple lines header,  Next: Custom column names,  Prev: Arbitrary column names,  Up: Top
 
-21 Multiple lines header
+22 Multiple lines header
 ************************
 
 The header of the source table may be more than one row tall.  Only the
@@ -1299,7 +1332,7 @@ ignored in the header.
 
 File: orgtbl-aggregate.info,  Node: Custom column names,  Next: Empty and malformed input cells,  Prev: Multiple lines header,  Up: Top
 
-22 Custom column names
+23 Custom column names
 **********************
 
 In this example, column have names which are difficult to handle:
@@ -1331,7 +1364,7 @@ In this example, column have names which are difficult to handle:
 
 File: orgtbl-aggregate.info,  Node: Empty and malformed input cells,  Next: [Almost) any expression can be specified,  Prev: Custom column names,  Up: Top
 
-23 Empty and malformed input cells
+24 Empty and malformed input cells
 **********************************
 
 The input table may contain malformed mathematical text.  For instance,
@@ -1374,7 +1407,7 @@ this one:
 
 File: orgtbl-aggregate.info,  Node: [Almost) any expression can be specified,  Next: Modifiers and formatters,  Prev: Empty and malformed input cells,  Up: Top
 
-24 (Almost) any expression can be specified
+25 (Almost) any expression can be specified
 *******************************************
 
 Virtually any Calc formula can be specified as an aggregation formula.
@@ -1406,7 +1439,7 @@ would act as a key grouping column.
 
 File: orgtbl-aggregate.info,  Node: Modifiers and formatters,  Next: Debugging,  Prev: [Almost) any expression can be specified,  Up: Top
 
-25 Modifiers and formatters
+26 Modifiers and formatters
 ***************************
 
 An expression may optionally be followed by modifiers and formatters,
@@ -1459,7 +1492,7 @@ Org Mode spreadsheet.
 
 File: orgtbl-aggregate.info,  Node: Debugging,  Next: Sorting,  Prev: Modifiers and formatters,  Up: Top
 
-26 Debugging
+27 Debugging
 ************
 
 The work of OrgAggregate is to hand out pieces of the input table to
@@ -1571,7 +1604,7 @@ This can be unexpected.
 
 File: orgtbl-aggregate.info,  Node: Sorting,  Next: Discarding an output column,  Prev: Debugging,  Up: Top
 
-27 Sorting
+28 Sorting
 **********
 
 In this example, the output table is sorted numerically on its second
@@ -1638,7 +1671,7 @@ instance ‘1’.  Columns without a number are minor ones.
 
 File: orgtbl-aggregate.info,  Node: Discarding an output column,  Next: Post-aggregation spreadsheet formulas,  Prev: Sorting,  Up: Top
 
-28 Discarding an output column
+29 Discarding an output column
 ******************************
 
 Why would anyone specify a column just to discard it in the output?  For
@@ -1696,7 +1729,7 @@ without displaying this column:
 
 File: orgtbl-aggregate.info,  Node: Post-aggregation spreadsheet formulas,  Next: Post processing,  Prev: Discarding an output column,  Up: Top
 
-29 Post-aggregation spreadsheet formulas
+30 Post-aggregation spreadsheet formulas
 ****************************************
 
 Additional columns can be specified for the resulting table.  With a
@@ -1723,7 +1756,7 @@ re-computations.
 
 File: orgtbl-aggregate.info,  Node: Post processing,  Next: Virtual input table from Babel,  Prev: Post-aggregation spreadsheet formulas,  Up: Top
 
-30 Post processing
+31 Post processing
 ******************
 
 The aggregated table can be post-processed with the ‘:post’ parameter.
@@ -1777,7 +1810,7 @@ to the ‘:post’ parameter:
 
 File: orgtbl-aggregate.info,  Node: Virtual input table from Babel,  Next: Wide variety of input tables,  Prev: Post processing,  Up: Top
 
-31 Virtual input table from Babel
+32 Virtual input table from Babel
 *********************************
 
 The input table may be the result of executing a Babel script.  In this
@@ -1838,7 +1871,7 @@ executed.
 
 File: orgtbl-aggregate.info,  Node: Wide variety of input tables,  Next: Virtual input columns,  Prev: Virtual input table from Babel,  Up: Top
 
-32 Wide variety of input tables
+33 Wide variety of input tables
 *******************************
 
 As in any other Org Mode source block, the input table may come from
@@ -1899,7 +1932,7 @@ references may be followed by an optional slicing.  Examples:
      the separation line); in this example, it would retain rows 0 and 1
      for the header, and rows 2,3,4,5 for the content.
 
-   • ‘mytable[,0:1]’: retain only the first 2 columns.
+   • ‘mytable[*,0:1]’: retain only the first 2 columns.
 
    • ‘mytable[0:5,0:1]’: retain only the first 6 rows and the first 2
      columns.
@@ -1907,7 +1940,7 @@ references may be followed by an optional slicing.  Examples:
 
 File: orgtbl-aggregate.info,  Node: Virtual input columns,  Next: Chaining,  Prev: Wide variety of input tables,  Up: Top
 
-33 Virtual input columns
+34 Virtual input columns
 ************************
 
 What if we want to aggregate on months?  But the input table contains
@@ -2065,7 +2098,7 @@ parameter).  There is no difference between actual and virtual columns.
 
 File: orgtbl-aggregate.info,  Node: Chaining,  Next: Tricks,  Prev: Virtual input columns,  Up: Top
 
-34 Chaining
+35 Chaining
 ***********
 
 The result of an aggregation may become the source of further
@@ -2116,7 +2149,7 @@ exchange the ‘#+NAME:’ and ‘#+BEGIN:’ lines:
 
 File: orgtbl-aggregate.info,  Node: Tricks,  Next: Installation,  Prev: Chaining,  Up: Top
 
-35 Tricks
+36 Tricks
 *********
 
 This chapter collects some tricks that may be useful.
@@ -2131,7 +2164,7 @@ This chapter collects some tricks that may be useful.
 
 File: orgtbl-aggregate.info,  Node: Sorting (1),  Next: A few lowest or highest values,  Up: Tricks
 
-35.1 Sorting
+36.1 Sorting
 ============
 
      #+name: trick_table_1
@@ -2159,7 +2192,7 @@ handy:
 
 File: orgtbl-aggregate.info,  Node: A few lowest or highest values,  Next: Span of values,  Prev: Sorting (1),  Up: Tricks
 
-35.2 A few lowest or highest values
+36.2 A few lowest or highest values
 ===================================
 
 Used with ‘subvec()’, ‘sort()’ can retrieve the two lowest or the two
@@ -2188,7 +2221,7 @@ two last values:
 
 File: orgtbl-aggregate.info,  Node: Span of values,  Next: No aggregation,  Prev: A few lowest or highest values,  Up: Tricks
 
-35.3 Span of values
+36.3 Span of values
 ===================
 
 ‘vmin()’ and ‘vmax()’ can compute the span of aggregated values:
@@ -2202,7 +2235,7 @@ File: orgtbl-aggregate.info,  Node: Span of values,  Next: No aggregation,  Prev
 
 File: orgtbl-aggregate.info,  Node: No aggregation,  Prev: Span of values,  Up: Tricks
 
-35.4 No aggregation
+36.4 No aggregation
 ===================
 
 Why would one want to use OrgAggregate while not aggregating?  To
@@ -2255,7 +2288,7 @@ single value, any aggregating function will do the trick: ‘vmin()’,
 
 File: orgtbl-aggregate.info,  Node: Installation,  Next: Authors contributors,  Prev: Tricks,  Up: Top
 
-36 Installation
+37 Installation
 ***************
 
 Emacs package on Melpa: add the following lines to your ‘.emacs’ file,
@@ -2278,7 +2311,7 @@ and reload it.
 
 File: orgtbl-aggregate.info,  Node: Authors contributors,  Next: Changes,  Prev: Installation,  Up: Top
 
-37 Authors, contributors
+38 Authors, contributors
 ************************
 
 Authors
@@ -2316,7 +2349,7 @@ Authors
 
 File: orgtbl-aggregate.info,  Node: Changes,  Next: GPL 3 License,  Prev: Authors contributors,  Up: Top
 
-38 Changes
+39 Changes
 **********
 
 Top: earliest change.  Bottom: latest change.
@@ -2396,7 +2429,7 @@ Top: earliest change.  Bottom: latest change.
 
 File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
 
-39 GPL 3 License
+40 GPL 3 License
 ****************
 
 Copyright (C) 2013-2025 Thierry Banel
@@ -2418,49 +2451,50 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Tag Table:
 Node: Top93
-Node: Examples1589
-Node: SQL equivalent5034
-Node: R equivalent5351
-Node: Datamash equivalent5839
-Node: Key-binding & Wizard6379
-Node: Other examples6980
-Node: The cols parameter8308
-Node: Grouping specifications in cols9442
-Node: The @# column9972
-Node: The hline column11841
-Node: hlines in the output table14192
-Node: Aggregation formulas in cols20971
-Node: Where Calc interpretation happens?28478
-Node: The cond filtering33889
-Node: Pull & Push35385
-Node: Symbolic computation39640
-Node: Correlation of two columns41912
-Node: Dates43593
-Node: Durations45573
-Node: Arbitrary column names47381
-Node: Multiple lines header48483
-Node: Custom column names50210
-Node: Empty and malformed input cells51454
-Node: [Almost) any expression can be specified53137
-Node: Modifiers and formatters54608
-Node: Debugging57255
-Node: Sorting61922
-Node: Discarding an output column64583
-Node: Post-aggregation spreadsheet formulas66313
-Node: Post processing67468
-Node: Virtual input table from Babel69240
-Node: Wide variety of input tables70990
-Node: Virtual input columns74190
-Node: Chaining79697
-Node: Tricks81395
-Node: Sorting (1)81672
-Node: A few lowest or highest values82471
-Node: Span of values83772
-Node: No aggregation84331
-Node: Installation86176
-Node: Authors contributors86818
-Node: Changes88446
-Node: GPL 3 License92457
+Node: New1592
+Node: Examples1949
+Node: SQL equivalent5394
+Node: R equivalent5711
+Node: Datamash equivalent6199
+Node: Key-binding & Wizard6739
+Node: Other examples8260
+Node: The cols parameter9588
+Node: Grouping specifications in cols10722
+Node: The @# column11252
+Node: The hline column13123
+Node: hlines in the output table15474
+Node: Aggregation formulas in cols22253
+Node: Where Calc interpretation happens?29760
+Node: The cond filtering35171
+Node: Pull & Push36667
+Node: Symbolic computation40922
+Node: Correlation of two columns43194
+Node: Dates44875
+Node: Durations46855
+Node: Arbitrary column names48663
+Node: Multiple lines header49765
+Node: Custom column names51492
+Node: Empty and malformed input cells52736
+Node: [Almost) any expression can be specified54419
+Node: Modifiers and formatters55890
+Node: Debugging58537
+Node: Sorting63204
+Node: Discarding an output column65865
+Node: Post-aggregation spreadsheet formulas67595
+Node: Post processing68750
+Node: Virtual input table from Babel70522
+Node: Wide variety of input tables72272
+Node: Virtual input columns75473
+Node: Chaining80980
+Node: Tricks82678
+Node: Sorting (1)82955
+Node: A few lowest or highest values83754
+Node: Span of values85055
+Node: No aggregation85614
+Node: Installation87459
+Node: Authors contributors88101
+Node: Changes89729
+Node: GPL 3 License93740
 
 End Tag Table
 

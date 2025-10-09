@@ -1,0 +1,318 @@
+#+TITLE: Unit Tests & Examples for Orgtbl Aggregate
+Copyright (C) 2013-2025  Thierry Banel
+
+org-aggregate is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+org-aggregate is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+* How to run?
+Running all tests should not change anything to this page.
+
+Run this script to complete all the unit tests in a disposable
+buffer. When done, the buffer and the original, untouched
+~wizardtest.org~, are compared, stopping at the first difference.
+
+#+begin_src elisp :results none
+(delete-other-windows)
+(goto-char (point-min))
+(org-cycle '(64))
+(split-window-right)
+
+;; Make a new buffer and fill it with the content of unittests.org
+
+(let ((f (buffer-file-name)))
+  (switch-to-buffer "disposable-wizardtests.org")
+  (erase-buffer)
+  (insert-file f))
+
+(org-mode)
+(org-cycle '(64))
+
+;; Clean results from prior tests
+(save-excursion
+  (goto-char (point-min))
+  (replace-regexp
+   (rx
+    bol "#+BEGIN: aggregate" (* not-newline) "\n"
+    (*? (* any) "\n")
+    "#+END:" (* any) "\n")
+   ""))
+
+;; call all wizard invocations
+(goto-char (point-min))
+(while (search-forward "(execute-kbd-macro" nil t)
+  (beginning-of-line)
+  (forward-sexp)
+  (forward-line)
+  (beginning-of-line)
+  (eval-last-sexp nil))
+
+;; Compare the disposable buffer with the reference wiz1.org
+(goto-char (point-min))
+(compare-windows nil)
+  #+end_src
+
+* test1
+
+(execute-kbd-macro (kbd "
+C-c C-x x a g g <tab> <return>
+u n i t t <tab> <return>
+h l i n <tab> <return>
+<return>
+y * 1 0 ; ' y 1 0 ' <return>
+h l i n e SPC f SPC v s u m ( y ) SPC v s u m ( y 1 0 ) <return>
+<return>
+<return>
+<return>"))
+#+BEGIN: aggregate :table "unittests.org:hlinetable" :cols "hline f vsum(y) vsum(y10)" :precompute "y*10;'y10'"
+| hline | f | vsum(y)        | vsum(y10)             |
+|-------+---+----------------+-----------------------|
+|     0 | 0 | 22             | 220                   |
+|     1 | 1 | 6              | 60                    |
+|     2 | 1 | a + 16         | 10 a + 160            |
+|     3 | 1 | 10 a + b + b^2 | 100 a + 10 b + 10 b^2 |
+#+END:
+
+* a table
+
+#+name: tagqty
+| tag |  val |  qty |
+|-----+------+------|
+| ccc | 9.91 |  4.4 |
+| a   | 5.10 | -4.0 |
+| ccc | 3.86 |  9.9 |
+| bb  | 6.13 |  0.4 |
+| bb  | 8.30 | -6.5 |
+| a   | 4.58 |  8.8 |
+| bb  | 0.68 |  4.6 |
+| a   | 0.96 |  5.6 |
+| ccc | 2.43 |  9.0 |
+| a   | 5.34 | -2.7 |
+| a   | 4.51 | -6.7 |
+| bb  | 3.51 |  5.5 |
+| a   | 9.24 |  3.7 |
+| ccc | 0.19 | -6.7 |
+| ccc | 2.84 |  3.0 |
+| ccc | 3.04 | -5.3 |
+| bb  | 9.78 |  3.1 |
+| ccc | 7.37 | -7.0 |
+| bb  | 0.91 |  4.8 |
+| ccc | 5.28 | -2.4 |
+| bb  | 1.43 |  9.2 |
+| a   | 0.11 |  5.1 |
+
+* test 2
+
+(execute-kbd-macro (kbd "
+C-c C-x x a g g <tab> <return>
+<return>
+t a g q <tab> <return>
+[ <kp-0> : <kp-1> <kp-4> ] <return>
+<return>
+t a g SPC v s u m ( v a l ) SPC v s u m ( q t y ) SPC c o u n t ( ) <return>
+( < = SPC ( s t r i n g - t o - n u m b e r SPC v a l ) SPC 9 . 0 0 ) ) <return>
+<return>
+<return>"))
+#+BEGIN: aggregate :table "tagqty[0:14]" :cols "tag vsum(val) vsum(qty) count()" :cond (<= (string-to-number val) 9.0)
+| tag | vsum(val) | vsum(qty) | count() |
+|-----+-----------+-----------+---------|
+| a   |     20.49 |        1. |       5 |
+| ccc |      6.29 |      18.9 |       2 |
+| bb  |     18.62 |        4. |       4 |
+#+END:
+
+* test :post
+
+#+name: addendrow
+#+begin_src elisp :var table=*this* :colnames t
+(message "TABLE = %S" table)
+(nconc
+ table
+ (list
+  'hline
+  (cl-loop
+   for i from 1 to (length (car table))
+   collect (format "x%d" i))))
+#+end_src
+
+(execute-kbd-macro (kbd "
+C-c C-x x a g g <tab> <return>
+<return>
+t a g q <tab> <return>
+<return>
+<return>
+t a g SPC v m e a n ( v a l ) ; f 2 SPC v m e a n ( q t y ) ; f 2 <return>
+<return>
+<return>
+a d d e n d r o w <return>"))
+#+BEGIN: aggregate :table "tagqty" :cols "tag vmean(val);f2 vmean(qty);f2" :post "addendrow"
+| tag | vmean(val) | vmean(qty) |
+|-----+------------+------------|
+| ccc |       4.37 |       0.61 |
+| a   |       4.26 |       1.40 |
+| bb  |       4.39 |       3.01 |
+|-----+------------+------------|
+| x1  |         x2 |         x3 |
+#+END:
+
+* test :hline
+
+(execute-kbd-macro (kbd "
+C-c C-x x a g g <tab> <return>
+<return>
+t a g q <tab> <return>
+<return>
+f l o o r ( v a l ) ; ' v f ' <return>
+t a g ; ^ a SPC v f ; ^ n SPC v m e a n ( q t y ) SPC c o u n t ( ) <return>
+<return>
+1 <return>
+<return>"))
+#+BEGIN: aggregate :table "tagqty" :cols "tag;^a vf;^n vmean(qty) count()" :hline "1" :precompute "floor(val);'vf'"
+| tag | vf | vmean(qty) | count() |
+|-----+----+------------+---------|
+| a   |  0 |       5.35 |       2 |
+| a   |  4 |       1.05 |       2 |
+| a   |  5 |      -3.35 |       2 |
+| a   |  9 |        3.7 |       1 |
+|-----+----+------------+---------|
+| bb  |  0 |        4.7 |       2 |
+| bb  |  1 |        9.2 |       1 |
+| bb  |  3 |        5.5 |       1 |
+| bb  |  6 |        0.4 |       1 |
+| bb  |  8 |       -6.5 |       1 |
+| bb  |  9 |        3.1 |       1 |
+|-----+----+------------+---------|
+| ccc |  0 |       -6.7 |       1 |
+| ccc |  2 |         6. |       2 |
+| ccc |  3 |        2.3 |       2 |
+| ccc |  5 |       -2.4 |       1 |
+| ccc |  7 |        -7. |       1 |
+| ccc |  9 |        4.4 |       1 |
+#+END:
+
+* test CSV
+
+(execute-kbd-macro (kbd "
+C-c C-x x a g g <tab> <return>
+g e o g r <tab> c <tab> <return>
+<return>
+<return>
+<return>
+$ 2 SPC v s u m ( $ 3 ) ; f 0 SPC v m e a n ( $ 4 ) ; f 0 ; ^ n SPC c o u n t ( ) <return>
+<return>
+<return>
+<return>
+"))
+#+BEGIN: aggregate :table "geography-a.csv:(csv)" :cols "$2 vsum($3);f0 vmean($4);f0;^n count()"
+| $2             |  vsum($3) | vmean($4) | count() |
+|----------------+-----------+-----------+---------|
+| Israel         |   4577871 |   4500492 |       1 |
+| Taiwan         |   4570576 |   4522439 |       1 |
+| Cameroon       |   4859198 |   4692347 |       1 |
+| Afghanistan    |   4862586 |   4712793 |       1 |
+| Australia      |  10663074 |  5247013. |       2 |
+| Kenya          |   5772121 |   5560131 |       1 |
+| South Africa   |  11501203 |  5649307. |       2 |
+| Ethiopia       |   5961711 |   5681609 |       1 |
+| Myanmar        |   5829964 |   5706310 |       1 |
+| Ivory Coast    |   6054358 |   5859424 |       1 |
+| Singapore      |   6167759 |   6115882 |       1 |
+| Spain          |  12577695 |   6265703 |       2 |
+| Saudi Arabia   |  12980333 |  6386230. |       2 |
+| Canada         |   6513813 |   6450438 |       1 |
+| Sudan          |   6778168 |   6526345 |       1 |
+| Chile          |   6973392 |   6953542 |       1 |
+| Vietnam        |  15392473 |  7481426. |       2 |
+| Hong Kong      |   7791531 |   7716372 |       1 |
+| Iraq           |   8154140 |   7911328 |       1 |
+| United States  |   7966324 |   8100605 |       1 |
+| Tanzania       |   8529744 |   8188494 |       1 |
+| Malaysia       |   8980578 |   8832827 |       1 |
+| Russia         |  18346030 |   9144834 |       2 |
+| China          | 264183191 |  9260336. |      28 |
+| Iran           |   9738111 |   9606808 |       1 |
+| Angola         |  10049628 |   9648709 |       1 |
+| United Kingdom |   9818142 |   9723207 |       1 |
+| South Korea    |  10059272 |   9991484 |       1 |
+| Nigeria        |  21763797 |  10518043 |       2 |
+| Turkey         |  21777496 |  10765670 |       2 |
+| Mexico         |  33697146 | 11061345. |       3 |
+| Thailand       |  11415533 |  11195528 |       1 |
+| France         |  11352823 |  11304387 |       1 |
+| Peru           |  11529982 |  11388304 |       1 |
+| Indonesia      |  11628728 |  11478423 |       1 |
+| Colombia       |  11779275 |  11660428 |       1 |
+| Brazil         |  48284586 | 11950654. |       4 |
+| India          | 140092165 |  13696246 |      10 |
+| Egypt          |  28897566 | 14165193. |       2 |
+| Bangladesh     |  30197563 | 14745963. |       2 |
+| Philippines    |  15211511 |  14917612 |       1 |
+| Argentina      |  15714124 |  15634092 |       1 |
+| Pakistan       |  32895483 | 15998680. |       2 |
+| DR Congo       |  17815364 |  17025505 |       1 |
+| Japan          |  71117892 | 17814626. |       4 |
+#+END:
+
+* test JSON
+
+(execute-kbd-macro (kbd "
+C-c C-x x a g g <tab> <return>
+g e o g r <tab> j <tab> <return>
+<return>
+<return>
+<return>
+$ 2 SPC v m i n ( $ 3 ) SPC v m a x ( $ 3 ) ; ^ n <return>
+( > = SPC $ 4 SPC 6 0 0 0 0 0 0 ) <return>
+<return>
+<return>
+"))
+#+BEGIN: aggregate :table "geography-a.json:(json)" :cols "$2 vmin($3) vmax($3);^n" :cond (>= $4 6000000)
+| $2             | vmin($3) | vmax($3) |
+|----------------+----------+----------|
+| Singapore      |  6167759 |  6167759 |
+| South Africa   |  6436807 |  6436807 |
+| Canada         |  6513813 |  6513813 |
+| Sudan          |  6778168 |  6778168 |
+| Spain          |  6826620 |  6826620 |
+| Chile          |  6973392 |  6973392 |
+| Hong Kong      |  7791531 |  7791531 |
+| Saudi Arabia   |  7964688 |  7964688 |
+| United States  |  7966324 |  7966324 |
+| Iraq           |  8154140 |  8154140 |
+| Tanzania       |  8529744 |  8529744 |
+| Malaysia       |  8980578 |  8980578 |
+| Iran           |  9738111 |  9738111 |
+| Vietnam        |  9798896 |  9798896 |
+| United Kingdom |  9818142 |  9818142 |
+| Angola         | 10049628 | 10049628 |
+| South Korea    | 10059272 | 10059272 |
+| France         | 11352823 | 11352823 |
+| Thailand       | 11415533 | 11415533 |
+| Peru           | 11529982 | 11529982 |
+| Indonesia      | 11628728 | 11628728 |
+| Colombia       | 11779275 | 11779275 |
+| Russia         | 12768223 | 12768223 |
+| Philippines    | 15211511 | 15211511 |
+| Argentina      | 15714124 | 15714124 |
+| Turkey         | 16211581 | 16211581 |
+| Nigeria        | 17124998 | 17124998 |
+| DR Congo       | 17815364 | 17815364 |
+| Pakistan       | 14835678 | 18059805 |
+| Mexico         | 22831373 | 22831373 |
+| Brazil         |  6360069 | 23045227 |
+| Egypt          | 23095986 | 23095986 |
+| Bangladesh     | 24561693 | 24561693 |
+| China          |  6242353 | 30365228 |
+| India          |  7498726 | 34598951 |
+| Japan          |  9544065 | 37131070 |
+#+END:
+

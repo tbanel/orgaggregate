@@ -1289,7 +1289,7 @@ which do not pass the filter found in PARAMS entry :cond."
 
     (if precompute
         (setq table (orgtbl-aggregate--enrich-table table precompute)))
-    
+
     (unless aggcols
       (setq aggcols (orgtbl-aggregate--get-header-table table)))
     (if (stringp aggcols)
@@ -2015,7 +2015,8 @@ Note:
   "Display help for each field the wizard queries."
   (with-current-buffer "*orgtbl-aggregate-help*"
     (erase-buffer)
-    (insert (apply #'format explain args))))
+    (insert (apply #'format explain args))
+    (goto-char (point-min))))
 
 (defun orgtbl-aggregate--wizard-create-update (oldline)
   "Update OLDLINE parameters by interactivly querying user.
@@ -2026,11 +2027,15 @@ OLDLINE is supposed to be extracted from an Org Mode block such as:
 If (point) is not on such a line, OLDLINE is nil.
 The function returns a plist which is an updated version of OLDLINE
 amended by the user."
-  (let (oldfile oldname oldslice
-                file tablenames table slice headerlist header precompute
-                aggcols aggcond hline postprocess params)
+  (let ((minibuffer-local-completion-map
+         (define-keymap :parent minibuffer-local-completion-map
+           "SPC" nil)) ;; allow inserting spaces
+        (table (alist-get :table oldline))
+        file slice
+        tablenames headerlist header precompute
+        aggcols aggcond hline postprocess params)
     (when (and
-           (setq table (alist-get :table oldline))
+           table
            (string-match
             (rx bos
                 (? (group (+ (not (any ":[]")))) ":")
@@ -2038,70 +2043,75 @@ amended by the user."
                 (?  (group "[" (* any) "]"))
                 eos)
             table))
-      (setq oldfile  (match-string 1 table))
-      (setq oldname  (match-string 2 table))
-      (setq oldslice (match-string 3 table)))
+      (setq file  (match-string 1 table))
+      (setq slice (match-string 3 table))
+      (setq table (match-string 2 table)))
 
     (save-window-excursion
       (save-selected-window
-        (split-window nil 15 'above)
+        (split-window nil 16 'above)
         (switch-to-buffer "*orgtbl-aggregate-help*")
         (org-mode))
 
       (orgtbl-aggregate--display-help "* Which file?
-The input table may be in another file.")
+The input table may be in another file.
+Leave answer empty to mean that the input table is in the current buffer.")
       (let ((insert-default-directory nil))
         (setq file
               (read-file-name "File (RET for current buffer): "
                               nil
                               nil
                               nil
-                              oldfile)))
+                              file)))
 
       (if (equal file "") (setq file nil))
 
       (setq tablenames (orgtbl-aggregate--list-local-tables file))
       (if file
-          (setq tablenames (nconc tablenames '("(csv)" "(json)"))))
+          (setq tablenames (nconc tablenames '("(csv)" "(csv header)" "(json)"))))
 
       (and
        file
-       (not oldname)
+       (not table)
        (cond
         ((string-match (rx ".csv"  eos) file)
-         (setq oldname "(csv)"))
+         (setq table "(csv)"))
         ((string-match (rx ".json" eos) file)
-         (setq oldname "(json)"))))
+         (setq table "(json)"))))
 
       (orgtbl-aggregate--display-help "* The input table may be:
 - a regular Org table,
 - a Babel block whose output will be the input table,
 - a ~CSV~ or ~JSON~ formatted file.
 Org table & Babel block names are available at completion (type ~TAB~).
-Alternatly, it may be an Org ID pointing to a table or Babel block
+Alternately, it may be an Org ID pointing to a table or Babel block
   (no completion).
 For a Babel block, the name of the Babel may be followed by
-  parematers in parenthesis. Example: ~mybabel(p=\"a\",quty=12)~
+  parameters in parenthesis. Example: ~mybabel(p=\"a\",quty=12)~
 for a ~CSV~ table, type ~(csv params…)~
-for a ~JSON~ table, type ~(json params…)~")
+  currently only ~(cvs header)~ is recognized: first row is a header
+for a ~JSON~ table, type ~(json params…)~
+  currently no parameters are recognized.")
       (setq table
             (completing-read
              "Table, Babel, ID, (csv…), (json…): "
              tablenames
              nil
              nil ;; user is free to input anything
-             oldname))
+             table))
 
       (orgtbl-aggregate--display-help "* Slicing
-Slicing is an Org Mode feature allowing to slice an input table.
-Examples:
+Slicing is an Org Mode feature allowing to cut the input table.
+It applies to any input: Org table, Babel output, CSV, JSON.
+Leave empty for no slicing.
+** Examples:
 - ~mytable[0:5]~     retains only the first 6 rows of the input table
 - ~mytable[*,0:1]~   retains only the first 2 columns
 - ~mytable[0:5,0:1]~ retains 5 rows and 2 columns")
       (setq slice
             (read-string
              "Input slicing (optional): "
-             oldslice
+             slice
              'orgtbl-aggregate-history-cols))
 
       (setq headerlist
@@ -2112,14 +2122,14 @@ Examples:
             (mapconcat
              (lambda (x) (format " ~%s~" x))
              headerlist))
-         
+
       (orgtbl-aggregate--display-help "* Precompute
 The input table may be enriched with additional columns prior to aggregating.
 The syntax is the regular Org table spreadsheet formulas for columns,
 including formatting.
 Additionnaly, the name of new columns can be specified after a semicolumn.
 ** Available columns
-%s
+  %s
 ** Example
   ~quty*10;f1;'q10'~
 means:
@@ -2150,15 +2160,17 @@ means:
       (orgtbl-aggregate--display-help "* Target columns
 ** They may be
 - bare input columns, acting as grouping keys,
-- formulas in the syntax of Org spreadsheet.
+- formulas in the syntax of Org spreadsheet, like ~vmean()~, ~vsum()~, ~count()~.
 ** Formatting
 Each target column may be followed optionally by semicolon separated parameters:
 - alternate name, example ;'alternate-name'
-- formating, examples ~;f2~ ~;%%.2f~
+- formatting, examples ~;f2~ ~;%%.2f~
 - sorting, examples ~;^a~ ~;^A~ ~;^n~ ~;^N~
 - invisibility  ~;<>~
 ** Available input columns
-%s"
+  %s
+** Examples:
+  ~vmean(quty);f2~, ~vsum(amount);'total'~"
                                       header)
       (setq aggcols
             (replace-regexp-in-string
@@ -2167,11 +2179,16 @@ Each target column may be followed optionally by semicolon separated parameters:
               "Target columns & formulas: "
               (alist-get :cols oldline)
               'orgtbl-aggregate-history-cols)))
-         
+
       (orgtbl-aggregate--display-help "* Filter rows
 Lisp function, lambda, or Babel block to filter out rows.
 ** Available input columns
-%s"
+  %s
+** Example
+  ~(>= (string-to-number quty) 3)~
+  only rows with cell ~quty~ higher or equal to ~3~ are retained.
+  ~(not (equal tag \"dispose\"))~
+  rows with cell ~tag~ equal to ~dispose~ are filtered out."
                                       header)
       (setq aggcond
             (read-string
@@ -2179,23 +2196,29 @@ Lisp function, lambda, or Babel block to filter out rows.
              (alist-get :cond oldline)
              'orgtbl-aggregate-history-cols))
 
-      (orgtbl-aggregate--display-help "* Output horizonal separators level
+      (orgtbl-aggregate--display-help "* Output horizontal separators level
 - 0 or empty means no lines in the output
 - 1 means separate rows of identical values on 1 column
 - 2 means separate rows of identical values on 2 columns
-- larger values are allowed, but questionably useful")
+- larger values are allowed, but questionably useful.
+The columns considered are the sorted ones.")
       (setq hline
-             (completing-read
-         "hline (optional): "
-         '("0" "1" "2" "3")
-         nil
-         'confirm
-         (orgtbl-aggregate--cell-to-string (alist-get :hline oldline))))
-         
+            (completing-read
+             "hline (optional): "
+             '("0" "1" "2" "3")
+             nil
+             'confirm
+             (orgtbl-aggregate--cell-to-string (alist-get :hline oldline))))
+
       (orgtbl-aggregate--display-help "* Post-process
 The output aggregated table may be post-processed prior to printing it
 in the current buffer.
-The processor may be a Lisp function, a lambda, or a Babel block.")
+The processor may be a Lisp function, a lambda, or a Babel block.
+** Example:
+  ~(lambda (table) (append table '(hline (banana 42))))~
+  two rows are appended at the end of the output table:
+  ~hline~ which means horizontal line,
+  and a row with two cells.")
       (setq postprocess
             (read-string
              "Post process (optional): "

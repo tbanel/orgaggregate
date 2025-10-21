@@ -2002,14 +2002,20 @@ Note:
 ;; again or edited
 (defvar orgtbl-aggregate-history-cols ())
 
-(defun orgtbl-aggregate--parse-header-arguments ()
+(defun orgtbl-aggregate--parse-header-arguments (type)
+  "If (point) is on a #+begin: line, parse it, and return an a-list.
+TYPE is \"aggregate\" or \"transpose\", or possibly any type of block.
+If the line the (point) is on do not match TYPE, return nil."
   (let ((line (buffer-substring-no-properties
                (line-beginning-position)
-               (line-end-position))))
-    (if (string-match
-         (rx bos (* blank) "#+begin:" (* blank) "aggregate")
-         line)
-        (cdr (org-babel-parse-header-arguments line t)))))
+               (line-end-position)))
+        (case-fold-search t))
+    (and
+     (string-match
+      (rx bos (* blank) "#+begin:" (* blank) (group (+ word)))
+      line)
+     (equal (match-string 1 line) type)
+     (cdr (org-babel-parse-header-arguments line t)))))
 
 (defun orgtbl-aggregate--display-help (explain &rest args)
   "Display help for each field the wizard queries."
@@ -2018,22 +2024,11 @@ Note:
     (insert (apply #'format explain args))
     (goto-char (point-min))))
 
-(defun orgtbl-aggregate--wizard-create-update (oldline)
-  "Update OLDLINE parameters by interactivly querying user.
-OLDLINE is an alist containing parameter-value pairs.
-Example: \\'((:table . \"thetable\") (:cols . \"day vsum(quty)\") …)
-OLDLINE is supposed to be extracted from an Org Mode block such as:
-#+begin: aggregate :table \"thetable\" :cols \"day vsum(quty)\" …
-If (point) is not on such a line, OLDLINE is nil.
-The function returns a plist which is an updated version of OLDLINE
-amended by the user."
-  (let ((minibuffer-local-completion-map
-         (define-keymap :parent minibuffer-local-completion-map
-           "SPC" nil)) ;; allow inserting spaces
-        (table (alist-get :table oldline))
-        file slice
-        tablenames headerlist header precompute
-        aggcols aggcond hline postprocess params)
+(defun orgtbl-aggregate--wizard-query-table (table)
+  "Query the 3 fields composing a generalized table: file:name:slice.
+If TABLE is not nil, it is decomposed into file:name:slice, and each
+of those 3 fields serve as default answer when prompting."
+  (let (file slice tablenames)
     (when (and
            table
            (string-match
@@ -2047,39 +2042,35 @@ amended by the user."
       (setq slice (match-string 3 table))
       (setq table (match-string 2 table)))
 
-    (save-window-excursion
-      (save-selected-window
-        (split-window nil 16 'above)
-        (switch-to-buffer "*orgtbl-aggregate-help*")
-        (org-mode))
+    (orgtbl-aggregate--display-help
+     "* In which file is the table?
+The table may be in another file.
+Leave answer empty to mean that the table is in the current buffer.")
+    (let ((insert-default-directory nil))
+      (setq file
+            (read-file-name "File (RET for current buffer): "
+                            nil
+                            nil
+                            nil
+                            file)))
 
-      (orgtbl-aggregate--display-help "* Which file?
-The input table may be in another file.
-Leave answer empty to mean that the input table is in the current buffer.")
-      (let ((insert-default-directory nil))
-        (setq file
-              (read-file-name "File (RET for current buffer): "
-                              nil
-                              nil
-                              nil
-                              file)))
+    (if (equal file "") (setq file nil))
 
-      (if (equal file "") (setq file nil))
+    (setq tablenames (orgtbl-aggregate--list-local-tables file))
+    (if file
+        (setq tablenames (nconc tablenames '("(csv)" "(csv header)" "(json)"))))
 
-      (setq tablenames (orgtbl-aggregate--list-local-tables file))
-      (if file
-          (setq tablenames (nconc tablenames '("(csv)" "(csv header)" "(json)"))))
+    (and
+     file
+     (not table)
+     (cond
+      ((string-match (rx ".csv"  eos) file)
+       (setq table "(csv)"))
+      ((string-match (rx ".json" eos) file)
+       (setq table "(json)"))))
 
-      (and
-       file
-       (not table)
-       (cond
-        ((string-match (rx ".csv"  eos) file)
-         (setq table "(csv)"))
-        ((string-match (rx ".json" eos) file)
-         (setq table "(json)"))))
-
-      (orgtbl-aggregate--display-help "* The input table may be:
+    (orgtbl-aggregate--display-help
+     "* The input table may be:
 - a regular Org table,
 - a Babel block whose output will be the input table,
 - a ~CSV~ or ~JSON~ formatted file.
@@ -2092,14 +2083,15 @@ for a ~CSV~ table, type ~(csv params…)~
   currently only ~(cvs header)~ is recognized: first row is a header
 for a ~JSON~ table, type ~(json params…)~
   currently no parameters are recognized.")
-      (setq table
-            (completing-read
-             "Table, Babel, ID, (csv…), (json…): "
-             tablenames
-             nil
-             nil ;; user is free to input anything
-             table))
+    (setq table
+          (completing-read
+           "Table, Babel, ID, (csv…), (json…): "
+           tablenames
+           nil
+           nil ;; user is free to input anything
+           table))
 
+    (unless (string-match-p (rx bos (* space) eos) table)
       (orgtbl-aggregate--display-help "* Slicing
 Slicing is an Org Mode feature allowing to cut the input table.
 It applies to any input: Org table, Babel output, CSV, JSON.
@@ -2114,16 +2106,47 @@ Leave empty for no slicing.
              slice
              'orgtbl-aggregate-history-cols))
 
+      (concat
+       (or file "")
+       (if file ":" "")
+       table
+       (or slice "")))))
+
+(defun orgtbl-aggregate--wizard-aggregate-create-update (oldline)
+  "Update OLDLINE parameters by interactivly querying user.
+OLDLINE is an alist containing parameter-value pairs.
+Example: \\'((:table . \"thetable\") (:cols . \"day vsum(quty)\") …)
+OLDLINE is supposed to be extracted from an Org Mode block such as:
+#+begin: aggregate :table \"thetable\" :cols \"day vsum(quty)\" …
+If (point) is not on such a line, OLDLINE is nil.
+The function returns a plist which is an updated version of OLDLINE
+amended by the user."
+  (let ((minibuffer-local-completion-map
+         (define-keymap :parent minibuffer-local-completion-map
+           "SPC" nil)) ;; allow inserting spaces
+        table headerlist header precompute
+        aggcols aggcond hline postprocess params)
+
+    (save-window-excursion
+      (save-selected-window
+        (split-window nil 16 'above)
+        (switch-to-buffer "*orgtbl-aggregate-help*")
+        (org-mode))
+
+      (setq table
+            (orgtbl-aggregate--wizard-query-table
+             (alist-get :table oldline)))
+
       (setq headerlist
-            (orgtbl-aggregate--get-header-table
-             (if file (format "%s:%s" file table) table)))
+            (orgtbl-aggregate--get-header-table table))
 
       (setq header
             (mapconcat
              (lambda (x) (format " ~%s~" x))
              headerlist))
 
-      (orgtbl-aggregate--display-help "* Precompute
+      (orgtbl-aggregate--display-help
+       "* Precompute (optional)
 The input table may be enriched with additional columns prior to aggregating.
 The syntax is the regular Org table spreadsheet formulas for columns,
 including formatting.
@@ -2136,7 +2159,7 @@ means:
 - add a new column to the input table named ~q10~
 - compute it as ~10~ times the ~quty~ input column
 - format it with ~f1~, 1 digit after dot"
-                                      header)
+       header)
       (setq precompute
             (read-string
              "Formulas for additional input columns (optional): "
@@ -2157,7 +2180,8 @@ means:
                (lambda (x) (format " ~%s~" x))
                headerlist)))
 
-      (orgtbl-aggregate--display-help "* Target columns
+      (orgtbl-aggregate--display-help
+       "* Target columns
 ** They may be
 - bare input columns, acting as grouping keys,
 - formulas in the syntax of Org spreadsheet, like ~vmean()~, ~vsum()~, ~count()~.
@@ -2171,7 +2195,7 @@ Each target column may be followed optionally by semicolon separated parameters:
   %s
 ** Examples:
   ~vmean(quty);f2~, ~vsum(amount);'total'~"
-                                      header)
+       header)
       (setq aggcols
             (replace-regexp-in-string
              "\"" "'"
@@ -2180,7 +2204,8 @@ Each target column may be followed optionally by semicolon separated parameters:
               (alist-get :cols oldline)
               'orgtbl-aggregate-history-cols)))
 
-      (orgtbl-aggregate--display-help "* Filter rows
+      (orgtbl-aggregate--display-help
+       "* Filter rows
 Lisp function, lambda, or Babel block to filter out rows.
 ** Available input columns
   %s
@@ -2189,7 +2214,7 @@ Lisp function, lambda, or Babel block to filter out rows.
   only rows with cell ~quty~ higher or equal to ~3~ are retained.
   ~(not (equal tag \"dispose\"))~
   rows with cell ~tag~ equal to ~dispose~ are filtered out."
-                                      header)
+       header)
       (setq aggcond
             (read-string
              "Row filter (optional): "
@@ -2229,12 +2254,7 @@ The processor may be a Lisp function, a lambda, or a Babel block.
     (setq params
           (list
            :name "aggregate"
-           :table
-           (concat
-            (or file "")
-            (if file ":" "")
-            table
-            (or slice ""))
+           :table table
            :cols aggcols))
     (unless (eq (length aggcond) 0)
       (nconc params `(:cond ,(read aggcond))))
@@ -2246,8 +2266,7 @@ The processor may be a Lisp function, a lambda, or a Babel block.
       (nconc params `(:post ,postprocess)))
     (cl-loop
      for pair in oldline
-     unless (memq (car pair)
-                  '(:table :precompute :cols :cond :hline :post))
+     unless (memq (car pair) '(:table :precompute :cols :cond :hline :post))
      do (nconc params `(,(car pair) ,(cdr pair))))
     params))
 
@@ -2255,8 +2274,8 @@ The processor may be a Lisp function, a lambda, or a Babel block.
 (defun orgtbl-aggregate-insert-dblock-aggregate ()
   "Wizard to interactively insert an aggregate dynamic block."
   (interactive)
-  (let* ((oldline (orgtbl-aggregate--parse-header-arguments))
-         (params (orgtbl-aggregate--wizard-create-update oldline)))
+  (let* ((oldline (orgtbl-aggregate--parse-header-arguments "aggregate"))
+         (params (orgtbl-aggregate--wizard-aggregate-create-update oldline)))
     (when oldline
       (org-mark-element)
       (delete-region (region-beginning) (1- (region-end))))
@@ -2452,38 +2471,114 @@ Note:
       post))
     (orgtbl-aggregate--table-recalculate content formula)))
 
+(defun orgtbl-aggregate--wizard-transpose-create-update (oldline)
+  "Update OLDLINE parameters by interactivly querying user.
+OLDLINE is an alist containing parameter-value pairs.
+Example: \\'((:table . \"thetable\") (:cols . \"day month\") …)
+OLDLINE is supposed to be extracted from an Org Mode block such as:
+#+begin: transpose :table \"thetable\" :cols \"day month\" …
+If (point) is not on such a line, OLDLINE is nil.
+The function returns a plist which is an updated version of OLDLINE
+amended by the user."
+  (let ((minibuffer-local-completion-map
+         (define-keymap :parent minibuffer-local-completion-map
+           "SPC" nil)) ;; allow inserting spaces
+        table headerlist header aggcols aggcond postprocess params)
+
+    (save-window-excursion
+      (save-selected-window
+        (split-window nil 16 'above)
+        (switch-to-buffer "*orgtbl-aggregate-help*")
+        (org-mode))
+
+      (setq table
+            (orgtbl-aggregate--wizard-query-table
+             (alist-get :table oldline)))
+
+      (setq headerlist
+            (orgtbl-aggregate--get-header-table table))
+
+      (setq header
+            (mapconcat
+             (lambda (x) (format " ~%s~" x))
+             headerlist))
+
+      (orgtbl-aggregate--display-help
+       "* Target columns
+** Optional
+If the answer is left empty, all input columns are kept,
+in the same order.
+** Available input columns
+  %s"
+       header)
+      (setq aggcols
+            (replace-regexp-in-string
+             "\"" "'"
+             (read-string
+              "Target columns & formulas: "
+              (alist-get :cols oldline)
+              'orgtbl-aggregate-history-cols)))
+
+      (orgtbl-aggregate--display-help
+       "* Filter rows
+Optional.
+Lisp function, lambda, or Babel block to filter out rows.
+** Available input columns
+  %s
+** Example
+  ~(>= (string-to-number quty) 3)~
+  only rows with cell ~quty~ higher or equal to ~3~ are retained.
+  ~(not (equal tag \"dispose\"))~
+  rows with cell ~tag~ equal to ~dispose~ are filtered out."
+       header)
+      (setq aggcond
+            (read-string
+             "Row filter (optional): "
+             (alist-get :cond oldline)
+             'orgtbl-aggregate-history-cols))
+
+      (orgtbl-aggregate--display-help
+       "* Post-process
+** Optional.
+The output transposed table may be post-processed prior to printing it
+in the current buffer.
+The processor may be a Lisp function, a lambda, or a Babel block.
+** Example:
+  ~(lambda (table) (append table '(hline (banana 42))))~
+  two rows are appended at the end of the output table:
+  ~hline~ which means horizontal line,
+  and a row with two cells.")
+      (setq postprocess
+            (read-string
+             "Post process (optional): "
+             (alist-get :post oldline)
+             'orgtbl-aggregate-history-cols))
+      )
+
+    (setq params
+          (list
+           :name "transpose"
+           :table table
+           :cols aggcols))
+    (unless (eq (length aggcond) 0)
+      (nconc params `(:cond ,(read aggcond))))
+    (unless (eq (length postprocess) 0)
+      (nconc params `(:post ,postprocess)))
+    (cl-loop
+     for pair in oldline
+     unless (memq (car pair) '(:table :cols :cond :post))
+     do (nconc params `(,(car pair) ,(cdr pair))))
+    params))
+
 ;;;###autoload
 (defun orgtbl-aggregate-insert-dblock-transpose ()
   "Wizard to interactively insert a transpose dynamic block."
   (interactive)
-  (let* ((table
-	  (completing-read
-	   "Table name: "
-	   (orgtbl-aggregate--list-local-tables nil)
-	   nil
-	   'confirm))
-	 (header
-	  (condition-case _err (orgtbl-aggregate--get-header-table table t)
-	    (t "$1 $2 $3 $4 ...")))
-	 (aggcols
-	  (replace-regexp-in-string
-	   "\"" "'"
-	   (read-string
-	    (format
-	     "target columns (empty for all) (source columns are: %s): "
-	     header)
-	    nil 'orgtbl-aggregate-history-cols)))
-	 (aggcond
-	  (read-string
-	   (format
-	    "condition (optional lisp function) (source columns: %s): "
-	    header)
-	   nil 'orgtbl-aggregate-history-cols))
-	 (params (list :name "transpose" :table table)))
-    (unless (string= aggcols "")
-      (nconc params (list :cols aggcols)))
-    (unless (string= aggcond "")
-      (nconc params (list :cond (read aggcond))))
+  (let* ((oldline (orgtbl-aggregate--parse-header-arguments "transpose"))
+         (params (orgtbl-aggregate--wizard-transpose-create-update oldline)))
+    (when oldline
+      (org-mark-element)
+      (delete-region (region-beginning) (1- (region-end))))
     (org-create-dblock params)
     (org-update-dblock)))
 

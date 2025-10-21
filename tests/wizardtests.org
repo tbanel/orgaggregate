@@ -316,3 +316,46 @@ $ 2 SPC v m i n ( $ 3 ) SPC v m a x ( $ 3 ) ; ^ n <return>
 | Japan          |  9544065 | 37131070 |
 #+END:
 
+* transpose
+
+#+name: sunnydays
+| feat |   | mon | tue | wed | thu | fri | sat | sun |
+|------+---+-----+-----+-----+-----+-----+-----+-----|
+| rain |   |  no | yes | yes |  no |  no |  no | no  |
+| temp |   |  23 |  15 |  13 |  16 |  19 |  22 | 25  |
+| wind |   |  10 |   0 |  10 |  20 |  20 |  25 | 15  |
+
+(execute-kbd-macro (kbd "
+C-c C-x x t r a n <tab> <return>
+<return>
+<return>
+<return>
+<return>
+<return>
+<return>"))
+#+BEGIN: transpose :table "sunnydays" :cols ""
+| feat |   | rain | temp | wind |
+|------+---+------+------+------|
+| mon  |   | no   |   23 |   10 |
+| tue  |   | yes  |   15 |    0 |
+| wed  |   | yes  |   13 |   10 |
+| thu  |   | no   |   16 |   20 |
+| fri  |   | no   |   19 |   20 |
+| sat  |   | no   |   22 |   25 |
+| sun  |   | no   |   25 |   15 |
+#+END:
+
+(execute-kbd-macro (kbd "
+C-c C-x x tran <tab> <return>
+<return>
+<return>
+<return>
+C-a C-k feat SPC sun SPC mon SPC sat <return>
+<return>
+<return>"))
+#+BEGIN: transpose :table "sunnydays" :cols "feat sun mon sat"
+| feat |   | rain | temp | wind |
+| sun  |   | no   |   25 |   15 |
+| mon  |   | no   |   23 |   10 |
+| sat  |   | no   |   22 |   25 |
+#+END:

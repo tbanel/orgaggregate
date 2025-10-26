@@ -1997,6 +1997,16 @@ Note:
       post))
     (orgtbl-aggregate--table-recalculate content formula)))
 
+(defun orgtbl-aggregate--alist-get-remove (key alist)
+  "A variant of alist-get which removes an entry once read.
+ALIST is a list of pairs (key . value).
+Search ALIST for a KEY. If found, replace the key in (key . value)
+by nil, and return value. If nothing is found, return nil."
+  (let ((x (assq key alist)))
+    (when x
+      (setcar x nil)
+      (cdr x))))
+
 ;; This variable contains history of user entered
 ;; :cols and :cond parameters, so that they can be entered
 ;; again or edited
@@ -2135,7 +2145,7 @@ amended by the user."
 
       (setq table
             (orgtbl-aggregate--wizard-query-table
-             (alist-get :table oldline)))
+             (orgtbl-aggregate--alist-get-remove :table oldline)))
 
       (setq headerlist
             (orgtbl-aggregate--get-header-table table))
@@ -2163,7 +2173,7 @@ means:
       (setq precompute
             (read-string
              "Formulas for additional input columns (optional): "
-             (alist-get :precompute oldline)
+             (orgtbl-aggregate--alist-get-remove :precompute oldline)
              'orgtbl-aggregate-history-cols))
 
       (unless (eq (length precompute) 0)
@@ -2201,7 +2211,7 @@ Each target column may be followed optionally by semicolon separated parameters:
              "\"" "'"
              (read-string
               "Target columns & formulas: "
-              (alist-get :cols oldline)
+              (orgtbl-aggregate--alist-get-remove :cols oldline)
               'orgtbl-aggregate-history-cols)))
 
       (orgtbl-aggregate--display-help
@@ -2218,7 +2228,7 @@ Lisp function, lambda, or Babel block to filter out rows.
       (setq aggcond
             (read-string
              "Row filter (optional): "
-             (alist-get :cond oldline)
+             (orgtbl-aggregate--alist-get-remove :cond oldline)
              'orgtbl-aggregate-history-cols))
 
       (orgtbl-aggregate--display-help "* Output horizontal separators level
@@ -2233,7 +2243,8 @@ The columns considered are the sorted ones.")
              '("0" "1" "2" "3")
              nil
              'confirm
-             (orgtbl-aggregate--cell-to-string (alist-get :hline oldline))))
+             (orgtbl-aggregate--cell-to-string
+              (orgtbl-aggregate--alist-get-remove :hline oldline))))
 
       (orgtbl-aggregate--display-help "* Post-process
 The output aggregated table may be post-processed prior to printing it
@@ -2247,7 +2258,7 @@ The processor may be a Lisp function, a lambda, or a Babel block.
       (setq postprocess
             (read-string
              "Post process (optional): "
-             (alist-get :post oldline)
+             (orgtbl-aggregate--alist-get-remove :post oldline)
              'orgtbl-aggregate-history-cols))
       )
 
@@ -2266,7 +2277,7 @@ The processor may be a Lisp function, a lambda, or a Babel block.
       (nconc params `(:post ,postprocess)))
     (cl-loop
      for pair in oldline
-     unless (memq (car pair) '(:table :precompute :cols :cond :hline :post))
+     if (car pair)
      do (nconc params `(,(car pair) ,(cdr pair))))
     params))
 
@@ -2493,7 +2504,7 @@ amended by the user."
 
       (setq table
             (orgtbl-aggregate--wizard-query-table
-             (alist-get :table oldline)))
+             (orgtbl-aggregate--alist-get-remove :table oldline)))
 
       (setq headerlist
             (orgtbl-aggregate--get-header-table table))
@@ -2516,7 +2527,7 @@ in the same order.
              "\"" "'"
              (read-string
               "Target columns & formulas: "
-              (alist-get :cols oldline)
+              (orgtbl-aggregate--alist-get-remove :cols oldline)
               'orgtbl-aggregate-history-cols)))
 
       (orgtbl-aggregate--display-help
@@ -2534,7 +2545,7 @@ Lisp function, lambda, or Babel block to filter out rows.
       (setq aggcond
             (read-string
              "Row filter (optional): "
-             (alist-get :cond oldline)
+             (orgtbl-aggregate--alist-get-remove :cond oldline)
              'orgtbl-aggregate-history-cols))
 
       (orgtbl-aggregate--display-help
@@ -2551,7 +2562,7 @@ The processor may be a Lisp function, a lambda, or a Babel block.
       (setq postprocess
             (read-string
              "Post process (optional): "
-             (alist-get :post oldline)
+             (orgtbl-aggregate--alist-get-remove :post oldline)
              'orgtbl-aggregate-history-cols))
       )
 
@@ -2566,7 +2577,7 @@ The processor may be a Lisp function, a lambda, or a Babel block.
       (nconc params `(:post ,postprocess)))
     (cl-loop
      for pair in oldline
-     unless (memq (car pair) '(:table :cols :cond :post))
+     if (car pair)
      do (nconc params `(,(car pair) ,(cdr pair))))
     params))
 

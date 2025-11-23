@@ -1697,11 +1697,12 @@ are symbolic (as opposed to numeric) expressions.
 
    Note that if there are empty cells in the input, they will be changed
 to ‘nan’ _not a number_, and the whole aggregation will yield ‘nan’.
-This is probably not the expected result.  The ‘N’ modifier (see
-paragraph "modifiers and formatters") won’t help, because even though it
-will replace empty cells with zero, it will do the same for anything
-which does not look like a number.  The best is to just avoid empty
-cells when dealing with symbolic calculations.
+This is probably not the expected result.
+
+   The ‘N’ modifier (see *note Org Mode compatible formatters::) won’t
+help, because even though it will replace empty cells with zero, it will
+do the same for anything which does not look like a number.  The best is
+to just avoid empty cells when dealing with symbolic calculations.
 
 
 File: orgtbl-aggregate.info,  Node: Wide variety of inputs,  Next: Post-processing,  Prev: Cells processing,  Up: Top
@@ -1810,6 +1811,16 @@ output:
 
    Here the parameter ‘:table’ specifies the name of the script to be
 executed.
+
+   *Beware* of the ‘:results code’ parameter.  It does not work as an
+input for OrgAggregate.  This is because in this case the Babel script
+returns a string, not a table.  Example:
+
+     '((a b c)
+       hline
+       (1 2 3))
+
+   Use ‘:results table’ or nothing instead.
 
 
 File: orgtbl-aggregate.info,  Node: An Org ID,  Next: CSV input,  Prev: Virtual input table from Babel,  Up: Wide variety of inputs
@@ -2859,38 +2870,38 @@ Node: Dates54782
 Node: Durations56787
 Node: Empty and malformed input cells58621
 Node: Symbolic computation60291
-Node: Wide variety of inputs62565
-Node: Standard Org Mode input63112
-Node: Virtual input table from Babel63589
-Node: An Org ID65909
-Node: CSV input66417
-Node: JSON input67372
-Node: The cond filter67832
-Node: Input slicing69321
-Node: Virtual input columns70055
-Node: Post-processing75553
-Node: Spreadsheet formulas76078
-Node: Algorithm post processing77176
-Node: Chaining79131
-Node: Pull & Push80834
-Node: Pull mode81068
-Node: Push mode82771
-Node: Pull or push ?84979
-Node: Debugging85713
-Node: Seeing the $ forms86236
-Node: Seeing Calc formulas before evaluation87446
-Node: Seeing Lisp internal form of Calc formulas88580
-Node: Example of debugging vsum(nn^2)89789
-Node: Summary of debugging formatters91218
-Node: Tricks91714
-Node: Sorting (1)91992
-Node: A few lowest or highest values92807
-Node: Span of values94108
-Node: No aggregation94667
-Node: Installation96521
-Node: Authors contributors97163
-Node: Changes98791
-Node: GPL 3 License102851
+Node: Wide variety of inputs62570
+Node: Standard Org Mode input63117
+Node: Virtual input table from Babel63594
+Node: An Org ID66195
+Node: CSV input66703
+Node: JSON input67658
+Node: The cond filter68118
+Node: Input slicing69607
+Node: Virtual input columns70341
+Node: Post-processing75839
+Node: Spreadsheet formulas76364
+Node: Algorithm post processing77462
+Node: Chaining79417
+Node: Pull & Push81120
+Node: Pull mode81354
+Node: Push mode83057
+Node: Pull or push ?85265
+Node: Debugging85999
+Node: Seeing the $ forms86522
+Node: Seeing Calc formulas before evaluation87732
+Node: Seeing Lisp internal form of Calc formulas88866
+Node: Example of debugging vsum(nn^2)90075
+Node: Summary of debugging formatters91504
+Node: Tricks92000
+Node: Sorting (1)92278
+Node: A few lowest or highest values93093
+Node: Span of values94394
+Node: No aggregation94953
+Node: Installation96807
+Node: Authors contributors97449
+Node: Changes99077
+Node: GPL 3 License103137
 
 End Tag Table
 

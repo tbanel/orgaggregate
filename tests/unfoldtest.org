@@ -1,0 +1,110 @@
+#+TITLE: Unit Tests & Examples for Orgtbl Aggregate
+Copyright (C) 2013-2025  Thierry Banel
+
+org-aggregate is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+org-aggregate is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+* How to run?
+Running all tests should not change anything to this page.
+
+Run this script to complete all the unit tests in a disposable
+buffer. When done, the buffer and the original, untouched
+~unfoldtest.org~, are compared, stopping at the first difference.
+
+#+begin_src elisp :results none
+;; define a utility to run a unit test
+(defun orgtbl-aggregate-unfold-test (&rest args)
+  (execute-kbd-macro
+   (kbd
+    (mapconcat #'identity (cons "C-n" args) "\n"))))
+
+;; display this buffer in a window occupying half the frame
+(delete-other-windows)
+(goto-char (point-min))
+(org-cycle '(64))
+(split-window-right)
+
+;; Make a new buffer and fill it with the content of unittests.org
+(let ((f (buffer-file-name)))
+  (switch-to-buffer "disposable-unfoldtests.org")
+  (erase-buffer)
+  (insert-file f))
+(org-mode)
+(org-cycle '(64))
+
+;; Clean results from prior tests:
+;; replace a pair of a simple and a complex aggregate blocks
+;; with 2 copies of the simple one
+(rx-define aggregateblock
+  (group
+   "#+begin: " (* not-newline) "\n"
+   (*? (* any) "\n")
+   "#+end:" (* any) "\n"))
+
+(save-excursion
+  (goto-char (point-min))
+  (replace-regexp
+   (rx bol aggregateblock aggregateblock)
+   "\\2\\2"))
+
+;; call all wizard invocations
+(goto-char (point-min))
+(org-next-visible-heading 2)
+;;(while (search-forward "(execute-kbd-macro" nil t)
+;;  (beginning-of-line)
+;;  (forward-sexp)
+;;  (forward-line)
+;;  (beginning-of-line)
+;;  (eval-last-sexp nil))
+
+(while (re-search-forward
+        (rx "orgtbl-aggregate-unfold-test"
+            (*? (* any) "\n")
+            "#+end_src")
+        nil t)
+  (beginning-of-line)
+  (org-ctrl-c-ctrl-c))
+
+;; Compare the disposable buffer with the reference
+(goto-char (point-min))
+(compare-windows nil)
+#+end_src
+
+* unua testo
+
+#+begin_src elisp :results none
+(orgtbl-aggregate-unfold-test
+   "C-a <right> <tab>"
+   "<down> <down> <down> <down> <end> ( csv SPC header )"
+   "<down> [ <kp-0> : <kp-1> <kp-2> ]"
+   "<down> <end> a a * <kp-1> <kp-0> ; ' b b '"
+   "<down> C-e <left> <left> <left> <left> <left> <left> <left> v s u m ( b b ) SPC"
+   "<down> <down> <end> <tab> <tab>"
+   "<down> <end> ( l a m b d a SPC ( x ) SPC x )"
+   "<up> <up> <up> <up> <up> <up> <up> <up> <up> <up> <tab>"
+   "C-c C-c")
+#+end_src
+#+BEGIN: aggregate :table "hline.csv:(csv header)[0:12]" :precompute "aa*10;'bb'" :cols "vsum(aa) vsum(bb) count()" :hline "1" :post "(lambda (x) x)"
+| vsum(aa) | vsum(bb) | count() |
+|----------+----------+---------|
+|      156 |      576 |       2 |
+|----------+----------+---------|
+|       79 |      237 |       4 |
+|----------+----------+---------|
+|      131 |       -4 |       3 |
+#+END:
+#+BEGIN: aggregate :table "hline.csv:" :cols "vsum(aa) count()" :hline "0"
+| vsum(aa) | count() |
+|----------+---------|
+|      366 |       9 |
+#+END:

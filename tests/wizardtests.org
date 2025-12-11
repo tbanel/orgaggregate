@@ -22,18 +22,33 @@ buffer. When done, the buffer and the original, untouched
 ~wizardtest.org~, are compared, stopping at the first difference.
 
 #+begin_src elisp :results none
+;; define a utility to run a unit test
+(defun orgtbl-aggregate-wizard-test (&rest args)
+  (execute-kbd-macro
+   (kbd
+    (mapconcat
+     #'identity
+     (cl-loop
+      for a in args
+      if (symbolp a)
+      do (unless (memq a '(:init :isid :orgid :file :name :params :slice
+                                 :precompute :cols :cond :hline :post))
+           (user-error "tag %s not recognized"))
+      else
+      collect a)
+     "\n"))))
+
+;; display this buffer in a window occupying half the frame
 (delete-other-windows)
 (goto-char (point-min))
 (org-cycle '(64))
 (split-window-right)
 
 ;; Make a new buffer and fill it with the content of unittests.org
-
 (let ((f (buffer-file-name)))
   (switch-to-buffer "disposable-wizardtests.org")
   (erase-buffer)
   (insert-file f))
-
 (org-mode)
 (org-cycle '(64))
 
@@ -42,37 +57,49 @@ buffer. When done, the buffer and the original, untouched
   (goto-char (point-min))
   (replace-regexp
    (rx
-    bol "#+BEGIN: aggregate" (* not-newline) "\n"
+    bol "#+begin: " (* not-newline) "\n"
     (*? (* any) "\n")
-    "#+END:" (* any) "\n")
+    "#+end:" (* any) "\n")
    ""))
 
 ;; call all wizard invocations
 (goto-char (point-min))
-(while (search-forward "(execute-kbd-macro" nil t)
-  (beginning-of-line)
-  (forward-sexp)
-  (forward-line)
-  (beginning-of-line)
-  (eval-last-sexp nil))
+(org-next-visible-heading 2)
+;;(while (search-forward "(execute-kbd-macro" nil t)
+;;  (beginning-of-line)
+;;  (forward-sexp)
+;;  (forward-line)
+;;  (beginning-of-line)
+;;  (eval-last-sexp nil))
+
+(while (re-search-forward
+        (rx "orgtbl-aggregate-wizard-test"
+            (*? (* any) "\n")
+            "#+end_src" (* any) "\n")
+        nil t)
+  (org-ctrl-c-ctrl-c))
 
 ;; Compare the disposable buffer with the reference wiz1.org
 (goto-char (point-min))
 (compare-windows nil)
-  #+end_src
+#+end_src
 
 * test1
-
-(execute-kbd-macro (kbd "
-C-c C-x x a g g <tab> <return>
-u n i t t <tab> <return>
-h l i n <tab> <return>
-<return>
-y * 1 0 ; ' y 1 0 ' <return>
-h l i n e SPC f SPC v s u m ( y ) SPC v s u m ( y 1 0 ) <return>
-<return>
-<return>
-<return>"))
+#+begin_src elisp :results none
+(orgtbl-aggregate-wizard-test
+ :init "C-c C-x x aggr <tab> <return>"
+ :isid "n"
+ :file "unitt <tab> <return>"
+ :name "hlin <tab> <return>"
+ :params "<return>"
+ :slice "<return>"
+ :precompute "y * 1 0 ; ' y 1 0 ' <return>"
+ :cols "h l i n e SPC f SPC v s u m ( y ) SPC v s u m ( y 1 0 ) <return>"
+ :cond "<return>"
+ :hline "<return>"
+ :post "<return>"
+)
+#+end_src
 #+BEGIN: aggregate :table "unittests.org:hlinetable" :cols "hline f vsum(y) vsum(y10)" :precompute "y*10;'y10'"
 | hline | f | vsum(y)        | vsum(y10)             |
 |-------+---+----------------+-----------------------|
@@ -112,16 +139,21 @@ h l i n e SPC f SPC v s u m ( y ) SPC v s u m ( y 1 0 ) <return>
 
 * test 2
 
-(execute-kbd-macro (kbd "
-C-c C-x x a g g <tab> <return>
-<return>
-t a g q <tab> <return>
-[ <kp-0> : <kp-1> <kp-4> ] <return>
-<return>
-t a g SPC v s u m ( v a l ) SPC v s u m ( q t y ) SPC c o u n t ( ) <return>
-( < = SPC ( s t r i n g - t o - n u m b e r SPC v a l ) SPC 9 . 0 0 ) ) <return>
-<return>
-<return>"))
+#+begin_src elisp :results none
+(orgtbl-aggregate-wizard-test
+ :init       "C-c C-x x a g g <tab> <return>"
+ :isid       "n"
+ :file       "<return>"
+ :name       "t a g q <tab> <return>"
+ :params     "<return>"
+ :slice      "[ <kp-0> : <kp-1> <kp-4> ] <return>"
+ :precompute "<return>"
+ :cols       "t a g SPC v s u m ( v a l ) SPC v s u m ( q t y ) SPC c o u n t ( ) <return>"
+ :cond       "( < = SPC ( s t r i n g - t o - n u m b e r SPC v a l ) SPC 9 . 0 0 ) ) <return>"
+ :hline      "<return>"
+ :post       "<return>"
+)
+#+end_src
 #+BEGIN: aggregate :table "tagqty[0:14]" :cols "tag vsum(val) vsum(qty) count()" :cond (<= (string-to-number val) 9.0)
 | tag | vsum(val) | vsum(qty) | count() |
 |-----+-----------+-----------+---------|
@@ -144,16 +176,21 @@ t a g SPC v s u m ( v a l ) SPC v s u m ( q t y ) SPC c o u n t ( ) <return>
    collect (format "x%d" i))))
 #+end_src
 
-(execute-kbd-macro (kbd "
-C-c C-x x a g g <tab> <return>
-<return>
-t a g q <tab> <return>
-<return>
-<return>
-t a g SPC v m e a n ( v a l ) ; f 2 SPC v m e a n ( q t y ) ; f 2 <return>
-<return>
-<return>
-a d d e n d r o w <return>"))
+#+begin_src elisp :results none
+(orgtbl-aggregate-wizard-test
+ :init       "C-c C-x x a g g <tab> <return>"
+ :isid       "n"
+ :file       "<return>"
+ :name       "t a g q <tab> <return>"
+ :params     "<return>"
+ :slice      "<return>"
+ :precompute "<return>"
+ :cols       "t a g SPC v m e a n ( v a l ) ; f 2 SPC v m e a n ( q t y ) ; f 2 <return>"
+ :cond       "<return>"
+ :hline      "<return>"
+ :post       "a d d e n d r o w <return>"
+)
+#+end_src
 #+BEGIN: aggregate :table "tagqty" :cols "tag vmean(val);f2 vmean(qty);f2" :post "addendrow"
 | tag | vmean(val) | vmean(qty) |
 |-----+------------+------------|
@@ -166,16 +203,21 @@ a d d e n d r o w <return>"))
 
 * test :hline
 
-(execute-kbd-macro (kbd "
-C-c C-x x a g g <tab> <return>
-<return>
-t a g q <tab> <return>
-<return>
-f l o o r ( v a l ) ; ' v f ' <return>
-t a g ; ^ a SPC v f ; ^ n SPC v m e a n ( q t y ) SPC c o u n t ( ) <return>
-<return>
-1 <return>
-<return>"))
+#+begin_src elisp :results none
+(orgtbl-aggregate-wizard-test
+ :init       "C-c C-x x a g g <tab> <return>"
+ :isid       "n"
+ :file       "<return>"
+ :name       "t a g q <tab> <return>"
+ :params     "<return>"
+ :slice      "<return>"
+ :precompute "f l o o r ( v a l ) ; ' v f ' <return>"
+ :cols       "t a g ; ^ a SPC v f ; ^ n SPC v m e a n ( q t y ) SPC c o u n t ( ) <return>"
+ :cond       "<return>"
+ :hline      "1 <return>"
+ :post       "<return>"
+)
+#+end_src
 #+BEGIN: aggregate :table "tagqty" :cols "tag;^a vf;^n vmean(qty) count()" :hline "1" :precompute "floor(val);'vf'"
 | tag | vf | vmean(qty) | count() |
 |-----+----+------------+---------|
@@ -201,17 +243,21 @@ t a g ; ^ a SPC v f ; ^ n SPC v m e a n ( q t y ) SPC c o u n t ( ) <return>
 
 * test CSV
 
-(execute-kbd-macro (kbd "
-C-c C-x x a g g <tab> <return>
-g e o g r <tab> c <tab> <return>
-<return>
-<return>
-<return>
-$ 2 SPC v s u m ( $ 3 ) ; f 0 SPC v m e a n ( $ 4 ) ; f 0 ; ^ n SPC c o u n t ( ) <return>
-<return>
-<return>
-<return>
-"))
+#+begin_src elisp :results none
+(orgtbl-aggregate-wizard-test
+ :init       "C-c C-x x a g g <tab> <return>"
+ :isid       "n"
+ :file       "g e o g r <tab> c <tab> <return>"
+ :name       "<return>"
+ :params     "<return>"
+ :slice      "<return>"
+ :precompute "<return>"
+ :cols       "$ 2 SPC v s u m ( $ 3 ) ; f 0 SPC v m e a n ( $ 4 ) ; f 0 ; ^ n SPC c o u n t ( ) <return>"
+ :cond       "<return>"
+ :hline      "<return>"
+ :post       "<return>"
+)
+#+end_src
 #+BEGIN: aggregate :table "geography-a.csv:(csv)" :cols "$2 vsum($3);f0 vmean($4);f0;^n count()"
 | $2             |  vsum($3) | vmean($4) | count() |
 |----------------+-----------+-----------+---------|
@@ -264,17 +310,21 @@ $ 2 SPC v s u m ( $ 3 ) ; f 0 SPC v m e a n ( $ 4 ) ; f 0 ; ^ n SPC c o u n t ( 
 
 * test JSON
 
-(execute-kbd-macro (kbd "
-C-c C-x x a g g <tab> <return>
-g e o g r <tab> j <tab> <return>
-<return>
-<return>
-<return>
-$ 2 SPC v m i n ( $ 3 ) SPC v m a x ( $ 3 ) ; ^ n <return>
-( > = SPC $ 4 SPC 6 0 0 0 0 0 0 ) <return>
-<return>
-<return>
-"))
+#+begin_src elisp :results none
+(orgtbl-aggregate-wizard-test
+ :init       "C-c C-x x a g g <tab> <return>"
+ :isid       "n"
+ :file       "g e o g r <tab> j <tab> <return>"
+ :name       "<return>"
+ :params     "<return>"
+ :slice      "<return>"
+ :precompute "<return>"
+ :cols       "$ 2 SPC v m i n ( $ 3 ) SPC v m a x ( $ 3 ) ; ^ n <return>"
+ :cond       "( > = SPC $ 4 SPC 6 0 0 0 0 0 0 ) <return>"
+ :hline      "<return>"
+ :post       "<return>"
+)
+#+end_src
 #+BEGIN: aggregate :table "geography-a.json:(json)" :cols "$2 vmin($3) vmax($3);^n" :cond (>= $4 6000000)
 | $2             | vmin($3) | vmax($3) |
 |----------------+----------+----------|
@@ -316,6 +366,31 @@ $ 2 SPC v m i n ( $ 3 ) SPC v m a x ( $ 3 ) ; ^ n <return>
 | Japan          |  9544065 | 37131070 |
 #+END:
 
+* test ID
+
+#+begin_src elisp :results none
+(orgtbl-aggregate-wizard-test
+ :init       "C-c C-x x a g g <tab> <return>"
+ :isid       "y"
+ :orgid      "55ab27a2 <tab> <return>"
+ :params     "<return>"
+ :slice      "<return>"
+ :precompute "<return>"
+ :cols       "ref SPC vsum(val) SPC count() <return>"
+ :cond       "<return>"
+ :hline      "<return>"
+ :post       "<return>"
+)
+#+end_src
+#+BEGIN: aggregate :table "55ab27a2-c44b-4a14-9ba4-f6879375207d" :cols "ref vsum(val) count()"
+| ref  | vsum(val) | count() |
+|------+-----------+---------|
+| S    |    2490.9 |       4 |
+| TT   |    2352.3 |       6 |
+| UUU  |    1643.8 |       4 |
+| VVVV |    3144.5 |       5 |
+#+END:
+
 * transpose
 
 #+name: sunnydays
@@ -325,14 +400,19 @@ $ 2 SPC v m i n ( $ 3 ) SPC v m a x ( $ 3 ) ; ^ n <return>
 | temp |   |  23 |  15 |  13 |  16 |  19 |  22 | 25  |
 | wind |   |  10 |   0 |  10 |  20 |  20 |  25 | 15  |
 
-(execute-kbd-macro (kbd "
-C-c C-x x t r a n <tab> <return>
-<return>
-<return>
-<return>
-<return>
-<return>
-<return>"))
+#+begin_src elisp :results none
+(orgtbl-aggregate-wizard-test
+ :init       "C-c C-x x t r a n <tab> <return>"
+ :isid       "n"
+ :file       "<return>"
+ :name       "C-a SPC C-a C-k s u n n y d <tab> <return>"
+ :params     "<return>"
+ :slice      "<return>"
+ :cols       "<return>"
+ :cond       "<return>"
+ :post       "<return>"
+)
+#+end_src
 #+BEGIN: transpose :table "sunnydays" :cols ""
 | feat |   | rain | temp | wind |
 |------+---+------+------+------|
@@ -345,14 +425,19 @@ C-c C-x x t r a n <tab> <return>
 | sun  |   | no   |   25 |   15 |
 #+END:
 
-(execute-kbd-macro (kbd "
-C-c C-x x tran <tab> <return>
-<return>
-<return>
-<return>
-C-a C-k feat SPC sun SPC mon SPC sat <return>
-<return>
-<return>"))
+#+begin_src elisp :results none
+(orgtbl-aggregate-wizard-test
+ :init       "C-c C-x x tran <tab> <return>"
+ :isid       "n"
+ :file       "<return>"
+ :name       "C-a SPC C-a C-k s u n n y d <tab> <return>"
+ :params     "<return>"
+ :slice      "<return>"
+ :cols       "feat SPC sun SPC mon SPC sat <return>"
+ :cond       "<return>"
+ :post       "<return>"
+)
+#+end_src
 #+BEGIN: transpose :table "sunnydays" :cols "feat sun mon sat"
 | feat |   | rain | temp | wind |
 | sun  |   | no   |   25 |   15 |

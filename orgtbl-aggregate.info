@@ -21,7 +21,7 @@ and so on, out of material from the first table.
 * New::
 * Examples::
 * Equivalent in SQL, R, Datamash: Equivalent in SQL R Datamash.
-* Wizard::
+* Wizards::
 * Thecols parameter: The cols parameter.
 * Column names::
 * Formatters::
@@ -52,6 +52,11 @@ Equivalent in SQL, R, Datamash
 * SQL equivalent::
 * R equivalent::
 * Datamash equivalent::
+
+Wizards
+
+* Guiding (traditional) wizard::
+* Experimental free form wizard::
 
 The :cols parameter
 
@@ -101,8 +106,8 @@ Wide variety of inputs
 * An Org ID::
 * CSV input::
 * JSON input::
-* Thecond filter: The cond filter.
 * Input slicing::
+* Thecond filter: The cond filter.
 * Virtual input columns::
 
 Post-processing
@@ -139,8 +144,11 @@ File: orgtbl-aggregate.info,  Node: New,  Next: Examples,  Prev: Top,  Up: Top
 1 New
 *****
 
-The titles of this README have been aggregated.  The result is more
-structured and easier to understand.
+A new, experimental wizard is available.
+
+   Hit the ‘TAB’ key on a ‘"begin: aggregate"’ line (not at the
+beginning of line) and look at all parameters unfolded.  See *note
+Experimental free form wizard: Experimental free form wizard.
 
 
 File: orgtbl-aggregate.info,  Node: Examples,  Next: Equivalent in SQL R Datamash,  Prev: New,  Up: Top
@@ -215,7 +223,7 @@ Now we want to aggregate this table for each day (because several rows
 exist for each day).  We want the average value of the ‘Level’ column
 for each day, and the sum of the ‘Quantity’ column.  We write down the
 block specifying that (later we will see how to automate the creation of
-such a block with a *note wizard: Wizard.):
+such a block with a *note wizard: Wizards.):
 
      #+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
      #+END
@@ -297,7 +305,7 @@ type:
      #+END
 
 
-File: orgtbl-aggregate.info,  Node: Equivalent in SQL R Datamash,  Next: Wizard,  Prev: Examples,  Up: Top
+File: orgtbl-aggregate.info,  Node: Equivalent in SQL R Datamash,  Next: Wizards,  Prev: Examples,  Up: Top
 
 3 Equivalent in SQL, R, Datamash
 ********************************
@@ -360,10 +368,23 @@ a similar result:
      Friday         8           22
 
 
-File: orgtbl-aggregate.info,  Node: Wizard,  Next: The cols parameter,  Prev: Equivalent in SQL R Datamash,  Up: Top
+File: orgtbl-aggregate.info,  Node: Wizards,  Next: The cols parameter,  Prev: Equivalent in SQL R Datamash,  Up: Top
 
-4 Wizard
-********
+4 Wizards
+*********
+
+There are now 2 wizards.  Use whichever is easier for you.
+
+* Menu:
+
+* Guiding (traditional) wizard::
+* Experimental free form wizard::
+
+
+File: orgtbl-aggregate.info,  Node: Guiding (traditional) wizard,  Next: Experimental free form wizard,  Up: Wizards
+
+4.1 Guiding (traditional) wizard
+================================
 
 Type ‘C-c C-x x’ to launch a wizard for creating new dynamic blocks, or
 amending existing ones.  Then answer ‘aggregate’ for the type of block,
@@ -402,7 +423,51 @@ Mode for an easy reading.  The window will be closed when the wizard is
 done or when aborting.
 
 
-File: orgtbl-aggregate.info,  Node: The cols parameter,  Next: Column names,  Prev: Wizard,  Up: Top
+File: orgtbl-aggregate.info,  Node: Experimental free form wizard,  Prev: Guiding (traditional) wizard,  Up: Wizards
+
+4.2 Experimental free form wizard
+=================================
+
+Suppose we have an aggregate block like this one:
+
+     #+BEGIN: aggregate :table "my_table" :cols "vsum(b) count()" :hline "1"
+     #+END:
+
+   Then, hitting the ‘TAB’ key anywhere on the "begin" line (but not at
+the beginning) unfolds it.  The result is this one:
+
+     #+BEGIN: aggregate
+     #+aggregate: :file
+     #+aggregate: :name my_table
+     #+aggregate: :orgid
+     #+aggregate: :params
+     #+aggregate: :slice
+     #+aggregate: :precompute
+     #+aggregate: :cols vsum(b) count()
+     #+aggregate: :cond
+     #+aggregate: :hline 1
+     #+aggregate: :post
+     #+END:
+
+   This unfolded form is easier to read.  Furthermore, help and
+completion is available on each line, by hitting the ‘TAB’ key.
+
+   Hit ‘TAB’ again on the "begin" line (not at the beginning) to fold
+back the form.
+
+   The usual behaviour of Org Mode ‘TAB’ is preserved when the ‘TAB’ key
+is pressed at the beginning of line.
+
+   All fields recognized by OrgAggregate are displayed, even when they
+are empty.  The empty fields will be ignored when folding back.  This
+allows to grasp all the parameters in a single eyesight.
+
+   All in all, this new wizard covers the same features as the
+traditional, guiding wizard.  Except, one can fill the fields in any
+order, and just ignore the unnecessary ones.
+
+
+File: orgtbl-aggregate.info,  Node: The cols parameter,  Next: Column names,  Prev: Wizards,  Up: Top
 
 5 The :cols parameter
 *********************
@@ -1722,8 +1787,8 @@ several places.  OrgAggregate adds even more kinds of input.
 * An Org ID::
 * CSV input::
 * JSON input::
-* Thecond filter: The cond filter.
 * Input slicing::
+* Thecond filter: The cond filter.
 * Virtual input columns::
 
 
@@ -1829,12 +1894,12 @@ File: orgtbl-aggregate.info,  Node: An Org ID,  Next: CSV input,  Prev: Virtual 
 ==============
 
    • ‘34cbc63a-c664-471e-a620-d654b26ffa31’: an identifier of an Org
-     Mode sub-tree.  The sub-tree is supposed to contain a table, which
-     is retrieved.
+     Mode sub-tree.  The sub-tree is supposed to contain an Org table
+     (which is retrieved) or a Babel script (which is executed).
 
-   Those Org Mode identifiers span all known Org Mode files.  To add
-such an identifier, put the cursor on the heading of the sub-tree, and
-type ‘M-x org-id-get-create’.
+   Those Org Mode identifiers span all known Org Mode files.  (Therefore
+there is no need to specify a file).  To add such an identifier, put the
+cursor on the heading of the sub-tree, and type ‘M-x org-id-get-create’.
 
 
 File: orgtbl-aggregate.info,  Node: CSV input,  Next: JSON input,  Prev: An Org ID,  Up: Wide variety of inputs
@@ -1842,14 +1907,14 @@ File: orgtbl-aggregate.info,  Node: CSV input,  Next: JSON input,  Prev: An Org 
 11.4 CSV input
 ==============
 
-CVS input is specific to OrgAggregate.  Org Mode does not offers those
-formats.
+CVS input is specific to OrgAggregate.  (Native Org Mode does not offers
+those formats).
 
    • ‘/some/dir/file.csv:(csv params…)’: a comma-separated-values file
      in the CSV format, in the file ‘/some/dir/file.csv’.
 
-   The separators may be TAB, comma, or semicolon, they are guessed and
-different separators may be mixed.
+   The cells separators in the CSV files may be TAB, comma, or
+semicolon, they are guessed and different separators may be mixed.
 
    Any empty row in the CSV file is interpreted as an horizontal
 separator (‘hline’ in Org table parlance).
@@ -1863,7 +1928,7 @@ separator (‘hline’ in Org table parlance).
 usual.
 
 
-File: orgtbl-aggregate.info,  Node: JSON input,  Next: The cond filter,  Prev: CSV input,  Up: Wide variety of inputs
+File: orgtbl-aggregate.info,  Node: JSON input,  Next: Input slicing,  Prev: CSV input,  Up: Wide variety of inputs
 
 11.5 JSON input
 ===============
@@ -1876,12 +1941,31 @@ currently no parameters.  In the future it may be possible to specify
 alternative sub-formats.
 
 
-File: orgtbl-aggregate.info,  Node: The cond filter,  Next: Input slicing,  Prev: JSON input,  Up: Wide variety of inputs
+File: orgtbl-aggregate.info,  Node: Input slicing,  Next: The cond filter,  Prev: JSON input,  Up: Wide variety of inputs
 
-11.6 The :cond filter
+11.6 Input slicing
+==================
+
+Org Mode also provides for table slicing.  All of the previous
+references may be followed by an optional slicing.  Examples:
+
+   • ‘mytable[0:5]’: retain only the first 6 rows of the input table; if
+     the table has a header, then it counts as 2 rows (the header and
+     the separation line).  In this example, it would retain rows 0 and
+     1 for the header, and rows 2,3,4,5 for the content.
+
+   • ‘mytable[*,0:1]’: retain only the first 2 columns.
+
+   • ‘mytable[0:5,0:1]’: retain only the first 6 rows and the first 2
+     columns.
+
+
+File: orgtbl-aggregate.info,  Node: The cond filter,  Next: Virtual input columns,  Prev: Input slicing,  Up: Wide variety of inputs
+
+11.7 The :cond filter
 =====================
 
-This parameter is optional.  If present, it specifies a lisp expression
+This parameter is optional.  If present, it specifies a Lisp expression
 which tells whether or not a row should be kept.  When the expression
 evaluates to nil, the row is discarded.
 
@@ -1908,26 +1992,7 @@ are specified as key columns, and output in the resulting table.
 still occurs.  So duplicate input rows appear only once in the result.
 
 
-File: orgtbl-aggregate.info,  Node: Input slicing,  Next: Virtual input columns,  Prev: The cond filter,  Up: Wide variety of inputs
-
-11.7 Input slicing
-==================
-
-Org Mode also provides for table slicing.  All of the previous
-references may be followed by an optional slicing.  Examples:
-
-   • ‘mytable[0:5]’: retain only the first 6 rows of the input table; if
-     the table has a header, then it counts as 2 rows (the header and
-     the separation line).  In this example, it would retain rows 0 and
-     1 for the header, and rows 2,3,4,5 for the content.
-
-   • ‘mytable[*,0:1]’: retain only the first 2 columns.
-
-   • ‘mytable[0:5,0:1]’: retain only the first 6 rows and the first 2
-     columns.
-
-
-File: orgtbl-aggregate.info,  Node: Virtual input columns,  Prev: Input slicing,  Up: Wide variety of inputs
+File: orgtbl-aggregate.info,  Node: Virtual input columns,  Prev: The cond filter,  Up: Wide variety of inputs
 
 11.8 Virtual input columns
 ==========================
@@ -2804,6 +2869,7 @@ Top: earliest change.  Bottom: latest change.
    • Header and column names can be specified for CSV input tables, as
      well as horizontal separators (‘hline’).
    • Aggregation of the titles of this README.
+   • New free-form wizard.
 
 
 File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
@@ -2830,78 +2896,80 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Tag Table:
 Node: Top93
-Node: New2595
-Node: Examples2796
-Node: A very simple example3070
-Node: Demonstrate sum and average computing4851
-Node: Example without days6812
-Node: Example of counting each combination7281
-Node: Equivalent in SQL R Datamash8399
-Node: SQL equivalent8919
-Node: R equivalent9248
-Node: Datamash equivalent9765
-Node: Wizard10305
-Node: The cols parameter12051
-Node: Names of input columns12721
-Node: Grouping specifications in cols13796
-Node: The hline column14352
-Node: The @# column16766
-Node: Aggregation formulas in cols18651
-Node: Correlation of two columns26192
-Node: [Almost) any expression can be specified27931
-Node: Column names29405
-Node: Input table with or without a header29681
-Node: Column names of the input table30574
-Node: Multiple lines header31743
-Node: Custom column names33490
-Node: Formatters34712
-Node: Org Mode compatible formatters34938
-Node: Debugging formatters37139
-Node: Discarding an output column37821
-Node: Sorting39527
-Node: Example with one sorting column39733
-Node: Several sorting columns41014
-Node: hlines in the output table42619
-Node: Output hlines depends on sorting columns43015
-Node: Example with hline 244910
-Node: Cells processing48853
-Node: Where Calc interpretation happens?49305
-Node: Dates54782
-Node: Durations56787
-Node: Empty and malformed input cells58621
-Node: Symbolic computation60291
-Node: Wide variety of inputs62570
-Node: Standard Org Mode input63117
-Node: Virtual input table from Babel63594
-Node: An Org ID66195
-Node: CSV input66703
-Node: JSON input67658
-Node: The cond filter68118
-Node: Input slicing69607
-Node: Virtual input columns70341
-Node: Post-processing75839
-Node: Spreadsheet formulas76364
-Node: Algorithm post processing77462
-Node: Chaining79417
-Node: Pull & Push81120
-Node: Pull mode81354
-Node: Push mode83057
-Node: Pull or push ?85265
-Node: Debugging85999
-Node: Seeing the $ forms86522
-Node: Seeing Calc formulas before evaluation87732
-Node: Seeing Lisp internal form of Calc formulas88866
-Node: Example of debugging vsum(nn^2)90075
-Node: Summary of debugging formatters91504
-Node: Tricks92000
-Node: Sorting (1)92278
-Node: A few lowest or highest values93093
-Node: Span of values94394
-Node: No aggregation94953
-Node: Installation96807
-Node: Authors contributors97449
-Node: Changes99077
-Node: GPL 3 License103137
+Node: New2673
+Node: Examples3012
+Node: A very simple example3286
+Node: Demonstrate sum and average computing5067
+Node: Example without days7029
+Node: Example of counting each combination7498
+Node: Equivalent in SQL R Datamash8616
+Node: SQL equivalent9137
+Node: R equivalent9466
+Node: Datamash equivalent9983
+Node: Wizards10523
+Node: Guiding (traditional) wizard10802
+Node: Experimental free form wizard12596
+Node: The cols parameter14089
+Node: Names of input columns14760
+Node: Grouping specifications in cols15835
+Node: The hline column16391
+Node: The @# column18805
+Node: Aggregation formulas in cols20690
+Node: Correlation of two columns28231
+Node: [Almost) any expression can be specified29970
+Node: Column names31444
+Node: Input table with or without a header31720
+Node: Column names of the input table32613
+Node: Multiple lines header33782
+Node: Custom column names35529
+Node: Formatters36751
+Node: Org Mode compatible formatters36977
+Node: Debugging formatters39178
+Node: Discarding an output column39860
+Node: Sorting41566
+Node: Example with one sorting column41772
+Node: Several sorting columns43053
+Node: hlines in the output table44658
+Node: Output hlines depends on sorting columns45054
+Node: Example with hline 246949
+Node: Cells processing50892
+Node: Where Calc interpretation happens?51344
+Node: Dates56821
+Node: Durations58826
+Node: Empty and malformed input cells60660
+Node: Symbolic computation62330
+Node: Wide variety of inputs64609
+Node: Standard Org Mode input65156
+Node: Virtual input table from Babel65633
+Node: An Org ID68234
+Node: CSV input68835
+Node: JSON input69822
+Node: Input slicing70280
+Node: The cond filter71003
+Node: Virtual input columns72503
+Node: Post-processing78003
+Node: Spreadsheet formulas78528
+Node: Algorithm post processing79626
+Node: Chaining81581
+Node: Pull & Push83284
+Node: Pull mode83518
+Node: Push mode85221
+Node: Pull or push ?87429
+Node: Debugging88163
+Node: Seeing the $ forms88686
+Node: Seeing Calc formulas before evaluation89896
+Node: Seeing Lisp internal form of Calc formulas91030
+Node: Example of debugging vsum(nn^2)92239
+Node: Summary of debugging formatters93668
+Node: Tricks94164
+Node: Sorting (1)94442
+Node: A few lowest or highest values95257
+Node: Span of values96558
+Node: No aggregation97117
+Node: Installation98971
+Node: Authors contributors99613
+Node: Changes101241
+Node: GPL 3 License105330
 
 End Tag Table
 

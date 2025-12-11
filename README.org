@@ -6,8 +6,11 @@ Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the first table.
 
 * New
-The titles of this README have been aggregated. The result is more
-structured and easier to understand.
+A new, experimental wizard is available.
+
+Hit the =TAB= key on a ="begin: aggregate"= line (not at the beginning of
+line) and look at all parameters unfolded. See [[#experimental-free-form-wizard][Experimental free form
+wizard]].
 
 * Table of Contents
 :PROPERTIES:
@@ -25,7 +28,9 @@ structured and easier to understand.
   - [[#sql-equivalent][SQL equivalent]]
   - [[#r-equivalent][R equivalent]]
   - [[#datamash-equivalent][Datamash equivalent]]
-- [[#wizard][Wizard]]
+- [[#wizards][Wizards]]
+  - [[#guiding-traditional-wizard][Guiding (traditional) wizard]]
+  - [[#experimental-free-form-wizard][Experimental free form wizard]]
 - [[#the-cols-parameter][The :cols parameter]]
   - [[#names-of-input-columns][Names of input columns]]
   - [[#grouping-specifications-in-cols][Grouping specifications in :cols]]
@@ -157,7 +162,7 @@ Now we want to aggregate this table for each day (because several rows
 exist for each day). We want the average value of the =Level= column for
 each day, and the sum of the =Quantity= column. We write down the
 block specifying that (later we will see how to automate the creation
-of such a block with a [[#wizard][wizard]]):
+of such a block with a [[#wizards][wizard]]):
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
@@ -305,9 +310,16 @@ Thursday      43           83
 Friday         8           22
 #+end_src
 
-* Wizard
+* Wizards
 :PROPERTIES:
-:CUSTOM_ID: wizard
+:CUSTOM_ID: wizards
+:END:
+
+There are now 2 wizards. Use whichever is easier for you.
+
+** Guiding (traditional) wizard
+:PROPERTIES:
+:CUSTOM_ID: guiding-traditional-wizard
 :END:
 
 Type =C-c C-x x= to launch a wizard for creating new dynamic blocks, or
@@ -345,6 +357,53 @@ When invoking the wizard, a small window opens to display help
 relative to each field the wizard queries. This help window is in Org
 Mode for an easy reading. The window will be closed when the wizard is
 done or when aborting.
+
+** Experimental free form wizard
+:PROPERTIES:
+:CUSTOM_ID: experimental-free-form-wizard
+:END:
+
+Suppose we have an aggregate block like this one:
+
+#+begin_example
+,#+BEGIN: aggregate :table "my_table" :cols "vsum(b) count()" :hline "1"
+,#+END:
+#+end_example
+
+Then, hitting the =TAB= key anywhere on the "begin" line (but not at the
+beginning) unfolds it. The result is this one:
+
+#+begin_example
+,#+BEGIN: aggregate
+,#+aggregate: :file
+,#+aggregate: :name my_table
+,#+aggregate: :orgid
+,#+aggregate: :params
+,#+aggregate: :slice
+,#+aggregate: :precompute
+,#+aggregate: :cols vsum(b) count()
+,#+aggregate: :cond
+,#+aggregate: :hline 1
+,#+aggregate: :post
+,#+END:
+#+end_example
+
+This unfolded form is easier to read. Furthermore, help and completion
+is available on each line, by hitting the =TAB= key.
+
+Hit =TAB= again on the "begin" line (not at the beginning) to fold back
+the form.
+
+The usual behaviour of Org Mode =TAB= is preserved when the =TAB= key is
+pressed at the beginning of line.
+
+All fields recognized by OrgAggregate are displayed, even when they
+are empty. The empty fields will be ignored when folding back. This
+allows to grasp all the parameters in a single eyesight.
+
+All in all, this new wizard covers the same features as the
+traditional, guiding wizard. Except, one can fill the fields in any
+order, and just ignore the unnecessary ones.
 
 * The :cols parameter
 :PROPERTIES:
@@ -1764,26 +1823,27 @@ Use =:results table= or nothing instead.
 :END:
 
 - =34cbc63a-c664-471e-a620-d654b26ffa31=: an identifier of an Org Mode
-  sub-tree. The sub-tree is supposed to contain a table, which is
-  retrieved.
+  sub-tree. The sub-tree is supposed to contain an Org table (which is
+  retrieved) or a Babel script (which is executed).
 
-Those Org Mode identifiers span all known Org Mode files. To add such
-an identifier, put the cursor on the heading of the sub-tree, and type
-=M-x org-id-get-create=.
+Those Org Mode identifiers span all known Org Mode files. (Therefore
+there is no need to specify a file). To add such an identifier, put
+the cursor on the heading of the sub-tree, and type =M-x
+org-id-get-create=.
 
 ** CSV input
 :PROPERTIES:
 :CUSTOM_ID: csv-input
 :END:
 
-CVS input is specific to OrgAggregate. Org Mode does not offers those
-formats.
+CVS input is specific to OrgAggregate. (Native Org Mode does not
+offers those formats).
 
 - =/some/dir/file.csv:(csv params…)=: a comma-separated-values file in
   the CSV format, in the file =/some/dir/file.csv=.
 
-The separators may be TAB, comma, or semicolon, they are guessed and
-different separators may be mixed.
+The cells separators in the CSV files may be TAB, comma, or semicolon,
+they are guessed and different separators may be mixed.
 
 Any empty row in the CSV file is interpreted as an horizontal
 separator (=hline= in Org table parlance).
@@ -1808,35 +1868,6 @@ Currently, the only accepted format is an array of arrays. There are
 currently no parameters. In the future it may be possible to specify
 alternative sub-formats.
 
-** The :cond filter
-:PROPERTIES:
-:CUSTOM_ID: the-cond-filter
-:END:
-
-This parameter is optional. If present, it specifies a lisp
-expression which tells whether or not a row should be kept. When the
-expression evaluates to nil, the row is discarded.
-
-Examples of useful expressions includes:
-- =:cond (equal Color "Red")=
-  + to keep only rows where =Color= is =Red=
-- =:cond (> (string-to-number Quantity) 19)=
-  + to keep only rows for which =Quantity= is more than =19=
-  + note the call to =string-to-number=; without this call, =Quantity= would be used as a string
-- =:cond (> (* (string-to-number Level) 2.5) (string-to-number Quantity))=
-  + to keep only rows for which =2.5*Level > Quantity=
-
-Beware with this example: =:cond (equal Color "Red")=. The input table
-should not have a column named =Red=, otherwise the condition will mean:
-/keep only rows with the same value in columns Color and Red/
-
-As a special case, when =:cols= parameter is not given, the result is
-the same as =:cols "COL1 COL2 COL3..."=. All columns in the input
-table are specified as key columns, and output in the resulting table.
-
-This is useful when just filtering. But be aware that aggregation
-still occurs. So duplicate input rows appear only once in the result.
-
 ** Input slicing
 :PROPERTIES:
 :CUSTOM_ID: input-slicing
@@ -1854,6 +1885,36 @@ references may be followed by an optional slicing. Examples:
 
 - =mytable[0:5,0:1]=: retain only the first 6 rows and the first 2
   columns.
+
+** The :cond filter
+:PROPERTIES:
+:CUSTOM_ID: the-cond-filter
+:END:
+
+This parameter is optional. If present, it specifies a Lisp expression
+which tells whether or not a row should be kept. When the expression
+evaluates to nil, the row is discarded.
+
+Examples of useful expressions includes:
+- =:cond (equal Color "Red")=
+  + to keep only rows where =Color= is =Red=
+- =:cond (> (string-to-number Quantity) 19)=
+  + to keep only rows for which =Quantity= is more than =19=
+  + note the call to =string-to-number=; without this call, =Quantity=
+    would be used as a string
+- =:cond (> (* (string-to-number Level) 2.5) (string-to-number Quantity))=
+  + to keep only rows for which =2.5*Level > Quantity=
+
+Beware with this example: =:cond (equal Color "Red")=. The input table
+should not have a column named =Red=, otherwise the condition will mean:
+/keep only rows with the same value in columns Color and Red/
+
+As a special case, when =:cols= parameter is not given, the result is
+the same as =:cols "COL1 COL2 COL3..."=. All columns in the input
+table are specified as key columns, and output in the resulting table.
+
+This is useful when just filtering. But be aware that aggregation
+still occurs. So duplicate input rows appear only once in the result.
 
 ** Virtual input columns
 :PROPERTIES:
@@ -2733,6 +2794,7 @@ Top: earliest change. Bottom: latest change.
 - Header and column names can be specified for CSV input tables, as
   well as horizontal separators (=hline=).
 - Aggregation of the titles of this README.
+- New free-form wizard.
 
 * GPL 3 License
 :PROPERTIES:

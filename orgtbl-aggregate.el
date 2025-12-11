@@ -83,6 +83,7 @@
 (require 'calc-alg)
 (require 'org)
 (require 'org-table)
+(require 'org-id)
 (require 'thingatpt) ;; just for thing-at-point--read-from-whole-string
 (eval-when-compile (require 'cl-lib))
 (require 'rx)
@@ -392,19 +393,34 @@ The header have an ID property equal to ID in a PROPERTY drawer."
            (re-search-forward (rx (skipmetatable (any "*#:"))) nil t)
            (orgtbl-aggregate--table-to-lisp)))))))
 
-(defun orgtbl-aggregate-table-from-any-ref (name-or-id)
-  "Find a table referenced by NAME-OR-ID.
-The reference is all the accepted Org references,
-and additionally pointers to CSV or JSON files.
-The pointed to object may also be a Babel block, which when executed
-returns an Org table. Parameters may be passed to the Babel block
-in parenthesis.
-A slicing may be applied to the table, to select rows or columns.
-The syntax for slicing is like [1:3] or [1:3,2:5].
-Return it as a Lisp list of lists.
-An horizontal line is translated as the special symbol `hline'."
-  (unless (stringp name-or-id)
-    (setq name-or-id (format "%s" name-or-id)))
+;; Struct for holding a parsed locator for an input table.
+;; The locator may be:
+;; file:name(params…)[slice]
+;; orgid(params…)[slice]
+;; where each part is optional.
+(cl-defstruct
+    (orgtbl-aggregate--input-locator
+     (:copier nil))
+  file          ; optional file where the table/Babel/CSV/JSON may be found
+  name          ; name of table/Babel denoted by #+name:
+  orgid         ; Org Mode id in a property drawer (exclusive with file+name)
+  params        ; optional parameters to pass to babel/CSV/JSON
+  slice         ; optional slicing of the resultin table, like [0:7]
+  )
+
+(defun orgtbl-aggregate--nil-if-empty (field)
+  (and
+   field
+   (not (string-match-p (rx bos (* blank) eos) field))
+   field))
+
+(defun orgtbl-aggregate--parse-locator (locator)
+  "Parse LOCATOR, a description of where to find the input table.
+The result is stored in a `org-aggregate--input-locator' structure.
+If LOCATOR looks like NAME(params…)[slice] or just NAME, then NAME
+is searched in the Org Mode database, and if found it is interpreted
+as an Org Id and put in the `orgid' field."
+  (unless locator (setq locator ""))
   (unless
       (string-match
        (rx
@@ -419,54 +435,103 @@ An horizontal line is translated as the special symbol `hline'."
         (? (group-n 4 "[" (* any) "]"))
         (* space)
         eos)
-       name-or-id)
-    (user-error "Malformed table reference %S" name-or-id))
-  (let ((file   (match-string 1 name-or-id))
-        (name   (match-string 2 name-or-id))
-        (params (match-string 3 name-or-id))
-        (slice  (match-string 4 name-or-id)))
-    (if (eq (length file) 0)
-        (setq file nil))
-    (if (eq (length name) 0)
-        (setq name nil))
-    (unless (or file name)
-      (user-error "Malformed table reference %S" name-or-id))
-    (let
-        ((table
-          (cond
-           ;; name-or-id = "file:(csv …)"
-           ((and file (not name)
-                 (string-match (rx bos "(csv") params))
-            (orgtbl-aggregate--table-from-csv file params))
-           ;; name-or-id = "file:(json …)"
-           ((and file (not name)
-                 (string-match (rx bos "(json") params))
-            (orgtbl-aggregate--table-from-json file params))
-           ;; name-or-id = "babel(p=…)" or "file:babel(p=…)"
-           ((and params
-                 (orgtbl-aggregate--table-from-babel
-                  (if file
-                      (format "%s:%s%s" file name params)
-                    (format "%s%s" name params)))))
-           ;;name-or-id = "table" or "file:table"
-           ((orgtbl-aggregate--table-from-name file name))
-           ;; name-or-id = "babel" or "file:babel"
-           ((orgtbl-aggregate--table-from-babel
-             (if file
-                 (format "%s:%s" file name)
-               name)))
-           ;; name-or-id = "34cbc63a-c664-471e-a620-d654b26ffa31"
-           ;; pointing to a header in a distant org file, followed by a table
-           ((and (not file) name (not params)
-                 (orgtbl-aggregate--table-from-id name)))
-           ;; everything failed
-           (t
-            (user-error
-             "Cannot find table or babel block with reference %S"
-             name-or-id)))))
+       locator)
+    (user-error "Malformed table reference %S" locator))
+  (let ((struct
+         (make-orgtbl-aggregate--input-locator
+          :file     (orgtbl-aggregate--nil-if-empty (match-string 1 locator))
+          :name     (orgtbl-aggregate--nil-if-empty (match-string 2 locator))
+          :orgid    nil
+          :params   (orgtbl-aggregate--nil-if-empty (match-string 3 locator))
+          :slice    (orgtbl-aggregate--nil-if-empty (match-string 4 locator)))))
+    (when (and
+           (not (orgtbl-aggregate--input-locator-file struct))
+           (progn
+             (unless org-id-locations (org-id-locations-load))
+             (and org-id-locations
+	          (hash-table-p org-id-locations)
+	          (gethash
+                   (orgtbl-aggregate--input-locator-name struct)
+                   org-id-locations))))
+      (setf
+       (orgtbl-aggregate--input-locator-orgid struct)
+       (orgtbl-aggregate--input-locator-name  struct))
+      (setf
+       (orgtbl-aggregate--input-locator-name  struct)
+       nil))
+    struct))
+
+(defun orgtbl-aggregate--assemble-locator (struct)
+  "Assemble fields of STRUCT, an `orgtbl-aggregate--input-locator-file'.
+The result is a locator suitable for orgtbl-aggregate and Org Mode."
+  (let ((file   (orgtbl-aggregate--input-locator-file   struct))
+        (name   (orgtbl-aggregate--input-locator-name   struct))
+        (orgid  (orgtbl-aggregate--input-locator-orgid  struct))
+        (params (orgtbl-aggregate--input-locator-params struct))
+        (slice  (orgtbl-aggregate--input-locator-slice  struct)))
+    (unless name   (setq name   ""))
+    (unless params (setq params ""))
+    (unless slice  (setq slice  ""))
+    (cond
+     (orgid (format "%s%s%s" orgid params slice))
+     (file (format "%s:%s%s%s" file name params slice))
+     (t (format "%s%s%s" name params slice)))))
+
+(defun orgtbl-aggregate-table-from-any-ref (name-or-id)
+  "Find a table referenced by NAME-OR-ID.
+The reference is all the accepted Org references,
+and additionally pointers to CSV or JSON files.
+The pointed to object may also be a Babel block, which when executed
+returns an Org table. Parameters may be passed to the Babel block
+in parenthesis.
+A slicing may be applied to the table, to select rows or columns.
+The syntax for slicing is like [1:3] or [1:3,2:5].
+Return it as a Lisp list of lists.
+An horizontal line is translated as the special symbol `hline'."
+  (unless (stringp name-or-id)
+    (setq name-or-id (format "%s" name-or-id)))
+  (let*
+      ((struct (orgtbl-aggregate--parse-locator name-or-id))
+       (file   (orgtbl-aggregate--input-locator-file   struct))
+       (name   (orgtbl-aggregate--input-locator-name   struct))
+       (orgid  (orgtbl-aggregate--input-locator-orgid  struct))
+       (params (orgtbl-aggregate--input-locator-params struct))
+       (slice  (orgtbl-aggregate--input-locator-slice  struct))
+       (table
+        (cond
+         ;; name-or-id = "file:(csv …)"
+         ((and file (not name)
+               (string-match (rx bos "(csv") params))
+          (orgtbl-aggregate--table-from-csv file params))
+         ;; name-or-id = "file:(json …)"
+         ((and file (not name)
+               (string-match (rx bos "(json") params))
+          (orgtbl-aggregate--table-from-json file params))
+         ;; name-or-id = "34cbc63a-c664-471e-a620-d654b26ffa31"
+         ;; pointing to a header in a distant org file, followed by a table
+         (orgid
+          (orgtbl-aggregate--table-from-id orgid))
+         ;; name-or-id = "babel(p=…)" or "file:babel(p=…)"
+         ((and params
+               (orgtbl-aggregate--table-from-babel
+                (if file
+                    (format "%s:%s%s" file name params)
+                  (format "%s%s" name params)))))
+         ;;name-or-id = "table" or "file:table"
+         ((orgtbl-aggregate--table-from-name file name))
+         ;; name-or-id = "babel" or "file:babel"
+         ((orgtbl-aggregate--table-from-babel
+           (if file
+               (format "%s:%s" file name)
+             name)))
+         ;; everything failed
+         (t
+          (user-error
+           "Cannot find table or babel block with reference %S"
+           name-or-id)))))
       (if slice
           (org-babel-ref-index-list slice table)
-        table))))
+        table)))
 
 (defun orgtbl-aggregate--remove-cookie-lines (table)
   "Remove lines of TABLE which contain cookies.
@@ -1997,6 +2062,9 @@ Note:
       post))
     (orgtbl-aggregate--table-recalculate content formula)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Wizard
+
 (defun orgtbl-aggregate--alist-get-remove (key alist)
   "A variant of alist-get which removes an entry once read.
 ALIST is a list of pairs (key . value).
@@ -2028,99 +2096,207 @@ If the line the (point) is on do not match TYPE, return nil."
      (cdr (org-babel-parse-header-arguments line t)))))
 
 (defun orgtbl-aggregate--display-help (explain &rest args)
-  "Display help for each field the wizard queries."
-  (with-current-buffer "*orgtbl-aggregate-help*"
-    (erase-buffer)
-    (insert (apply #'format explain args))
-    (goto-char (point-min))))
-
-(defun orgtbl-aggregate--wizard-query-table (table)
-  "Query the 3 fields composing a generalized table: file:name:slice.
-If TABLE is not nil, it is decomposed into file:name:slice, and each
-of those 3 fields serve as default answer when prompting."
-  (let (file slice tablenames)
-    (when (and
-           table
-           (string-match
-            (rx bos
-                (? (group (+ (not (any ":[]")))) ":")
-                (group (+ (not "[")))
-                (?  (group "[" (* any) "]"))
-                eos)
-            table))
-      (setq file  (match-string 1 table))
-      (setq slice (match-string 3 table))
-      (setq table (match-string 2 table)))
-
-    (orgtbl-aggregate--display-help
-     "* In which file is the table?
+  "Display help for each field the wizard queries.
+EXPLAIN is a text in Org Mode to display. It is process
+through `format' with replacements in ARGS."
+  (let ((docs
+         '(
+           :isorgid "* Input table locator
+The input table may be pointed to by:
+- a file and a name,
+- an Org Mode identifier"
+           :orgid "* Org ID
+It is an identifier hidden in a =properties= drawer.
+Org Mode globally keeps track of all Ids and knows how to access them.
+It is supposed that the ID location is followed by a table or
+a Babel block suitable for aggregation."
+           :file "* In which file is the table?
 The table may be in another file.
-Leave answer empty to mean that the table is in the current buffer.")
-    (let ((insert-default-directory nil))
-      (setq file
-            (read-file-name "File (RET for current buffer): "
-                            nil
-                            nil
-                            nil
-                            file)))
-
-    (if (equal file "") (setq file nil))
-
-    (setq tablenames (orgtbl-aggregate--list-local-tables file))
-    (if file
-        (setq tablenames (nconc tablenames '("(csv)" "(csv header)" "(json)"))))
-
-    (and
-     file
-     (not table)
-     (cond
-      ((string-match (rx ".csv"  eos) file)
-       (setq table "(csv)"))
-      ((string-match (rx ".json" eos) file)
-       (setq table "(json)"))))
-
-    (orgtbl-aggregate--display-help
-     "* The input table may be:
+Leave answer empty to mean that the table is in the current buffer."
+           :name "* The input table may be:
 - a regular Org table,
-- a Babel block whose output will be the input table,
-- a ~CSV~ or ~JSON~ formatted file.
+- a Babel block whose output will be the input table.
 Org table & Babel block names are available at completion (type ~TAB~).
-Alternately, it may be an Org ID pointing to a table or Babel block
-  (no completion).
-For a Babel block, the name of the Babel may be followed by
-  parameters in parenthesis. Example: ~mybabel(p=\"a\",quty=12)~
-for a ~CSV~ table, type ~(csv params…)~
-  currently only ~(cvs header)~ is recognized: first row is a header
-for a ~JSON~ table, type ~(json params…)~
-  currently no parameters are recognized.")
-    (setq table
-          (completing-read
-           "Table, Babel, ID, (csv…), (json…): "
-           tablenames
-           nil
-           nil ;; user is free to input anything
-           table))
-
-    (unless (string-match-p (rx bos (* space) eos) table)
-      (orgtbl-aggregate--display-help "* Slicing
+Leave empty for a CSV or JSON formatted table."
+           :params "* Parameters for Babel code block (optional)
+** A Babel code block may require specific parameters
+Give them here if needed, surrounded by parenthesis. Example:
+  ~(size=4,reverse=nil)~
+** CSV or JSON formatted tables.
+Examples:
+  ~(csv header)~ ~(json)~
+** Regular Org Mode table
+Leave empty."
+           :slice "* Slicing (optional)
 Slicing is an Org Mode feature allowing to cut the input table.
 It applies to any input: Org table, Babel output, CSV, JSON.
 Leave empty for no slicing.
 ** Examples:
 - ~mytable[0:5]~     retains only the first 6 rows of the input table
 - ~mytable[*,0:1]~   retains only the first 2 columns
-- ~mytable[0:5,0:1]~ retains 5 rows and 2 columns")
-      (setq slice
-            (read-string
-             "Input slicing (optional): "
-             slice
-             'orgtbl-aggregate-history-cols))
+- ~mytable[0:5,0:1]~ retains 5 rows and 2 columns"
+           :precompute "* Precompute (optional)
+The input table may be enriched with additional columns prior to aggregating.
+The syntax is the regular Org table spreadsheet formulas for columns,
+including formatting.
+Additionnaly, the name of new columns can be specified after a semicolumn.
+** Available columns
+  %s
+** Example
+  ~quty*10;f1;'q10'~
+means:
+- add a new column to the input table named ~q10~
+- compute it as ~10~ times the ~quty~ input column
+- format it with ~f1~, 1 digit after dot"
+           :cols "* Target columns
+** They may be
+- bare input columns, acting as grouping keys,
+- formulas in the syntax of Org spreadsheet, like ~vmean()~, ~vsum()~, ~count()~.
+** Formatting
+Each target column may be followed optionally by semicolon separated parameters:
+- alternate name, example ;'alternate-name'
+- formatting, examples ~;f2~ ~;%%.2f~
+- sorting, examples ~;^a~ ~;^A~ ~;^n~ ~;^N~
+- invisibility  ~;<>~
+** Available input columns
+  %s
+** Examples:
+  ~vmean(quty);f2~, ~vsum(amount);'total'~"
+           :cond "* Filter rows (optional)
+Lisp function, lambda, or Babel block to filter out rows.
+** Available input columns
+  %s
+** Example
+  ~(>= (string-to-number quty) 3)~
+  only rows with cell ~quty~ higher or equal to ~3~ are retained.
+  ~(not (equal tag \"dispose\"))~
+  rows with cell ~tag~ equal to ~dispose~ are filtered out."
+           :hline "* Output horizontal separators level (optional)
+- ~0~ or empty means no lines in the output
+- ~1~ means separate rows of identical values on 1 column
+- ~2~ means separate rows of identical values on 2 columns
+- larger values are allowed, but questionably useful.
+The columns considered are the sorted ones."
+           :post "* Post-process (optional)
+The output table may be post-processed prior to printing it
+in the current buffer.
+The processor may be a Lisp function, a lambda, or a Babel block.
+** Example:
+  ~(lambda (table) (append table '(hline (banana 42))))~
+  two rows are appended at the end of the output table:
+  ~hline~ which means horizontal line,
+  and a row with two cells."
+           :cols-tr "* Target columns
+** Optional
+If the answer is left empty, all input columns are kept,
+in the same order.
+** Available input columns
+  %s"
+           ))
+        (main-window (selected-window))
+        (help-window (get-buffer-window "*orgtbl-aggregate-help*")))
+    (if help-window
+        (select-window help-window)
+      (setq main-window (split-window nil 16 'above))
+      (switch-to-buffer "*orgtbl-aggregate-help*")
+      (setq help-window (selected-window)))
+    (org-mode)
+    (erase-buffer)
+    (insert (apply #'format (plist-get docs explain) args))
+    (goto-char (point-min))
+    (select-window main-window)))
 
-      (concat
-       (or file "")
-       (if file ":" "")
-       table
-       (or slice "")))))
+(defun orgtbl-aggregate--dismiss-help ()
+  "Hide the wizard help window."
+  (let ((help-window (get-buffer-window "*orgtbl-aggregate-help*")))
+    (if help-window
+        (delete-window help-window))))
+
+(defun orgtbl-aggregate--wizard-query-table (table)
+  "Query the 3 fields composing a generalized table: file:name:slice.
+If TABLE is not nil, it is decomposed into file:name:slice, and each
+of those 3 fields serves as default answer when prompting.
+Alternately, file:name may be orgid, an ID which knows its file location."
+  (let (file name orgid params slice isorgid)
+    (if table
+        (let ((struct (orgtbl-aggregate--parse-locator table)))
+          (setq file   (orgtbl-aggregate--input-locator-file   struct))
+          (setq name   (orgtbl-aggregate--input-locator-name   struct))
+          (setq orgid  (orgtbl-aggregate--input-locator-orgid  struct))
+          (setq params (orgtbl-aggregate--input-locator-params struct))
+          (setq slice  (orgtbl-aggregate--input-locator-slice  struct))))
+
+    (setq
+     isorgid
+     (cond
+      (orgid t)
+      (name nil)
+      (t
+       (orgtbl-aggregate--display-help :isorgid)
+       (let ((use-short-answers t))
+         (yes-or-no-p "Is the input pointed to by an Org Mode ID? ")))))
+
+    (if isorgid
+        (progn
+          (orgtbl-aggregate--display-help :orgid)
+          (unless org-id-locations (org-id-locations-load))
+          (setq orgid
+                (completing-read
+                 "Org ID: "
+                 (hash-table-keys org-id-locations)
+                 nil
+                 nil ;; user is free to input anything
+                 orgid)))
+
+      (orgtbl-aggregate--display-help :file)
+      (let ((insert-default-directory nil))
+        (setq file
+              (orgtbl-aggregate--nil-if-empty
+               (read-file-name "File (RET for current buffer): "
+                               nil
+                               nil
+                               nil
+                               file))))
+
+      (orgtbl-aggregate--display-help :name)
+      (setq name
+            (completing-read
+             "Table or Babel: "
+             (orgtbl-aggregate--list-local-tables file)
+             nil
+             nil ;; user is free to input anything
+             name)))
+
+    (and
+     file
+     (not params)
+     (cond
+      ((string-match (rx ".csv"  eos) file)
+       (setq params "(csv)"))
+      ((string-match (rx ".json" eos) file)
+       (setq params "(json)"))))
+
+    (orgtbl-aggregate--display-help :params)
+    (setq params
+          (read-string
+           "Babel parameters (optional): "
+           params
+           'orgtbl-aggregate-history-cols))
+
+    (orgtbl-aggregate--display-help :slice)
+    (setq slice
+          (read-string
+           "Input slicing (optional): "
+           slice
+           'orgtbl-aggregate-history-cols))
+
+    (orgtbl-aggregate--assemble-locator
+     (make-orgtbl-aggregate--input-locator
+      :file   file
+      :name   name
+      :orgid  orgid
+      :params params
+      :slice  slice))))
 
 (defun orgtbl-aggregate--wizard-aggregate-create-update (oldline)
   "Update OLDLINE parameters by interactivly querying user.
@@ -2138,11 +2314,6 @@ amended by the user."
         aggcols aggcond hline postprocess params)
 
     (save-window-excursion
-      (save-selected-window
-        (split-window nil 16 'above)
-        (switch-to-buffer "*orgtbl-aggregate-help*")
-        (org-mode))
-
       (setq table
             (orgtbl-aggregate--wizard-query-table
              (orgtbl-aggregate--alist-get-remove :table oldline)))
@@ -2155,28 +2326,14 @@ amended by the user."
              (lambda (x) (format " ~%s~" x))
              headerlist))
 
-      (orgtbl-aggregate--display-help
-       "* Precompute (optional)
-The input table may be enriched with additional columns prior to aggregating.
-The syntax is the regular Org table spreadsheet formulas for columns,
-including formatting.
-Additionnaly, the name of new columns can be specified after a semicolumn.
-** Available columns
-  %s
-** Example
-  ~quty*10;f1;'q10'~
-means:
-- add a new column to the input table named ~q10~
-- compute it as ~10~ times the ~quty~ input column
-- format it with ~f1~, 1 digit after dot"
-       header)
+      (orgtbl-aggregate--display-help :precompute header)
       (setq precompute
             (read-string
              "Formulas for additional input columns (optional): "
              (orgtbl-aggregate--alist-get-remove :precompute oldline)
              'orgtbl-aggregate-history-cols))
 
-      (unless (eq (length precompute) 0)
+      (when (orgtbl-aggregate--nil-if-empty precompute)
         (setq headerlist
               (append headerlist
                       (cl-loop
@@ -2190,22 +2347,7 @@ means:
                (lambda (x) (format " ~%s~" x))
                headerlist)))
 
-      (orgtbl-aggregate--display-help
-       "* Target columns
-** They may be
-- bare input columns, acting as grouping keys,
-- formulas in the syntax of Org spreadsheet, like ~vmean()~, ~vsum()~, ~count()~.
-** Formatting
-Each target column may be followed optionally by semicolon separated parameters:
-- alternate name, example ;'alternate-name'
-- formatting, examples ~;f2~ ~;%%.2f~
-- sorting, examples ~;^a~ ~;^A~ ~;^n~ ~;^N~
-- invisibility  ~;<>~
-** Available input columns
-  %s
-** Examples:
-  ~vmean(quty);f2~, ~vsum(amount);'total'~"
-       header)
+      (orgtbl-aggregate--display-help :cols header)
       (setq aggcols
             (replace-regexp-in-string
              "\"" "'"
@@ -2214,29 +2356,14 @@ Each target column may be followed optionally by semicolon separated parameters:
               (orgtbl-aggregate--alist-get-remove :cols oldline)
               'orgtbl-aggregate-history-cols)))
 
-      (orgtbl-aggregate--display-help
-       "* Filter rows
-Lisp function, lambda, or Babel block to filter out rows.
-** Available input columns
-  %s
-** Example
-  ~(>= (string-to-number quty) 3)~
-  only rows with cell ~quty~ higher or equal to ~3~ are retained.
-  ~(not (equal tag \"dispose\"))~
-  rows with cell ~tag~ equal to ~dispose~ are filtered out."
-       header)
+      (orgtbl-aggregate--display-help :cond header)
       (setq aggcond
             (read-string
              "Row filter (optional): "
              (orgtbl-aggregate--alist-get-remove :cond oldline)
              'orgtbl-aggregate-history-cols))
 
-      (orgtbl-aggregate--display-help "* Output horizontal separators level
-- 0 or empty means no lines in the output
-- 1 means separate rows of identical values on 1 column
-- 2 means separate rows of identical values on 2 columns
-- larger values are allowed, but questionably useful.
-The columns considered are the sorted ones.")
+      (orgtbl-aggregate--display-help :hline)
       (setq hline
             (completing-read
              "hline (optional): "
@@ -2246,15 +2373,7 @@ The columns considered are the sorted ones.")
              (orgtbl-aggregate--cell-to-string
               (orgtbl-aggregate--alist-get-remove :hline oldline))))
 
-      (orgtbl-aggregate--display-help "* Post-process
-The output aggregated table may be post-processed prior to printing it
-in the current buffer.
-The processor may be a Lisp function, a lambda, or a Babel block.
-** Example:
-  ~(lambda (table) (append table '(hline (banana 42))))~
-  two rows are appended at the end of the output table:
-  ~hline~ which means horizontal line,
-  and a row with two cells.")
+      (orgtbl-aggregate--display-help :post)
       (setq postprocess
             (read-string
              "Post process (optional): "
@@ -2267,19 +2386,293 @@ The processor may be a Lisp function, a lambda, or a Babel block.
            :name "aggregate"
            :table table
            :cols aggcols))
-    (unless (eq (length aggcond) 0)
-      (nconc params `(:cond ,(read aggcond))))
-    (unless (eq (length hline) 0)
-      (nconc params `(:hline ,hline)))
-    (unless (eq (length precompute) 0)
-      (nconc params `(:precompute ,precompute)))
-    (unless (eq (length postprocess) 0)
-      (nconc params `(:post ,postprocess)))
+    (if (orgtbl-aggregate--nil-if-empty aggcond)
+        (nconc params `(:cond ,(read aggcond))))
+    (if (orgtbl-aggregate--nil-if-empty hline)
+        (nconc params `(:hline ,hline)))
+    (if (orgtbl-aggregate--nil-if-empty precompute)
+        (nconc params `(:precompute ,precompute)))
+    (if (orgtbl-aggregate--nil-if-empty postprocess)
+        (nconc params `(:post ,postprocess)))
     (cl-loop
      for pair in oldline
      if (car pair)
      do (nconc params `(,(car pair) ,(cdr pair))))
     params))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Unfold, Fold
+;; Experimental
+;; Typing TAB on a line like
+;; #+begin aggragate params…
+;; unfolds the parameters: a new line for each parameter
+;; and a dedicated help & completion for each activated by TAB
+
+(defun orgtbl-aggregate-dispatch-TAB ()
+  "Type TAB on a line like #+begin: aggregate to activate custom functions.
+Actually, any line following this pattern will do:
+#+xxxxx: yyyyy
+Typing TAB will dispatch to function org-TAB-xxxxx-yyyyy if it exists.
+If it does not exist, Org Mode will proceed as usual.
+If it exists and returns nil, Org Mode will proceed as usual as well.
+It it returns non-nil, the TAB processing will stop there."
+  (save-excursion
+    (if (and
+         (not (bolp))
+         (progn
+           (end-of-line)
+           (not (org-fold-core-folded-p)))
+         (progn
+           (beginning-of-line)
+           (re-search-forward
+            (rx
+             point
+             "#+"
+             (group (+ (any "a-z0-9_-")))
+             ":"
+             (* blank)
+             (group (+ (any ":a-z0-9_-")))
+             (* blank))
+            nil t)))
+        (let ((symb
+               (intern
+                (format
+                 "org-TAB-%s-%s"
+                 (downcase (match-string-no-properties 1))
+                 (downcase (match-string-no-properties 2))))))
+          (if (symbol-function symb)
+              (funcall symb))))))
+
+(defun org-TAB-begin-aggregate ()
+  "Dispatch to unfolding or folding code.
+If the line following
+  #+begin: aggregate
+is an unfoled one of the form:
+  #+aggregate: …
+then proceed to folding, otherwise unfold."
+  (if (save-excursion
+        (forward-line 1)
+        (beginning-of-line)
+        (re-search-forward
+         (rx point "#+aggregate:")
+         nil t))
+      (org-TAB-begin-aggregate-fold)
+    (org-TAB-begin-aggregate-unfold)))
+
+(defun org-TAB-begin-aggregate-fold ()
+  "Turn all lines of the form #+aggregate: … into a single line.
+That is, fold the may lines of the form:
+  #+aggregate: param…
+into the single line of the form:
+  #+begin: aggregate params…
+Note that the resulting :table XXX parameter is composed of several
+individual parameters."
+  (orgtbl-aggregate--dismiss-help)
+  (let* ((alist (orgtbl-aggregate-get-all-unfolded)))
+    (end-of-line)
+    (insert
+     " :table \""
+     (orgtbl-aggregate--assemble-locator
+      (make-orgtbl-aggregate--input-locator
+       :file     (orgtbl-aggregate--nil-if-empty (alist-get :file   alist))
+       :name     (orgtbl-aggregate--nil-if-empty (alist-get :name   alist))
+       :orgid    (orgtbl-aggregate--nil-if-empty (alist-get :orgid  alist))
+       :params   (orgtbl-aggregate--nil-if-empty (alist-get :params alist))
+       :slice    (orgtbl-aggregate--nil-if-empty (alist-get :slice  alist))))
+     "\"")
+    (if (orgtbl-aggregate--nil-if-empty (alist-get :precompute alist))
+        (insert
+         (format " :precompute \"%s\"" (alist-get :precompute alist))))
+    (insert
+     (format " :cols \"%s\"" (or (alist-get :cols alist) "")))
+    (if (orgtbl-aggregate--nil-if-empty  (alist-get :cond  alist))
+        (insert (format " :cond \"%s\""  (alist-get :cond  alist))))
+    (if (orgtbl-aggregate--nil-if-empty  (alist-get :hline alist))
+        (insert (format " :hline \"%s\"" (alist-get :hline alist))))
+    (if (orgtbl-aggregate--nil-if-empty  (alist-get :post  alist))
+        (insert (format " :post \"%s\""  (alist-get :post  alist))))
+    (forward-line 1)
+    (while
+        (progn
+          (beginning-of-line)
+          (re-search-forward (rx point "#+aggregate:") nil t))
+      (beginning-of-line)
+      (delete-line))
+    (forward-line -1)
+    t))
+
+(defun org-TAB-begin-aggregate-unfold ()
+  "Turn the single line #+begin: aggregate into several lines.
+That is, move all parameters in the line
+  #+begin: aggregate params…
+into several lines, each with a single parameter.
+Note that the :table XXX parameter is decomposed into several
+individual parameter for an easier reading."
+  (let* ((line (orgtbl-aggregate--parse-header-arguments "aggregate"))
+         (point (progn (end-of-line) (point)))
+         (struct (orgtbl-aggregate--parse-locator
+                  (orgtbl-aggregate--alist-get-remove :table line))))
+    (insert "\n#+aggregate: :file "
+            (or (orgtbl-aggregate--input-locator-file   struct)       ""))
+    (insert "\n#+aggregate: :name "
+            (or (orgtbl-aggregate--input-locator-name   struct)       ""))
+    (insert "\n#+aggregate: :orgid "
+            (or (orgtbl-aggregate--input-locator-orgid  struct)       ""))
+    (insert "\n#+aggregate: :params "
+            (or (orgtbl-aggregate--input-locator-params struct)       ""))
+    (insert "\n#+aggregate: :slice "
+            (or (orgtbl-aggregate--input-locator-slice  struct)       ""))
+    (insert "\n#+aggregate: :precompute "
+            (or (orgtbl-aggregate--alist-get-remove :precompute line) ""))
+    (insert "\n#+aggregate: :cols "
+            (or (orgtbl-aggregate--alist-get-remove :cols       line) ""))
+    (insert "\n#+aggregate: :cond "
+            (or (orgtbl-aggregate--alist-get-remove :cond       line) ""))
+    (insert "\n#+aggregate: :hline "
+            (or (orgtbl-aggregate--alist-get-remove :hline      line) ""))
+    (insert "\n#+aggregate: :post "
+            (or (orgtbl-aggregate--alist-get-remove :post       line) ""))
+    (goto-char point)
+    (beginning-of-line)
+    (forward-word 2)
+    (delete-region (point) point)
+    t))
+
+(defun orgtbl-aggregate-get-all-unfolded ()
+  "Prepare an a-list of all unfolded parameters."
+  (interactive)
+  (save-excursion
+    (re-search-backward (rx bol "#+begin:") nil t)
+    (let ((alist))
+      (while
+          (progn
+            (forward-line 1)
+            (re-search-forward
+             (rx point "#+aggregate:" (* blank)
+               (group (+ (any ":a-z0-9_-")))
+               (* blank)
+               (group (* any)))
+             nil t))
+        (push (cons
+               (intern (match-string-no-properties 1))
+               (match-string-no-properties 2))
+              alist))
+      alist)))
+
+(defun orgtbl-aggregate--column-names-from-unfolded ()
+  "Return a textual list of column names.
+They are computed by looking at the distant table
+(an Org table, a Babel block, a CSV, or a JSON)
+and recovering its header if any.
+If there is no header, $1 $2 $3... is returned."
+  (let*
+      ((alist (orgtbl-aggregate-get-all-unfolded))
+       (table
+        (orgtbl-aggregate--assemble-locator
+         (make-orgtbl-aggregate--input-locator
+          :file   (orgtbl-aggregate--nil-if-empty (alist-get :file   alist))
+          :name   (orgtbl-aggregate--nil-if-empty (alist-get :name   alist))
+          :orgid  (orgtbl-aggregate--nil-if-empty (alist-get :orgid  alist))
+          :params (orgtbl-aggregate--nil-if-empty (alist-get :params alist))
+          :slice  (orgtbl-aggregate--nil-if-empty (alist-get :slice  alist))))))
+    (mapconcat
+     (lambda (x) (format " ~%s~" x))
+     (orgtbl-aggregate--get-header-table table))))
+
+(defun orgtbl-aggregate--TAB-replace-value (getter)
+  "Update a #+aggregate: line
+from
+  #+aggregate: :tag OLD
+to
+  #+aggregate: :tag NEW
+NEW being the result of executing (GETTER OLD)"
+  (let* (;;(insert-default-directory t)
+         (start (point))
+         (end (progn (end-of-line) (point)))
+         (new
+          (funcall
+           getter
+           (buffer-substring-no-properties start end))))
+    (when new
+      (delete-region start end)
+      (delete-horizontal-space)
+      (insert " " new))))
+
+(defun org-TAB-aggregate-:file ()
+  "Provide help and completion for the #+aggregate: file XXX parameter."
+  (orgtbl-aggregate--display-help :file)
+  (orgtbl-aggregate--TAB-replace-value
+   (lambda (old)
+     (read-file-name
+      "File: "
+      (file-name-directory    old)
+      nil
+      nil
+      (file-name-nondirectory old)))))
+
+(defun org-TAB-aggregate-:name ()
+  "Provide help and completion for the #+aggregate: name XXX parameter."
+  (orgtbl-aggregate--display-help :name)
+  (orgtbl-aggregate--TAB-replace-value
+   (lambda (old)
+     (completing-read
+      "Table or Babel name: "
+      (orgtbl-aggregate--list-local-tables
+       (orgtbl-aggregate--nil-if-empty
+        (alist-get :file (orgtbl-aggregate-get-all-unfolded))))
+      nil
+      nil ;; user is free to input anything
+      old))))
+
+(defun org-TAB-aggregate-:orgid ()
+  "Provide help and completion for the #+aggregate: id XXX parameter."
+  (orgtbl-aggregate--display-help :orgid)
+  (unless org-id-locations (org-id-locations-load))
+  (orgtbl-aggregate--TAB-replace-value
+   (lambda (old)
+     (completing-read
+      "Org-ID: "
+      (hash-table-keys org-id-locations)
+      nil
+      nil ;; user is free to input anything
+      old))))
+
+(defun org-TAB-aggregate-:params ()
+  (orgtbl-aggregate--display-help :params))
+
+(defun org-TAB-aggregate-:slice ()
+  (orgtbl-aggregate--display-help :slice))
+
+(defun org-TAB-aggregate-:precompute ()
+  (orgtbl-aggregate--display-help :precompute
+   (orgtbl-aggregate--column-names-from-unfolded)))
+  
+(defun org-TAB-aggregate-:cols ()
+  (orgtbl-aggregate--display-help :cols
+   (orgtbl-aggregate--column-names-from-unfolded)))
+
+(defun org-TAB-aggregate-:cond ()
+  (orgtbl-aggregate--display-help :cond
+   (orgtbl-aggregate--column-names-from-unfolded)))
+
+(defun org-TAB-aggregate-:hline ()
+  "Hitting TAB on #+aggregate: hline N cycles the parameter value.
+The cycle is
+nothing → 1 → 2 → 3 → nothing."
+  (orgtbl-aggregate--display-help :hline)
+  (orgtbl-aggregate--TAB-replace-value
+   (lambda (old)
+     (cond
+      ((equal old "" ) "1")
+      ((equal old "1") "2")
+      ((equal old "2") "3")
+      ((equal old "3") "" )
+      (t "")))))
+
+(defun org-TAB-aggregate-:post ()
+  (orgtbl-aggregate--display-help :post))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;###autoload
 (defun orgtbl-aggregate-insert-dblock-aggregate ()
@@ -2497,11 +2890,6 @@ amended by the user."
         table headerlist header aggcols aggcond postprocess params)
 
     (save-window-excursion
-      (save-selected-window
-        (split-window nil 16 'above)
-        (switch-to-buffer "*orgtbl-aggregate-help*")
-        (org-mode))
-
       (setq table
             (orgtbl-aggregate--wizard-query-table
              (orgtbl-aggregate--alist-get-remove :table oldline)))
@@ -2514,14 +2902,7 @@ amended by the user."
              (lambda (x) (format " ~%s~" x))
              headerlist))
 
-      (orgtbl-aggregate--display-help
-       "* Target columns
-** Optional
-If the answer is left empty, all input columns are kept,
-in the same order.
-** Available input columns
-  %s"
-       header)
+      (orgtbl-aggregate--display-help :cols-tr header)
       (setq aggcols
             (replace-regexp-in-string
              "\"" "'"
@@ -2530,35 +2911,14 @@ in the same order.
               (orgtbl-aggregate--alist-get-remove :cols oldline)
               'orgtbl-aggregate-history-cols)))
 
-      (orgtbl-aggregate--display-help
-       "* Filter rows
-Optional.
-Lisp function, lambda, or Babel block to filter out rows.
-** Available input columns
-  %s
-** Example
-  ~(>= (string-to-number quty) 3)~
-  only rows with cell ~quty~ higher or equal to ~3~ are retained.
-  ~(not (equal tag \"dispose\"))~
-  rows with cell ~tag~ equal to ~dispose~ are filtered out."
-       header)
+      (orgtbl-aggregate--display-help :cond header)
       (setq aggcond
             (read-string
              "Row filter (optional): "
              (orgtbl-aggregate--alist-get-remove :cond oldline)
              'orgtbl-aggregate-history-cols))
 
-      (orgtbl-aggregate--display-help
-       "* Post-process
-** Optional.
-The output transposed table may be post-processed prior to printing it
-in the current buffer.
-The processor may be a Lisp function, a lambda, or a Babel block.
-** Example:
-  ~(lambda (table) (append table '(hline (banana 42))))~
-  two rows are appended at the end of the output table:
-  ~hline~ which means horizontal line,
-  and a row with two cells.")
+      (orgtbl-aggregate--display-help :post)
       (setq postprocess
             (read-string
              "Post process (optional): "
@@ -2593,15 +2953,22 @@ The processor may be a Lisp function, a lambda, or a Babel block.
     (org-create-dblock params)
     (org-update-dblock)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; wizards
-
 ;; Insert a dynamic bloc with the C-c C-x x dispatcher
+;; and activate TAB on #+begin: aggregate ...
 ;;;###autoload
 (eval-after-load 'org
-  '(when (fboundp #'org-dynamic-block-define) ;; found in Emacs 27.1
+  '(progn
+     ;; org-dynamic-block-define found in Emacs 27.1
      (org-dynamic-block-define "aggregate" #'orgtbl-aggregate-insert-dblock-aggregate)
      (org-dynamic-block-define "transpose" #'orgtbl-aggregate-insert-dblock-transpose)))
+
+;; This hook will only work if orgtbl-aggregate is loaded,
+;; thus the eval-after-load 'orgtbl-aggregate
+;; We do not want this hook to be added to Org Mode if orgtbl-aggregate
+;; is not used, thus the eval-after-load 'orgtbl-aggregate
+;;;###autoload
+(eval-after-load 'orgtbl-aggregate
+  '(add-hook 'org-cycle-tab-first-hook #'orgtbl-aggregate-dispatch-TAB))
 
 (provide 'orgtbl-aggregate)
 ;;; orgtbl-aggregate.el ends here

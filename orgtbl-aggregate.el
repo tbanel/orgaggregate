@@ -393,21 +393,6 @@ The header have an ID property equal to ID in a PROPERTY drawer."
            (re-search-forward (rx (skipmetatable (any "*#:"))) nil t)
            (orgtbl-aggregate--table-to-lisp)))))))
 
-;; Struct for holding a parsed locator for an input table.
-;; The locator may be:
-;; file:name(params…)[slice]
-;; orgid(params…)[slice]
-;; where each part is optional.
-(cl-defstruct
-    (orgtbl-aggregate--input-locator
-     (:copier nil))
-  file          ; optional file where the table/Babel/CSV/JSON may be found
-  name          ; name of table/Babel denoted by #+name:
-  orgid         ; Org Mode id in a property drawer (exclusive with file+name)
-  params        ; optional parameters to pass to babel/CSV/JSON
-  slice         ; optional slicing of the resultin table, like [0:7]
-  )
-
 (defun orgtbl-aggregate--nil-if-empty (field)
   (and
    field
@@ -416,7 +401,14 @@ The header have an ID property equal to ID in a PROPERTY drawer."
 
 (defun orgtbl-aggregate--parse-locator (locator)
   "Parse LOCATOR, a description of where to find the input table.
-The result is stored in a `org-aggregate--input-locator' structure.
+The result is a vector containing:
+[
+  FILE   ; optional file where the table/Babel/CSV/JSON may be found
+  NAME   ; name of table/Babel denoted by #+name:
+  ORGID  ; Org Mode id in a property drawer (exclusive with file+name)
+  PARAMS ; optional parameters to pass to babel/CSV/JSON
+  SLICE  ; optional slicing of the resultin table, like [0:7]
+]
 If LOCATOR looks like NAME(params…)[slice] or just NAME, then NAME
 is searched in the Org Mode database, and if found it is interpreted
 as an Org Id and put in the `orgid' field."
@@ -437,45 +429,35 @@ as an Org Id and put in the `orgid' field."
         eos)
        locator)
     (user-error "Malformed table reference %S" locator))
-  (let ((struct
-         (make-orgtbl-aggregate--input-locator
-          :file     (orgtbl-aggregate--nil-if-empty (match-string 1 locator))
-          :name     (orgtbl-aggregate--nil-if-empty (match-string 2 locator))
-          :orgid    nil
-          :params   (orgtbl-aggregate--nil-if-empty (match-string 3 locator))
-          :slice    (orgtbl-aggregate--nil-if-empty (match-string 4 locator)))))
+  (let ((file   (orgtbl-aggregate--nil-if-empty (match-string 1 locator)))
+        (name   (orgtbl-aggregate--nil-if-empty (match-string 2 locator)))
+        (orgid                                                           )
+        (params (orgtbl-aggregate--nil-if-empty (match-string 3 locator)))
+        (slice  (orgtbl-aggregate--nil-if-empty (match-string 4 locator))))
     (when (and
-           (not (orgtbl-aggregate--input-locator-file struct))
+           (not file)
            (progn
              (unless org-id-locations (org-id-locations-load))
              (and org-id-locations
 	          (hash-table-p org-id-locations)
-	          (gethash
-                   (orgtbl-aggregate--input-locator-name struct)
-                   org-id-locations))))
-      (setf
-       (orgtbl-aggregate--input-locator-orgid struct)
-       (orgtbl-aggregate--input-locator-name  struct))
-      (setf
-       (orgtbl-aggregate--input-locator-name  struct)
-       nil))
-    struct))
+	          (gethash name org-id-locations))))
+      (setq orgid name)
+      (setq name nil))
+    (vector file name orgid params slice)))
 
-(defun orgtbl-aggregate--assemble-locator (struct)
-  "Assemble fields of STRUCT, an `orgtbl-aggregate--input-locator-file'.
+(defun orgtbl-aggregate--assemble-locator (file name orgid params slice)
+  "Assemble fields of a locator as a string.
+FILE NAME ORGID PARAMS SLICE are the 5 fields composing a locator.
+Many of them are optional.
 The result is a locator suitable for orgtbl-aggregate and Org Mode."
-  (let ((file   (orgtbl-aggregate--input-locator-file   struct))
-        (name   (orgtbl-aggregate--input-locator-name   struct))
-        (orgid  (orgtbl-aggregate--input-locator-orgid  struct))
-        (params (orgtbl-aggregate--input-locator-params struct))
-        (slice  (orgtbl-aggregate--input-locator-slice  struct)))
-    (unless name   (setq name   ""))
-    (unless params (setq params ""))
-    (unless slice  (setq slice  ""))
-    (cond
-     (orgid (format "%s%s%s" orgid params slice))
-     (file (format "%s:%s%s%s" file name params slice))
-     (t (format "%s%s%s" name params slice)))))
+  (unless params (setq params ""))
+  (unless slice  (setq slice  ""))
+  (setq file  (orgtbl-aggregate--nil-if-empty file ))
+  (setq orgid (orgtbl-aggregate--nil-if-empty orgid))
+  (cond
+   (orgid (format "%s%s%s"         orgid        params slice))
+   (file  (format "%s:%s%s%s" file (or name "") params slice))
+   (t     (format "%s%s%s"         name         params slice))))
 
 (defun orgtbl-aggregate-table-from-any-ref (name-or-id)
   "Find a table referenced by NAME-OR-ID.
@@ -492,11 +474,11 @@ An horizontal line is translated as the special symbol `hline'."
     (setq name-or-id (format "%s" name-or-id)))
   (let*
       ((struct (orgtbl-aggregate--parse-locator name-or-id))
-       (file   (orgtbl-aggregate--input-locator-file   struct))
-       (name   (orgtbl-aggregate--input-locator-name   struct))
-       (orgid  (orgtbl-aggregate--input-locator-orgid  struct))
-       (params (orgtbl-aggregate--input-locator-params struct))
-       (slice  (orgtbl-aggregate--input-locator-slice  struct))
+       (file   (aref struct 0))
+       (name   (aref struct 1))
+       (orgid  (aref struct 2))
+       (params (aref struct 3))
+       (slice  (aref struct 4))
        (table
         (cond
          ;; name-or-id = "file:(csv …)"
@@ -2220,11 +2202,11 @@ Alternately, file:name may be orgid, an ID which knows its file location."
   (let (file name orgid params slice isorgid)
     (if table
         (let ((struct (orgtbl-aggregate--parse-locator table)))
-          (setq file   (orgtbl-aggregate--input-locator-file   struct))
-          (setq name   (orgtbl-aggregate--input-locator-name   struct))
-          (setq orgid  (orgtbl-aggregate--input-locator-orgid  struct))
-          (setq params (orgtbl-aggregate--input-locator-params struct))
-          (setq slice  (orgtbl-aggregate--input-locator-slice  struct))))
+          (setq file   (aref struct 0))
+          (setq name   (aref struct 1))
+          (setq orgid  (aref struct 2))
+          (setq params (aref struct 3))
+          (setq slice  (aref struct 4))))
 
     (setq
      isorgid
@@ -2290,13 +2272,7 @@ Alternately, file:name may be orgid, an ID which knows its file location."
            slice
            'orgtbl-aggregate-history-cols))
 
-    (orgtbl-aggregate--assemble-locator
-     (make-orgtbl-aggregate--input-locator
-      :file   file
-      :name   name
-      :orgid  orgid
-      :params params
-      :slice  slice))))
+    (orgtbl-aggregate--assemble-locator file name orgid params slice)))
 
 (defun orgtbl-aggregate--wizard-aggregate-create-update (oldline)
   "Update OLDLINE parameters by interactivly querying user.
@@ -2408,6 +2384,7 @@ amended by the user."
 ;; unfolds the parameters: a new line for each parameter
 ;; and a dedicated help & completion for each activated by TAB
 
+;;;###autoload
 (defun orgtbl-aggregate-dispatch-TAB ()
   "Type TAB on a line like #+begin: aggregate to activate custom functions.
 Actually, any line following this pattern will do:
@@ -2473,12 +2450,11 @@ individual parameters."
     (insert
      " :table \""
      (orgtbl-aggregate--assemble-locator
-      (make-orgtbl-aggregate--input-locator
-       :file     (orgtbl-aggregate--nil-if-empty (alist-get :file   alist))
-       :name     (orgtbl-aggregate--nil-if-empty (alist-get :name   alist))
-       :orgid    (orgtbl-aggregate--nil-if-empty (alist-get :orgid  alist))
-       :params   (orgtbl-aggregate--nil-if-empty (alist-get :params alist))
-       :slice    (orgtbl-aggregate--nil-if-empty (alist-get :slice  alist))))
+      (alist-get :file   alist)
+      (alist-get :name   alist)
+      (alist-get :orgid  alist)
+      (alist-get :params alist)
+      (alist-get :slice  alist))
      "\"")
     (if (orgtbl-aggregate--nil-if-empty (alist-get :precompute alist))
         (insert
@@ -2512,16 +2488,11 @@ individual parameter for an easier reading."
          (point (progn (end-of-line) (point)))
          (struct (orgtbl-aggregate--parse-locator
                   (orgtbl-aggregate--alist-get-remove :table line))))
-    (insert "\n#+aggregate: :file "
-            (or (orgtbl-aggregate--input-locator-file   struct)       ""))
-    (insert "\n#+aggregate: :name "
-            (or (orgtbl-aggregate--input-locator-name   struct)       ""))
-    (insert "\n#+aggregate: :orgid "
-            (or (orgtbl-aggregate--input-locator-orgid  struct)       ""))
-    (insert "\n#+aggregate: :params "
-            (or (orgtbl-aggregate--input-locator-params struct)       ""))
-    (insert "\n#+aggregate: :slice "
-            (or (orgtbl-aggregate--input-locator-slice  struct)       ""))
+    (insert "\n#+aggregate: :file "   (or (aref struct 0) ""))
+    (insert "\n#+aggregate: :name "   (or (aref struct 1) ""))
+    (insert "\n#+aggregate: :orgid "  (or (aref struct 2) ""))
+    (insert "\n#+aggregate: :params " (or (aref struct 3) ""))
+    (insert "\n#+aggregate: :slice "  (or (aref struct 4) ""))
     (insert "\n#+aggregate: :precompute "
             (or (orgtbl-aggregate--alist-get-remove :precompute line) ""))
     (insert "\n#+aggregate: :cols "
@@ -2557,7 +2528,7 @@ individual parameter for an easier reading."
                (intern (match-string-no-properties 1))
                (match-string-no-properties 2))
               alist))
-      alist)))
+      (reverse alist))))
 
 (defun orgtbl-aggregate--column-names-from-unfolded ()
   "Return a textual list of column names.
@@ -2569,12 +2540,11 @@ If there is no header, $1 $2 $3... is returned."
       ((alist (orgtbl-aggregate-get-all-unfolded))
        (table
         (orgtbl-aggregate--assemble-locator
-         (make-orgtbl-aggregate--input-locator
-          :file   (orgtbl-aggregate--nil-if-empty (alist-get :file   alist))
-          :name   (orgtbl-aggregate--nil-if-empty (alist-get :name   alist))
-          :orgid  (orgtbl-aggregate--nil-if-empty (alist-get :orgid  alist))
-          :params (orgtbl-aggregate--nil-if-empty (alist-get :params alist))
-          :slice  (orgtbl-aggregate--nil-if-empty (alist-get :slice  alist))))))
+         (alist-get :file   alist)
+         (alist-get :name   alist)
+         (alist-get :orgid  alist)
+         (alist-get :params alist)
+         (alist-get :slice  alist))))
     (mapconcat
      (lambda (x) (format " ~%s~" x))
      (orgtbl-aggregate--get-header-table table))))

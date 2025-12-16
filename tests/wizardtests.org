@@ -33,7 +33,7 @@ buffer. When done, the buffer and the original, untouched
       if (symbolp a)
       do (unless (memq a '(:init :isid :orgid :file :name :params :slice
                                  :precompute :cols :cond :hline :post))
-           (user-error "tag %s not recognized"))
+           (user-error "tag %s not recognized" a))
       else
       collect a)
      "\n"))))

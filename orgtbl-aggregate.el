@@ -1,5 +1,5 @@
 ;;; orgtbl-aggregate.el --- Aggregate an Org Mode table | + | + | into another table  -*- coding:utf-8; lexical-binding: t;-*-
-;; Copyright (C) 2013-2025  Thierry Banel
+;; Copyright (C) 2013-2026  Thierry Banel
 
 ;; Authors:
 ;;   Thierry Banel tbanelwebmin at free dot fr

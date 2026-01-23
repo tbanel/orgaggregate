@@ -24,6 +24,9 @@ wizard]].
   - [[#demonstrate-sum-and-average-computing][Demonstrate sum and average computing]]
   - [[#example-without-days][Example without days]]
   - [[#example-of-counting-each-combination][Example of counting each combination]]
+- [[#stop-reading-here-8020][Stop reading here! 80/20]]
+  - [[#to-summarize][To summarize]]
+  - [[#dont-try-to-do-what-orgaggregate-was-not-designed-for][Don't try to do what OrgAggregate was not designed for]]
 - [[#equivalent-in-sql-r-datamash][Equivalent in SQL, R, Datamash]]
   - [[#sql-equivalent][SQL equivalent]]
   - [[#r-equivalent][R equivalent]]
@@ -66,8 +69,8 @@ wizard]].
   - [[#an-org-id][An Org ID]]
   - [[#csv-input][CSV input]]
   - [[#json-input][JSON input]]
-  - [[#the-cond-filter][The :cond filter]]
   - [[#input-slicing][Input slicing]]
+  - [[#the-cond-filter][The :cond filter]]
   - [[#virtual-input-columns][Virtual input columns]]
 - [[#post-processing][Post-processing]]
   - [[#spreadsheet-formulas][Spreadsheet formulas]]
@@ -107,8 +110,8 @@ wizard]].
 We have a table of activities and quantities (whatever they are) over
 several days.
 
-#+BEGIN_EXAMPLE
-#+NAME: original
+#+begin_example
+#+name: original
 | Day       | Color | Level | Quantity |
 |-----------+-------+-------+----------|
 | Monday    | Red   |    30 |       11 |
@@ -125,7 +128,7 @@ several days.
 | Friday    | Blue  |     7 |        5 |
 | Friday    | Blue  |     6 |        8 |
 | Friday    | Blue  |    11 |        9 |
-#+END_EXAMPLE
+#+end_example
 
 To begin with we want to gather all colors and count how many times
 they appear. We are interested only in the second column named =Color=
@@ -134,21 +137,29 @@ First we give a name to the table through the =#+NAME:=
 or =#+TBLNAME:= tags, just above the table.
 Then we create a /dynamic block/ to receive the aggregation:
 
-#+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table "original" :cols "Color count()"
-#+END:
-#+END_EXAMPLE
+#+begin_example
+desired output columns╶──────────────────────────╮
+the input table╶──────────────╮                  │
+type of processing╶─╮         │                  │
+            ╭───────╯         │                  │
+            ▼             ╭───┴────╮       ╭─────┴───────╮
+#+begin: aggregate :table "original" :cols "Color count()"
+#+end:
+#+end_example
 
 Now typing =C-c C-c= in the dynamic block counts the colors in the original table:
 
-#+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table "original" :cols "Color count()"
+#+begin_example
+C-c C-c here to refresh╶╮
+             ╭──────────╯
+             ▼
+#+begin: aggregate :table "original" :cols "Color count()"
 | Color | count() |
 |-------+---------|
 | Red   |       7 |
 | Blue  |       7 |
-#+END:
-#+END_EXAMPLE
+#+end:
+#+end_example
 
 OrgAggregate found two colors, =Red= and =Blue=. It found 7 occurrences
 for each.
@@ -164,15 +175,27 @@ each day, and the sum of the =Quantity= column. We write down the
 block specifying that (later we will see how to automate the creation
 of such a block with a [[#wizards][wizard]]):
 
-#+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
-#+END
-#+END_EXAMPLE
+#+begin_example
+sum aggregation╶─────────────────────────────────────────────────╮
+average aggregation╶───────────────────────────────╮             │
+key grouping column╶───────────────────────╮       │             │
+                                          ╭┴╮ ╭────┴─────╮ ╭─────┴──────╮
+#+begin: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
+#+end
+#+end_example
 
 Typing =C-c C-c= in the dynamic block computes the aggregation:
 
-#+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
+#+begin_example
+C-c C-c here to refresh╶╮
+             ╭──────────╯
+             ▼
+#+begin: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
+                                          ╰┬╯ ╰────┬─────╯ ╰──────┬─────╯
+   ╭───────────────────────────────────────╯       │              │
+   │               ╭───────────────────────────────╯              │
+   │               │               ╭──────────────────────────────╯
+  ╭┴╮         ╭────┴─────╮   ╭─────┴──────╮
 | Day       | vmean(Level) | vsum(Quantity) |
 |-----------+--------------+----------------|
 | Monday    |         27.5 |             14 |
@@ -180,8 +203,8 @@ Typing =C-c C-c= in the dynamic block computes the aggregation:
 | Wednesday |           18 |             54 |
 | Thursday  |           43 |             83 |
 | Friday    |            8 |             22 |
-#+END
-#+END_EXAMPLE
+#+end
+#+end_example
 
 The source table is not changed in any way.
 
@@ -208,13 +231,19 @@ To get this result, we specified columns in this way, after the
 Maybe we are just interested in the sum of =Quantities=, regardless of
 =Days=. We just type:
 
-#+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table "original" :cols "vsum(Quantity)"
+#+begin_example
+C-c C-c here to refresh╶╮
+             ╭──────────╯
+             ▼
+#+begin: aggregate :table "original" :cols "vsum(Quantity)"
+                                            ╰─────┬──────╯
+       ╭──────────────────────────────────────────╯
+  ╭────┴───────╮
 | vsum(Quantity) |
 |----------------|
 |            218 |
-#+END
-#+END_EXAMPLE
+#+end
+#+end_example
 
 ** Example of counting each combination
 :PROPERTIES:
@@ -225,7 +254,15 @@ we may want to count the number of rows for each combination of
 =Day= and =Color=:
 
 #+BEGIN_EXAMPLE
+C-c C-c here to refresh╶╮
+             ╭──────────╯
+             ▼
 #+BEGIN: aggregate :table "original" :cols "count() Day Color"
+                                            ╰──┬──╯ ╰┬╯ ╰─┬─╯
+     ╭─────────────────────────────────────────╯     │    │
+     │       ╭───────────────────────────────────────╯    │
+     │       │            ╭───────────────────────────────╯
+  ╭──┴──╮   ╭┴╮         ╭─┴─╮
 | count() | Day       | Color |
 |---------+-----------+-------|
 |       1 | Monday    | Red   |
@@ -242,14 +279,160 @@ we may want to count the number of rows for each combination of
 If we want to get measurements for =Colors= rather than =Days=, we
 type:
 
-#+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table "original" :cols "Color vmean(Level) vsum(Quantity)"
+#+begin_example
+C-c C-c here to refresh╶╮
+             ╭──────────╯
+             ▼
+#+begin: aggregate :table "original" :cols "Color vmean(Level) vsum(Quantity)"
+                                            ╰─┬─╯ ╰────┬─────╯ ╰─────┬──────╯
+    ╭─────────────────────────────────────────╯        │             │
+    │           ╭──────────────────────────────────────╯             │
+    │           │               ╭────────────────────────────────────╯
+  ╭─┴─╮    ╭────┴─────╮   ╭─────┴──────╮
 | Color |  vmean(Level) | vsum(Quantity) |
 |-------+---------------+----------------|
 | Red   | 40.2857142857 |            144 |
 | Blue  | 15.5714285714 |             74 |
-#+END
-#+END_EXAMPLE
+#+end
+#+end_example
+
+* Stop reading here! 80/20
+:PROPERTIES:
+:CUSTOM_ID: stop-reading-here-8020
+:END:
+
+If you managed to get here, you are at 80/20 (thanks Pareto!). You
+grasped only 20% of the OrgAggregate features, but those 20% cover 80%
+of the use cases.
+
+** To summarize the 20%
+:PROPERTIES:
+:CUSTOM_ID: to-summarize
+:END:
+
+- *Data:* select one of your Org table, and be ready to aggregate values
+  from it right in the same file.
+
+- *Name:* give a name to your table with a special line just above it.
+
+#+begin_example
+name here╶───╮
+        ╭────╯
+        ▼
+#+name: original
+| Day       | Color | Level | Quantity |
+|-----------+-------+-------+----------|
+| Monday    | Red   |    30 |       11 |
+| Monday    | Blue  |    25 |        3 |
+…
+#+end_example
+
+- *Block:* create an aggregation block.
+
+#+begin_example
+#+begin: aggregate
+#+end:
+#+end_example
+
+- *Input:* specify a =:table= parameter.
+- *Output:* specify the desired output columns with the =:cols= parameter.
+
+#+begin_example
+output╶───────────────────────────────────────────╮
+input╶───────────────────────╮                    │
+                             │                    │
+                          ╭──┴───╮       ╭────────┴─────────╮
+#+begin: aggregate :table original :cols "Day vsum(Quantity)"
+#+end:
+#+end_example
+
+- *Refresh:* type =C-c C-c= on the =#+begin:= line now and whenever you
+   want to refresh the aggregation.
+
+#+begin_example
+C-c C-c here╶─╮
+              │
+              ▼
+#+begin: aggregate :table original :cols "Day vsum(Quantity)"
+| Day       | vsum(Quantity) |
+|-----------+----------------|
+| Monday    |             14 |
+| Tuesday   |             45 |
+…
+#+end:
+#+end_example
+
+** Keep it simple
+:PROPERTIES:
+:CUSTOM_ID: dont-try-to-do-what-orgaggregate-was-not-designed-for
+:END:
+
+She (the user) may be tempted to add the grand total at the bottom of
+the aggregation. Don't do that!
+
+Example of such a temptation:
+
+#+begin_example
+,#+begin: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
+| Day       | vmean(Level) | vsum(Quantity) |
+|-----------+--------------+----------------|
+| Monday    |         27.5 |             14 |
+| Tuesday   |           43 |             45 |
+| Wednesday |           18 |             54 |
+| Thursday  |           43 |             83 |
+| Friday    |            8 |             22 |
+|-----------+--------------+----------------|
+| Total     |              |            218 |
+,#+TBLFM: @7$3=vsum(@I..@II)
+,#+end
+#+end_example
+
+Even though OrgAggregate offers ways to do that (for instance with the
+=:post= parameter, see [[#algorithm-post-processing][Algorithm post processing]]), there are many
+reasons not to. If she does, she is quietly entering the same
+nightmare which plagues spreadsheets. Everything will become harder
+and harder to maintain.
+
+It seems natural to add a grand total right below the column. But
+suppose that now she also want the standard deviation of this same
+column. Where to put it? There is a blank cell just left of the grand
+total. She puts the standard deviation there:
+
+#+begin_example
+#+begin: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
+| Day       | vmean(Level) | vsum(Quantity) |
+|-----------+--------------+----------------|
+| Monday    |         27.5 |             14 |
+| Tuesday   |           43 |             45 |
+| Wednesday |           18 |             54 |
+| Thursday  |           43 |             83 |
+| Friday    |            8 |             22 |
+|-----------+--------------+----------------|
+| Total     |    27.409852 |            218 |
+#+TBLFM: @7$3=vsum(@I..@II)::@7$2=vsdev(@I$3..@II$3)
+#+end
+#+end_example
+
+But then this =27.409852= looks like the grand total of the second
+column, but it is not.
+
+Later on, she may want to further process this aggregated table, for
+example to plot it. The grand total row will be an annoyance. It will
+be tedious to get ride of it.
+
+She should instead consider creating a second aggregation with the
+grand total:
+
+#+begin_example
+,#+begin: aggregate :table original :cols "vmean(Level) vsum(Quantity)"
+| vmean(Level) | vsum(Quantity) |
+|--------------+----------------|
+|    27.928571 |            218 |
+,#+end
+#+end_example
+
+Easy, maintainable, no awkward decisions to remember and document.
+She keeps it simple.
 
 * Equivalent in SQL, R, Datamash
 :PROPERTIES:
@@ -366,26 +549,29 @@ done or when aborting.
 Suppose we have an aggregate block like this one:
 
 #+begin_example
-,#+BEGIN: aggregate :table "my_table" :cols "vsum(b) count()" :hline "1"
-,#+END:
+the 2 main parameters╶────────╮────────────────────╮
+                              │                    │
+                          ╭───┴────╮       ╭───────┴───────╮
+#+begin: aggregate :table "my_table" :cols "vsum(b) count()" :hline "1"
+#+end:
 #+end_example
 
 Then, hitting the =TAB= key anywhere on the "begin" line (but not at the
 beginning) unfolds it. The result is this one:
 
 #+begin_example
-,#+BEGIN: aggregate
-,#+aggregate: :file
-,#+aggregate: :name my_table
-,#+aggregate: :orgid
-,#+aggregate: :params
-,#+aggregate: :slice
-,#+aggregate: :precompute
-,#+aggregate: :cols vsum(b) count()
-,#+aggregate: :cond
-,#+aggregate: :hline 1
-,#+aggregate: :post
-,#+END:
+#+begin: aggregate                   ╭─╴the 2 main parameters
+#+aggregate: :file                   │
+#+aggregate: :name my_table        ◀─╯
+#+aggregate: :orgid                  │
+#+aggregate: :params                 │
+#+aggregate: :slice                  │
+#+aggregate: :precompute             │
+#+aggregate: :cols vsum(b) count() ◀─╯
+#+aggregate: :cond
+#+aggregate: :hline 1
+#+aggregate: :post
+#+end:
 #+end_example
 
 This unfolded form is easier to read. Furthermore, help and completion
@@ -428,19 +614,19 @@ The names of the columns in the original table may be:
 
 The =:cols= parameter may be a string or a list of strings. Examples:
 
-#+BEGIN_EXAMPLE
+#+begin_example
   :cols "Day vmean(Level);f3 vsum(Quantity);f2"
   :cols ("Day" "vmean(Level);f3" "vsum(Quantity);f2")
-#+END_EXAMPLE
+#+end_example
 
 If a single string is used, it is split by spaces. Thus, a given
 formula, including its semicolon and modifiers, must not contain any
 space. If spaces are required within a formula, then use the
 parenthesis list. If a column name has spaces, quote it like this:
 
-#+BEGIN_EXAMPLE
+#+begin_example
   'yellow submarine'
-#+END_EXAMPLE
+#+end_example
 
 ** Grouping specifications in :cols
 :PROPERTIES:
@@ -472,27 +658,27 @@ is usable as any real column.
 Here is a source table containing 3 blocks separated by horizontal
 lines:
 
-#+BEGIN_EXAMPLE
-#+NAME: originalhl
+#+begin_example
+#+name: originalhl
 | Color | Level | Quantity |
-|-------+-------+----------|
-| Red   |    30 |       11 |
-| Blue  |    25 |        3 |
-| Red   |    51 |       12 |
-| Red   |    45 |       15 |
-| Blue  |    33 |       18 |
-|-------+-------+----------|
-| Red   |    27 |       23 |
-| Blue  |    12 |       16 |
-| Blue  |    15 |       15 |
-| Red   |    39 |       24 |
-| Red   |    41 |       29 |
-|-------+-------+----------|
-| Red   |    49 |       30 |
-| Blue  |     7 |        5 |
-| Blue  |     6 |        8 |
-| Blue  |    11 |        9 |
-#+END_EXAMPLE
+|-------+-------+----------| ╶╮
+| Red   |    30 |       11 |  │
+| Blue  |    25 |        3 |  ├─first block, n° 0
+| Red   |    51 |       12 |  │
+| Red   |    45 |       15 |  │
+| Blue  |    33 |       18 | ╶╯
+|-------+-------+----------| ╶╮
+| Red   |    27 |       23 |  │
+| Blue  |    12 |       16 |  ├─second block, n° 1
+| Blue  |    15 |       15 |  │
+| Red   |    39 |       24 |  │
+| Red   |    41 |       29 | ╶╯
+|-------+-------+----------| ╶╮
+| Red   |    49 |       30 |  │
+| Blue  |     7 |        5 |  ├─third block, n° 2
+| Blue  |     6 |        8 |  │
+| Blue  |    11 |        9 | ╶╯
+#+end_example
 
 And here is the aggregation by those 3 blocks:
 
@@ -500,26 +686,26 @@ And here is the aggregation by those 3 blocks:
 #+BEGIN: aggregate :table originalhl :cols "hline vmean(Level) vsum(Quantity)"
 | hline | vmean(Level) | vsum(Quantity) |
 |-------+--------------+----------------|
-|     0 |         36.8 |             59 |
-|     1 |         26.8 |            107 |
-|     2 |        18.25 |             52 |
+|     0 |         36.8 |             59 | ◀─╴first block , n° 0
+|     1 |         26.8 |            107 | ◀─╴second block, n° 1
+|     2 |        18.25 |             52 | ◀─╴third block , n° 2
 #+END:
 #+END_EXAMPLE
 
 If we want additional details with the =Color= column, we just name it:
 
-#+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table originalhl :cols "hline Color vmean(Level) vsum(Quantity)"
+#+begin_example
+#+begin: aggregate :table originalhl :cols "hline Color vmean(Level) vsum(Quantity)"
 | hline | Color |  vmean(Level) | vsum(Quantity) |
 |-------+-------+---------------+----------------|
-|     0 | Red   |            42 |             38 |
-|     0 | Blue  |            29 |             21 |
-|     1 | Red   | 35.6666666667 |             76 |
-|     1 | Blue  |          13.5 |             31 |
-|     2 | Red   |            49 |             30 |
-|     2 | Blue  |             8 |             22 |
-#+END:
-#+END_EXAMPLE
+|     0 | Red   |            42 |             38 | ╶┬──╴first block , n° 0
+|     0 | Blue  |            29 |             21 | ╶╯
+|     1 | Red   | 35.6666666667 |             76 | ╶┬──╴second block, n° 1
+|     1 | Blue  |          13.5 |             31 | ╶╯
+|     2 | Red   |            49 |             30 | ╶┬──╴third block , n° 2
+|     2 | Blue  |             8 |             22 | ╶╯
+#+end:
+#+end_example
 
 There is an ugly value, =35.6666666667=, in the middle of the
 table. See later how to format it ([[#org-mode-compatible-formatters][Org Mode compatible formatters]]).
@@ -539,12 +725,12 @@ Example: we compute the average of the row number for colors =Red= &
 beginning or the end of the table.
 
 #+begin_example
-#+BEGIN: aggregate :table "original" :cols "Color vmean(@#)"
+#+begin: aggregate :table "original" :cols "Color vmean(@#)"
 | Color | vmean(@#) |
 |-------+-----------|
 | Red   | 6.2857143 |
 | Blue  | 8.7142857 |
-#+END:
+#+end:
 #+end_example
 
 Example: we recover the input table in reverse order. We use =@#= as a
@@ -552,7 +738,12 @@ key column sorted in decreasing order with =;^N=. Then we make it
 invisible with =;<>= so that it does not appear in the output.
 
 #+begin_example
-#+BEGIN: aggregate :table "original" :cols "Day Color Level Quantity @#;^N;<>"
+                        invisible╶─────────────────────────────────────────╮
+                        sorted numerically decreasing╶───────────────────╮ │
+                        row numbers of input table╶──────────────────╮   │ │
+                                                                     │   │ │
+                                                                     ▼   ▼ ▼
+#+begin: aggregate :table "original" :cols "Day Color Level Quantity @#;^N;<>"
 | Day       | Color | Level | Quantity |
 |-----------+-------+-------+----------|
 | Friday    | Blue  |    11 |        9 |
@@ -569,7 +760,7 @@ invisible with =;<>= so that it does not appear in the output.
 | Tuesday   | Red   |    51 |       12 |
 | Monday    | Blue  |    25 |        3 |
 | Monday    | Red   |    30 |       11 |
-#+END:
+#+end:
 #+end_example
 
 ** Aggregation formulas in :cols
@@ -750,8 +941,8 @@ Those aggregations are =vcov(,)=, =vpcov(,)=, =vcorr(,)=.
 Example. We create a table where column =y= is a noisy version of
 column =x=:
 
-#+BEGIN_EXAMPLE
-#+TBLNAME: noisydata
+#+begin_example
+#+tblname: noisydata
 | bin   |  x |       y |
 |-------+----+---------|
 | small |  1 |  10.454 |
@@ -766,8 +957,8 @@ column =x=:
 | large | 10 | 101.070 |
 | large | 11 | 111.748 |
 | large | 12 | 121.084 |
-#+TBLFM: $3=$2*10+random(1000)/500;%.3f
-#+END_EXAMPLE
+#+tblfm: $3=$2*10+random(1000)/500;%.3f
+#+end_example
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table noisydata :cols "bin vcorr(x,y) vcov(x,y) vpcov(x,y)"
@@ -831,6 +1022,11 @@ The header of a table gives names to its columns. It is separated from
 data with an horizontal line.
 
 #+begin_example
+column name is "quantity" or "$2"╶╮
+column name is "day" or "$1"╶╮    │
+   ╭─────────────────────────╯    │
+   │              ╭───────────────╯
+   ▼              ▼
 | day       | quantity |
 |-----------+----------|
 | monday    |     12.3 |
@@ -846,6 +1042,11 @@ Tables without a header are handled by OrgAggregate with /"dollar
 names"/. Example of a table without a header:
 
 #+begin_example
+column name is "$2"╶──╮
+column name is "$1"╶╮ │
+    ╭───────────────╯ │
+    │               ╭─╯
+    ▼               ▼
 | monday    |     12.3 |
 | monday    |      5.9 |
 | thursday  |     41.1 |
@@ -902,24 +1103,27 @@ single column.
 
 #+begin_example
 #+name: tall-header
-| color  | quantity |  level |
-| <l>    |     <r7> |    <3> |
-| kolor  |     kiom | nivelo |
-|--------+----------+--------|
-| yellow |       72 |      3 |
-| green  |       55 |      5 |
-| <c>    |          |        |
-| orange |       80 |      2 |
-| yellow |       13 |      1 |
 
+               ╭──────────────────────────────────────────────╮
+           ╭───┴──╮                                           │
+| color  | quantity |  level | ╶╮                             │
+| <l>    |     <r7> |    <3> |  ├─╴header is 3 rows tall      │
+| kolor  |     kiom | nivelo | ╶╯                             │
+|--------+----------+--------|                    ╭───────────╯───────────────╮
+| yellow |       72 |      3 |                    │ only the first header row │
+| green  |       55 |      5 |                    │ is used in formulas       │
+| <c>    |          |        |                    ╰───────────╭───────────────╯
+| orange |       80 |      2 |                                │
+| yellow |       13 |      1 |                                │
+                                                          ╭───┴──╮
 #+BEGIN: aggregate :table "tall-header" :cols "color vsum(quantity);'sum' count();'nb' vsum(quantity)/vmean(level);'leveled'"
-| color  |  sum | nb | leveled |
-| <l>    | <r7> |    |         |
-| kolor  | kiom |    |         |
-|--------+------+----+---------|
-| yellow |   85 |  2 |    42.5 |
-| green  |   55 |  1 |      11 |
-| orange |   80 |  1 |      40 |
+| color  |  sum | nb | leveled | ╶╮
+| <l>    | <r7> |    |         |  ├──╮
+| kolor  | kiom |    |         | ╶╯  │  ╭────────────────────────╮
+|--------+------+----+---------|     │  │ best attempt to recover│
+| yellow |   85 |  2 |    42.5 |     ╰──┤ the three header rows  │
+| green  |   55 |  1 |      11 |        │ in the output          │
+| orange |   80 |  1 |      40 |        ╰────────────────────────╯
 #+END:
 #+end_example
 
@@ -942,6 +1146,10 @@ handle:
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table original :cols "Day vmean(Level*2) vsum(Quantity^2)"
+                                              ╰─────┬──────╯ ╰──────┬───────╯
+                    ╭───────────────────────────────╯               │
+                    │                 ╭─────────────────────────────╯
+              ╭─────┴──────╮   ╭──────┴───────╮
 | Day       | vmean(Level*2) | vsum(Quantity^2) |
 |-----------+----------------+------------------|
 | Monday    |             55 |              130 |
@@ -956,6 +1164,10 @@ We can give them custom names with the =;'custom name'= decoration:
 
 #+BEGIN_EXAMPLE
 #+BEGIN: aggregate :table original :cols "Day vmean(Level*2);'mean2' vsum(Quantity^2);'sum_squares'"
+                                                             ╰──┬──╯                  ╰─────┬─────╯
+                ╭───────────────────────────────────────────────╯                           │
+                │         ╭─────────────────────────────────────────────────────────────────╯
+              ╭─┴─╮   ╭───┴─────╮
 | Day       | mean2 | sum_squares |
 |-----------+-------+-------------|
 | Monday    |    55 |         130 |
@@ -1046,6 +1258,10 @@ In this example, input hlines create a =hline= column which is used to
 add hlines to the output. Then this =hline= column is discarded with =<>=.
 
 #+begin_example
+invisible╶────────────────────────────────────────────╮
+sorted numerically increasing╶──────────────────────╮ │
+                                                    │ │
+                                                    ▼ ▼
 #+BEGIN: aggregate :table "withhline" :cols "hline;^n;<> cölØr vsum(vâluε)" :hline 1
 | cölØr  | vsum(vâluε) |
 |--------+-------------|
@@ -1068,11 +1284,15 @@ Here is an example where rows are sorted on the =cölØr= column, but
 without displaying this column:
 
 #+begin_example
+invisible╶────────────────────────────────────────────╮
+sorted alphabetically╶──────────────────────────────╮ │
+                                                    │ │
+                                                    ▼ ▼
 #+BEGIN: aggregate :table "withhline" :cols "cölØr;^a;<> vâluε;^n" :hline 1
-| vâluε |
-|-------|
-|   4.9 |
-|   7.0 |
+| vâluε |                                                       ▲
+|-------|                                                       │
+|   4.9 |           within the same cölØr bucket,               │
+|   7.0 |           sort vâluε numerically╶─────────────────────╯
 |   8.7 |
 |-------|
 |   1.1 |
@@ -1101,8 +1321,8 @@ without displaying this column:
 In this example, the output table is sorted numerically on its second
 column (look at the =^n= specification):
 
-#+BEGIN_EXAMPLE
-#+BEGIN: aggregate :table "original" :cols "Day vsum(Quantity);^n"
+#+begin_example
+#+begin: aggregate :table "original" :cols "Day vsum(Quantity);^n"
 | Day       | vsum(Quantity) |
 |-----------+----------------|
 | Monday    |             14 |
@@ -1110,8 +1330,8 @@ column (look at the =^n= specification):
 | Tuesday   |             45 |
 | Wednesday |             54 |
 | Thursday  |             83 |
-#+END:
-#+END_EXAMPLE
+#+end:
+#+end_example
 
 By default, no sorting is done. The output rows follows the ordering
 of the input rows.
@@ -1148,6 +1368,15 @@ instance =1=. Columns without a number are minor ones.
 Example:
 #+begin_example
 :cols "AAA;^a BBB;^N2 CCC DDD;^t1"
+╭────╮      ▲╷     ▲▲          ▲▲ ╭──────────────╮
+│sort╰──────╯╰─╮   ││          │╰─╯first priority│
+│alphabetically│   ││          ╰──╮sort by date  │
+│third priority│   ││             ╰──────────────╯
+╰──────────────╯   ││  ╭────────────────╮
+                   │╰──╯second priority │
+                   ╰───╮sort numerically│
+                       │decreasing      │
+                       ╰────────────────╯
 #+end_example
 
 - Column =DDD= is sorted in ascending dates or times (=t=
@@ -1214,23 +1443,23 @@ Horizontal lines will separate blocks of identical =cölØr= rows:
 
 #+begin_example
 #+BEGIN: aggregate :table "withouthline" :cols "cölØr;^a vâluε 'ra;han'" :hline 1
-| cölØr  | vâluε | 'ra;han' |
-|--------+-------+----------|
-| Blue   |   8.7 |       52 |
-| Blue   |   7.0 |       29 |
-| Blue   |   4.9 |       64 |
-|--------+-------+----------|
-| Red    |   1.3 |       41 |
-| Red    |   3.5 |       35 |
-| Red    |   2.6 |       84 |
-| Red    |   3.9 |       51 |
-| Red    |   1.1 |       58 |
-|--------+-------+----------|
-| Yellow |   9.1 |       95 |
-| Yellow |   5.4 |       17 |
-| Yellow |   2.4 |       55 |
-| Yellow |   6.6 |       34 |
-| Yellow |   3.4 |       51 |
+| cölØr  | vâluε | 'ra;han' |                   ╰─┬─╯  ▲                  ╰─┬─╯
+|--------+-------+----------|                     │    │                    │
+| Blue   |   8.7 |       52 |╶╮                   │    │╭──────╮  ╭─────────┴─────╮
+| Blue   |   7.0 |       29 | ├─╴Blue bucket      │    ╰╯sort  │  │ separate      │
+| Blue   |   4.9 |       64 |╶╯                   ╰─────╮cölØr │  │ cölØr buckets │
+|--------+-------+----------| ◀────────────────╮        ╰──────╯  │ with hlines   │
+| Red    |   1.3 |       41 |╶╮                │                  ╰──┬┬───────────╯
+| Red    |   3.5 |       35 | │                ╰─────────────────────╯│
+| Red    |   2.6 |       84 | ├─╴Red bucket                           │
+| Red    |   3.9 |       51 | │                                       │
+| Red    |   1.1 |       58 |╶╯                                       │
+|--------+-------+----------| ◀───────────────────────────────────────╯
+| Yellow |   9.1 |       95 |╶╮
+| Yellow |   5.4 |       17 | │
+| Yellow |   2.4 |       55 | ├─╴Yellow bucket
+| Yellow |   6.6 |       34 | │
+| Yellow |   3.4 |       51 |╶╯
 #+END:
 #+end_example
 
@@ -1270,38 +1499,38 @@ The two sorted columns are =hline= and =cölØr=. Therefore output
 horizontal lines separate blocks of identical =hline= and =cölØr=:
 
 #+begin_example
-#+BEGIN: aggregate :table "withhline" :cols "hline;^n cölØr;^a vâluε 'ra;han'" :hline 2
-| hline | cölØr  | vâluε | 'ra;han' |
-|-------+--------+-------+----------|
-|     0 | Red    |   1.3 |       41 |
-|     0 | Red    |   3.5 |       35 |
-|     0 | Red    |   2.6 |       84 |
-|-------+--------+-------+----------|
-|     0 | Yellow |   9.1 |       95 |
-|-------+--------+-------+----------|
-|     1 | Blue   |   8.7 |       52 |
-|     1 | Blue   |   7.0 |       29 |
-|-------+--------+-------+----------|
+#+begin: aggregate :table "withhline" :cols "hline;^n cölØr;^a vâluε 'ra;han'" :hline 2
+| hline | cölØr  | vâluε | 'ra;han' |               ▲        ▲                        ▲
+|-------+--------+-------+----------|               │        │                        │
+|     0 | Red    |   1.3 |       41 |        ╭──────╯        ╰───────────╮            │
+|     0 | Red    |   3.5 |       35 |        │ two sorted output columns │            │
+|     0 | Red    |   2.6 |       84 |        ╰───────────────────────────╯            │
+|-------+--------+-------+----------|                                                 │
+|     0 | Yellow |   9.1 |       95 |                                                 │
+|-------+--------+-------+----------|             ╭─────────────────────────────╮     │
+|     1 | Blue   |   8.7 |       52 |             │ 2 means: create hlines      ├─────╯
+|     1 | Blue   |   7.0 |       29 |             │ for buckets and sub-buckets │
+|-------+--------+-------+----------|             ╰─────────────────────────────╯
 |     1 | Yellow |   5.4 |       17 |
-|-------+--------+-------+----------|
-|     2 | Blue   |   4.9 |       64 |
-|-------+--------+-------+----------|
-|     2 | Red    |   3.9 |       51 |
-|-------+--------+-------+----------|
-|     2 | Yellow |   2.4 |       55 |
-|     2 | Yellow |   6.6 |       34 |
-|-------+--------+-------+----------|
+|-------+--------+-------+----------|╶─╮
+|     2 | Blue   |   4.9 |       64 |  │   ╭──────────────────────────╮
+|-------+--------+-------+----------| ╶┤   │ bucket hline=2           │
+|     2 | Red    |   3.9 |       51 |  ├───┤ divided in 3 sub-buckets │
+|-------+--------+-------+----------| ╶┤   │ Blue, Red, Yellow        │
+|     2 | Yellow |   2.4 |       55 |  │   ╰──────────────────────────╯
+|     2 | Yellow |   6.6 |       34 |  │
+|-------+--------+-------+----------|╶─╯
 |     3 | Red    |   1.1 |       58 |
 |-------+--------+-------+----------|
 |     3 | Yellow |   3.4 |       51 |
-#+END:
+#+end:
 #+end_example
 
 And the =hline= column may be discarded (but its side effect
 remains). To do so use the =;<>= specifier:
 
 #+begin_example
-#+BEGIN: aggregate :table "withhline" :cols "hline;^n;<> cölØr;^a vâluε 'ra;han'" :hline 2
+#+begin: aggregate :table "withhline" :cols "hline;^n;<> cölØr;^a vâluε 'ra;han'" :hline 2
 | cölØr  | vâluε | 'ra;han' |
 |--------+-------+----------|
 | Red    |   1.3 |       41 |
@@ -1325,7 +1554,7 @@ remains). To do so use the =;<>= specifier:
 | Red    |   1.1 |       58 |
 |--------+-------+----------|
 | Yellow |   3.4 |       51 |
-#+END:
+#+end:
 #+end_example
 
 The =:hline= parameter accepts a number:
@@ -2795,6 +3024,7 @@ Top: earliest change. Bottom: latest change.
   well as horizontal separators (=hline=).
 - Aggregation of the titles of this README.
 - New free-form wizard.
+- Illustrate README with Uniline graphics.
 
 * GPL 3 License
 :PROPERTIES:

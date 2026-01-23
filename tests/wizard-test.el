@@ -1,3 +1,4 @@
+;;; wizard-test.el --- Create unit tests for OrgAggregate wizard  -*- coding:utf-8; lexical-binding: t;-*-
 ;; Copyright (C) 2013-2026  Thierry Banel
 ;; 
 ;; org-aggregate is free software: you can redistribute it and/or modify

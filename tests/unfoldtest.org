@@ -1,4 +1,5 @@
-#+TITLE: Unit Tests & Examples for Orgtbl Aggregate
+# -*- coding:utf-8; -*-
+#+TITLE: Tests for unfolding Orgtbl Aggregate "BEGIN: aggregate" line
 Copyright (C) 2013-2026  Thierry Banel
 
 org-aggregate is free software: you can redistribute it and/or modify

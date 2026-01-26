@@ -2075,3 +2075,40 @@ same as in CSV
 | Israel         |       1 |   4577871 |
 | Taiwan         |       1 |   4570576 |
 #+END:
+
+Same as CSV, vector of vectors, first vector is the header
+
+#+BEGIN: aggregate :table "hline-header.json:(json header)" :cols "cc vsum(bb) vmean(aa)"
+| cc    | vsum(bb) | vmean(aa) |
+|-------+----------+-----------|
+| apple |      831 |      62.2 |
+| grape |      -22 |     13.75 |
+#+END:
+
+Same test, input is mixed vectors and hashed-objects,
+resulting header is a mixture of first vector and keys of hashed-objects.
+
+#+BEGIN: aggregate :table "hline-hash.json:(json header)" :cols "cc vsum(bb) vmean(aa)"
+| cc    | vsum(bb) | vmean(aa) |
+|-------+----------+-----------|
+| apple |      831 |      62.2 |
+| grape |      -22 |     13.75 |
+#+END:
+
+Understand input hline
+
+#+BEGIN: aggregate :table "hline-hash.json:(json)" :cols "hline bb" :hline "1"
+| hline |  bb |
+|-------+-----|
+|     0 | 654 |
+|     0 | -78 |
+|-------+-----|
+|     1 | +45 |
+|     1 | +35 |
+|     1 | +66 |
+|     1 | +91 |
+|-------+-----|
+|     2 | -15 |
+|     2 |   7 |
+|     2 |   4 |
+#+END:

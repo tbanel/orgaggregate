@@ -347,21 +347,59 @@ FILE is a filename with possible relative or absolute path.
 Currently, the accepted format is
 [[\"COL1\",\"COL2\",…]
  \"hline\"
- [\"VAL11\",\"COL12\",…]
- [\"VAL21\",\"COL22\",…]
- [\"VAL31\",\"COL32\",…]
+ [\"VAL1\",\"VAL2\",…]
+ {\"key1\":\"val1\", \"key2\":\"val2\",…},
+ …
+]
 Numbers do not need to be quoted.
- …"
+Horizontal lines may be: \"hline\", null, [], {}.
+A mixture of vector and hash-objects is allowed.
+Therfore the styles vector-of-vectors and vector-of-hash-objects
+are supported.
+A header containing the column names may be given as the first row,
+(which must be a vector) followed by an horizontal line.
+Keys not found in the header (or if there is no header), are added
+to the column names."
   (let ((json-object-type 'alist)
         (json-array-type 'list)
         (json-key-type 'string))
-    (let ((json (json-read-file file)))
-      (cl-loop
-       for row in json
-       if (stringp row)
-       collect (intern row)
-       else
-       collect (append row ())))))
+    (let ((json (json-read-file file))
+          (colnames ())
+          (result))
+      (when (and (cddr json)                ;; at least 2 rows
+                 (consp (car json))         ;; first row is a vector
+                 (not (consp (cadr json)))) ;; second row is an hline
+        (setq colnames (car json)) ;; then first row contains column names
+        (setq json (cddr json)))
+      (setq
+       result
+       (cl-loop
+        for row in json
+        if (not row)                    ;; [], {}, null
+        collect 'hline                  ;; are 'hline
+        else if (stringp row)           ;; "symbol"
+        collect (intern row)            ;; becomes 'symbol
+        else if (and (consp row) (consp (car row)))
+        collect                         ;; case of an hash-object
+        (progn
+          (cl-loop
+           for icell in row
+           if (and (consp icell) (not (member (car icell) colnames)))
+           do (setq colnames `(,@colnames ,(car icell))))
+          (let ((vec (make-list (length colnames) nil)))
+            (cl-loop
+             for icell in row
+             do (cl-loop
+                 for colname in colnames
+                 for ocell on vec
+                 if (equal colname (car icell))
+                 do (setcar ocell (cdr icell))))
+            vec))
+        else                            ;; case of a vector
+        collect row))
+      (if colnames
+          `(,colnames hline ,@result)
+        result))))
 
 (defun orgtbl-aggregate--table-from-name (file name)
   "Parse an Org table named NAME in a ditant Org file named FILE.

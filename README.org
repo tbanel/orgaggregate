@@ -6,11 +6,8 @@ Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the first table.
 
 * New
-A new, experimental wizard is available.
-
-Hit the =TAB= key on a ="begin: aggregate"= line (not at the beginning of
-line) and look at all parameters unfolded. See [[#experimental-free-form-wizard][Experimental free form
-wizard]].
+JSON input tables now support hash-objects and an optional
+header. (Previously only vectors were supported.). See [[#json-input][JSON input]].
 
 * Table of Contents
 :PROPERTIES:
@@ -2093,9 +2090,67 @@ Parameters may be:
 - =/some/dir/file.json:(json params…)=: a file containing a JSON
   formatted table, in the file =/some/dir/file.csv=.
 
-Currently, the only accepted format is an array of arrays. There are
-currently no parameters. In the future it may be possible to specify
-alternative sub-formats.
+The accepted formats are a vector of vectors, or a vector of
+hash-objects.
+
+Currently, no params are recognized.
+
+Example of a vector of vectors:
+
+#+begin_example
+[
+  ["mon",12,"red"  ],
+  ["thu",34,"blue" ],
+  ["wed",27,"green"],
+  ["wed",21,"red"  ],
+  ["mon", 7,"blue" ],
+  …
+]
+#+end_example
+
+Example of a vector of hash-objects:
+
+#+begin_example
+[
+  {"day":"mon", "quty":12, "color":"red"  },
+  {"day":"thu", "quty":34, "color":"blue" },
+  {"quty":27, "day":"wed", "color":"green"},
+  {"quty":21, "color":"red", "day":"wed"  },
+  {"day":"mon", "quty": 7, "color":"blue" },
+  …
+]
+#+end_example
+
+In the case of hash-objects, the keys are collected as the header of
+the resulting table, in the order seen in the JSON file. In each
+hash-object, the order of key-value pairs is irrelevant.
+
+A header may be specified in the JSON file as a first vector, followed
+by an hline (horizontal line). Example:
+
+#+begin_example
+[
+  ["day","quty","color"],
+  "hline",
+  ["mon",12,"red"  ],
+  ["thu",34,"blue" ],
+  …
+]
+#+end_example
+
+Horizontal lines may be ="hline"=, =[]=, ={}=, or =null=.
+
+It is possible to mix both formats: vectors and hash-objects. Example:
+
+#+begin_example
+[
+  ["quty","color"],                         // incomplete header
+  null,                                     // horizontal line
+  {"day":"mon", "quty":12, "color":"red" }, // an hash-object
+  ["thu", 34, "blue" ],                     // a vector
+  …
+]
+#+end_example
 
 ** Input slicing
 :PROPERTIES:

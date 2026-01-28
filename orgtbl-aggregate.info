@@ -150,8 +150,10 @@ File: orgtbl-aggregate.info,  Node: New,  Next: Examples,  Prev: Top,  Up: Top
 1 New
 *****
 
-JSON input tables now support hash-objects and an optional header.
-(Previously only vectors were supported.).  See *note JSON input::.
+JSON and CSV input tables can now be inside Org Mode blocks.
+(Previously they could live only in their own separate file.).
+
+   See *note CSV input:: and *note JSON input::.
 
 
 File: orgtbl-aggregate.info,  Node: Examples,  Next: Stop reading here! 80/20,  Prev: New,  Up: Top
@@ -2138,6 +2140,12 @@ those formats).
    • ‘/some/dir/file.csv:(csv params…)’: a comma-separated-values file
      in the CSV format, in the file ‘/some/dir/file.csv’.
 
+   • ‘name(csv params…)’: CSV formatted data within an Org block named
+     ‘"name"’, in the current file.
+
+   • ‘/some/dir/file.org:name(csv params…)’: CSV formatted data within
+     an Org block named ‘"name"’, in a distant Org file.
+
    The cells separators in the CSV files may be TAB, comma, or
 semicolon, they are guessed and different separators may be mixed.
 
@@ -2152,6 +2160,19 @@ separator (‘hline’ in Org table parlance).
    In any case, the columns may be references as ‘$1, $2, $3, …’ as
 usual.
 
+   When data is in an Org Mode file, it is supposed to be within a named
+block of any kind.  Example with a "quote" block:
+
+     #+name: mycsvdata
+     #+begin_quote
+     label,quantity
+     yellow,27
+     red,-61
+     yellow,41
+     red,-29
+     red,-17
+     #+end_quote
+
 
 File: orgtbl-aggregate.info,  Node: JSON input,  Next: Input slicing,  Prev: CSV input,  Up: Wide variety of inputs
 
@@ -2161,10 +2182,16 @@ File: orgtbl-aggregate.info,  Node: JSON input,  Next: Input slicing,  Prev: CSV
    • ‘/some/dir/file.json:(json params…)’: a file containing a JSON
      formatted table, in the file ‘/some/dir/file.csv’.
 
+   • ‘name(json params…)’: JSON formatted data within an Org block named
+     ‘"name"’, in the current file.
+
+   • ‘/some/dir/file.org:name(json params…)’: JSON formatted data within
+     an Org block named ‘"name"’, in a distant Org file.
+
    The accepted formats are a vector of vectors, or a vector of
 hash-objects.
 
-   Currently, no params are recognized.
+   Currently, no ‘params’ are recognized.
 
    Example of a vector of vectors:
 
@@ -2215,6 +2242,20 @@ Example:
        ["thu", 34, "blue" ],                     // a vector
        …
      ]
+
+   When data is in an Org Mode file, it is supposed to be within a named
+block of any kind.  Example with a "src" block for JavaScript:
+
+     #+name: myjsondata
+     #+begin_src js
+     [
+       ["day","quty","color"],
+       "hline",
+       ["mon",12,"red"  ],
+       ["thu",34,"blue" ],
+       …
+     ]
+     #+end_src
 
 
 File: orgtbl-aggregate.info,  Node: Input slicing,  Next: The cond filter,  Prev: JSON input,  Up: Wide variety of inputs
@@ -3147,6 +3188,7 @@ Top: earliest change.  Bottom: latest change.
    • Aggregation of the titles of this README.
    • New free-form wizard.
    • Illustrate README with Uniline graphics.
+   • JSON and CSV input tables can now live inside Org Mode blocks.
 
 
 File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
@@ -3174,82 +3216,82 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 Tag Table:
 Node: Top93
 Node: New2773
-Node: Examples3112
-Node: A very simple example3382
-Node: Demonstrate sum and average computing5737
-Node: Example without days9075
-Node: Example of counting each combination9943
-Node: Stop reading here! 80/2012623
-Node: To summarize the 20%13018
-Node: Keep it simple14849
-Node: Equivalent in SQL R Datamash17555
-Node: SQL equivalent18092
-Node: R equivalent18421
-Node: Datamash equivalent18938
-Node: Wizards19478
-Node: Guiding (traditional) wizard19757
-Node: Experimental free form wizard21551
-Node: The cols parameter23522
-Node: Names of input columns24193
-Node: Grouping specifications in cols25268
-Node: The hline column25824
-Node: The @# column28612
-Node: Aggregation formulas in cols31093
-Node: Correlation of two columns38634
-Node: [Almost) any expression can be specified40373
-Node: Column names41847
-Node: Input table with or without a header42123
-Node: Column names of the input table43516
-Node: Multiple lines header44685
-Node: Custom column names47602
-Node: Formatters50012
-Node: Org Mode compatible formatters50238
-Node: Debugging formatters52439
-Node: Discarding an output column53121
-Node: Sorting55911
-Node: Example with one sorting column56117
-Node: Several sorting columns57398
-Node: hlines in the output table59750
-Node: Output hlines depends on sorting columns60148
-Node: Example with hline 263044
-Node: Cells processing68136
-Node: Where Calc interpretation happens?68588
-Node: Dates74065
-Node: Durations76070
-Node: Empty and malformed input cells77904
-Node: Symbolic computation79574
-Node: Wide variety of inputs81853
-Node: Standard Org Mode input82400
-Node: Virtual input table from Babel82877
-Node: An Org ID85478
-Node: CSV input86079
-Node: JSON input87066
-Node: Input slicing87524
-Node: The cond filter88247
-Node: Virtual input columns89747
-Node: Post-processing95247
-Node: Spreadsheet formulas95772
-Node: Algorithm post processing96870
-Node: Chaining98825
-Node: Pull & Push100528
-Node: Pull mode100762
-Node: Push mode102465
-Node: Pull or push ?104673
-Node: Debugging105407
-Node: Seeing the $ forms105930
-Node: Seeing Calc formulas before evaluation107140
-Node: Seeing Lisp internal form of Calc formulas108274
-Node: Example of debugging vsum(nn^2)109483
-Node: Summary of debugging formatters110912
-Node: Tricks111408
-Node: Sorting (1)111686
-Node: A few lowest or highest values112501
-Node: Span of values113802
-Node: No aggregation114361
-Node: Installation116215
-Node: Authors contributors116857
-Node: Changes118485
-Node: GPL 3 License122622
+Node: Examples3043
+Node: A very simple example3313
+Node: Demonstrate sum and average computing5668
+Node: Example without days9006
+Node: Example of counting each combination9874
+Node: Stop reading here! 80/2012554
+Node: To summarize the 20%12949
+Node: Keep it simple14780
+Node: Equivalent in SQL R Datamash17486
+Node: SQL equivalent18023
+Node: R equivalent18352
+Node: Datamash equivalent18869
+Node: Wizards19409
+Node: Guiding (traditional) wizard19688
+Node: Experimental free form wizard21482
+Node: The cols parameter23453
+Node: Names of input columns24124
+Node: Grouping specifications in cols25199
+Node: The hline column25755
+Node: The @# column28543
+Node: Aggregation formulas in cols31024
+Node: Correlation of two columns38565
+Node: [Almost) any expression can be specified40304
+Node: Column names41778
+Node: Input table with or without a header42054
+Node: Column names of the input table43447
+Node: Multiple lines header44616
+Node: Custom column names47533
+Node: Formatters49943
+Node: Org Mode compatible formatters50169
+Node: Debugging formatters52370
+Node: Discarding an output column53052
+Node: Sorting55842
+Node: Example with one sorting column56048
+Node: Several sorting columns57329
+Node: hlines in the output table59681
+Node: Output hlines depends on sorting columns60079
+Node: Example with hline 262975
+Node: Cells processing68067
+Node: Where Calc interpretation happens?68519
+Node: Dates73996
+Node: Durations76001
+Node: Empty and malformed input cells77835
+Node: Symbolic computation79505
+Node: Wide variety of inputs81784
+Node: Standard Org Mode input82331
+Node: Virtual input table from Babel82808
+Node: An Org ID85409
+Node: CSV input86010
+Node: JSON input87531
+Node: Input slicing89932
+Node: The cond filter90655
+Node: Virtual input columns92155
+Node: Post-processing97655
+Node: Spreadsheet formulas98180
+Node: Algorithm post processing99278
+Node: Chaining101233
+Node: Pull & Push102936
+Node: Pull mode103170
+Node: Push mode104873
+Node: Pull or push ?107081
+Node: Debugging107815
+Node: Seeing the $ forms108338
+Node: Seeing Calc formulas before evaluation109548
+Node: Seeing Lisp internal form of Calc formulas110682
+Node: Example of debugging vsum(nn^2)111891
+Node: Summary of debugging formatters113320
+Node: Tricks113816
+Node: Sorting (1)114094
+Node: A few lowest or highest values114909
+Node: Span of values116210
+Node: No aggregation116769
+Node: Installation118623
+Node: Authors contributors119265
+Node: Changes120893
+Node: GPL 3 License125100
 
 End Tag Table
 

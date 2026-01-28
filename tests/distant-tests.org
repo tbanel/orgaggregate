@@ -84,3 +84,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 | VVVV | 504.4 |
 | S    | 521.6 |
 | TT   |  90.9 |
+
+* CSV in distant Org file
+
+#+name: distantcsv
+#+begin_quote
+label,quantity
+jes,23
+ne,-65
+jes,47
+ne,-22
+ne,-19
+#+end_quote
+
+* JSON in distant Org file
+
+#+name: distantjson
+#+begin_src js
+[
+ [ 42, "univ"],
+ [123, "jes" ],
+ [321, "jes" ],
+ [111, "jes" ],
+ [-77, "ne"  ],
+ [-99, "ne"  ]
+]
+#+end_src

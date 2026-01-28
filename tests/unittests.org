@@ -2022,6 +2022,15 @@ Check if horizontal separators are recognized:
 |     2 | grape |       11 |
 #+END:
 
+CSV in distant Org file
+
+#+BEGIN: aggregate :table "distant-tests.org:distantcsv(csv header)" :cols "label vsum(quantity)"
+| label | vsum(quantity) |
+|-------+----------------|
+| jes   |             70 |
+| ne    |           -106 |
+#+END:
+
 * JSON table
 
 same as in CSV
@@ -2111,4 +2120,14 @@ Understand input hline
 |     2 | -15 |
 |     2 |   7 |
 |     2 |   4 |
+#+END:
+
+JSON in distant Org file
+
+#+BEGIN: aggregate :table "distant-tests.org:distantjson(json)" :cols "$2 vsum($1)"
+| $2   | vsum($1) |
+|------+----------|
+| univ |       42 |
+| jes  |      555 |
+| ne   |     -176 |
 #+END:

@@ -321,11 +321,14 @@ but this has already been short-circuited."
          (consp (car table)))
      table)))
 
-(defun orgtbl-aggregate--table-from-csv (file params)
+(defun orgtbl-aggregate--table-from-csv (file name params)
   "Parse a CSV formatted table located in FILE.
+If NAME is nil, then FILE is supposed to contain just one CSV table.
+If NAME is given, it is supposed to be an Org block name which contains
+a CSV table.
 The cell-separator is currently guessed.
 Currently, there is no header."
-  (let ((header) (colnames))
+  (let ((header) (colnames) (block))
     (cl-loop
      for p on (cdr (read params))
      do
@@ -337,11 +340,15 @@ Currently, there is no header."
        (setq colnames (car p)))
       (t
        (message "parameter %S not recognized" (car p)))))
+    (if name
+        (setq block (orgtbl-aggregate--block-from-name file name)))
     (with-temp-buffer
-      (insert-file-contents file)
+      (if name
+          (insert block)
+        (insert-file-contents file))
       (orgtbl-aggregate--csv-to-lisp header colnames))))
 
-(defun orgtbl-aggregate--table-from-json (file _params)
+(defun orgtbl-aggregate--table-from-json (file name _params)
   "Parse a JSON formatted table located in FILE.
 FILE is a filename with possible relative or absolute path.
 Currently, the accepted format is
@@ -363,7 +370,10 @@ to the column names."
   (let ((json-object-type 'alist)
         (json-array-type 'list)
         (json-key-type 'string))
-    (let ((json (json-read-file file))
+    (let ((json
+           (if name
+               (json-read-from-string (orgtbl-aggregate--block-from-name file name))
+             (json-read-file file)))
           (colnames ())
           (result))
       (when (and (cddr json)                ;; at least 2 rows
@@ -402,7 +412,7 @@ to the column names."
         result))))
 
 (defun orgtbl-aggregate--table-from-name (file name)
-  "Parse an Org table named NAME in a ditant Org file named FILE.
+  "Parse an Org table named NAME in a distant Org file named FILE.
 FILE is a filename with possible relative or absolute path.
 If FILE is nil, look in the current buffer."
   (with-current-buffer
@@ -417,6 +427,27 @@ If FILE is nil, look in the current buffer."
 	       nil t))
         (re-search-forward (rx (skipmetatable "#")) nil t)
         (orgtbl-aggregate--table-to-lisp)))))
+
+(defun orgtbl-aggregate--block-from-name (file name)
+  "Parse an Org table named NAME in a distant Org file named FILE.
+FILE is a filename with possible relative or absolute path.
+If FILE is nil, look in the current buffer."
+  (message "orgtbl-aggregate--block-from-name %S %S" file name)
+  (with-current-buffer
+      (if file
+          (find-file-noselect file)
+        (current-buffer))
+    (save-excursion
+      (goto-char (point-min))
+      (let ((case-fold-search t))
+        (if (re-search-forward
+             (rx ;; a single regexp :)
+              tblname (literal name) (* blank) "\n"
+              (0+ blank) "#+begin" (0+ any) "\n"
+              (group (*? (or any "\n")))
+              bol (* space) "#+end")
+             nil t)
+            (match-string-no-properties 1))))))
 
 (defun orgtbl-aggregate--table-from-id (id)
   "Parse a table following a header in a distant Org file.
@@ -520,13 +551,11 @@ An horizontal line is translated as the special symbol `hline'."
        (table
         (cond
          ;; name-or-id = "file:(csv …)"
-         ((and file (not name)
-               (string-match (rx bos "(csv") params))
-          (orgtbl-aggregate--table-from-csv file params))
+         ((and params (string-match (rx bos "(csv") params))
+          (orgtbl-aggregate--table-from-csv file name params))
          ;; name-or-id = "file:(json …)"
-         ((and file (not name)
-               (string-match (rx bos "(json") params))
-          (orgtbl-aggregate--table-from-json file params))
+         ((and params (string-match (rx bos "(json") params))
+          (orgtbl-aggregate--table-from-json file name params))
          ;; name-or-id = "34cbc63a-c664-471e-a620-d654b26ffa31"
          ;; pointing to a header in a distant org file, followed by a table
          (orgid

@@ -6,8 +6,10 @@ Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the first table.
 
 * New
-JSON input tables now support hash-objects and an optional
-header. (Previously only vectors were supported.). See [[#json-input][JSON input]].
+JSON and CSV input tables can now be inside Org Mode blocks.
+(Previously they could live only in their own separate file.).
+
+See [[#csv-input][CSV input]] and [[#json-input][JSON input]].
 
 * Table of Contents
 :PROPERTIES:
@@ -2068,6 +2070,12 @@ offers those formats).
 - =/some/dir/file.csv:(csv params…)=: a comma-separated-values file in
   the CSV format, in the file =/some/dir/file.csv=.
 
+- =name(csv params…)=: CSV formatted data within an Org block named
+  ="name"=, in the current file.
+
+- =/some/dir/file.org:name(csv params…)=: CSV formatted data within an
+  Org block named ="name"=, in a distant Org file.
+
 The cells separators in the CSV files may be TAB, comma, or semicolon,
 they are guessed and different separators may be mixed.
 
@@ -2082,6 +2090,21 @@ Parameters may be:
   In any case, the columns may be references as =$1, $2, $3, …= as
   usual.
 
+When data is in an Org Mode file, it is supposed to be within a named
+block of any kind. Example with a "quote" block:
+
+#+begin_example
+#+name: mycsvdata
+#+begin_quote
+label,quantity
+yellow,27
+red,-61
+yellow,41
+red,-29
+red,-17
+#+end_quote
+#+end_example
+
 ** JSON input
 :PROPERTIES:
 :CUSTOM_ID: json-input
@@ -2090,10 +2113,16 @@ Parameters may be:
 - =/some/dir/file.json:(json params…)=: a file containing a JSON
   formatted table, in the file =/some/dir/file.csv=.
 
+- =name(json params…)=: JSON formatted data within an Org block named
+  ="name"=, in the current file.
+
+- =/some/dir/file.org:name(json params…)=: JSON formatted data within an
+  Org block named ="name"=, in a distant Org file.
+
 The accepted formats are a vector of vectors, or a vector of
 hash-objects.
 
-Currently, no params are recognized.
+Currently, no =params= are recognized.
 
 Example of a vector of vectors:
 
@@ -2150,6 +2179,22 @@ It is possible to mix both formats: vectors and hash-objects. Example:
   ["thu", 34, "blue" ],                     // a vector
   …
 ]
+#+end_example
+
+When data is in an Org Mode file, it is supposed to be within a named
+block of any kind. Example with a "src" block for JavaScript:
+
+#+begin_example
+#+name: myjsondata
+#+begin_src js
+[
+  ["day","quty","color"],
+  "hline",
+  ["mon",12,"red"  ],
+  ["thu",34,"blue" ],
+  …
+]
+#+end_src
 #+end_example
 
 ** Input slicing
@@ -3080,6 +3125,7 @@ Top: earliest change. Bottom: latest change.
 - Aggregation of the titles of this README.
 - New free-form wizard.
 - Illustrate README with Uniline graphics.
+- JSON and CSV input tables can now live inside Org Mode blocks.
 
 * GPL 3 License
 :PROPERTIES:

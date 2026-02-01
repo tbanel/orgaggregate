@@ -81,6 +81,7 @@
 (require 'calc-ext)
 (require 'calc-aent)
 (require 'calc-alg)
+(require 'calc-arith)
 (require 'org)
 (require 'org-table)
 (require 'org-id)
@@ -93,6 +94,31 @@
 
 ;;; Code:
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; The venerable Calc is used thoroughly by the Aggregate package.
+;; A few bugs were found.
+;; They have been fixed in recent versions of Emacs
+;; Uncomment the fixes if needed
+;(defun math-max-list (a b)
+;  (if b
+;      (if (or (Math-anglep (car b)) (eq (caar b) 'date)
+;	      (and (eq (car (car b)) 'intv) (math-intv-constp (car b)))
+;	      (math-infinitep (car b)))
+;	  (math-max-list (math-max a (car b)) (cdr b))
+;	(math-reject-arg (car b) 'anglep))
+;    a))
+;
+;(defun math-min-list (a b)
+;  (if b
+;      (if (or (Math-anglep (car b)) (eq (caar b) 'date)
+;	      (and (eq (car (car b)) 'intv) (math-intv-constp (car b)))
+;	      (math-infinitep (car b)))
+;	  (math-min-list (math-min a (car b)) (cdr b))
+;	(math-reject-arg (car b) 'anglep))
+;    a))
+;; End of Calc fixes
+
+;; [bazilo synchronize orgtbl-αggregate & orgtbl-joιn
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; creating long lists in the right order may be done
 ;; - by (nconc)  but behavior is quadratic
@@ -250,7 +276,6 @@ COLNAMES, if not nil, is a list of column names."
         (setq table (cons colnames (cons 'hline table))))
     table))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; A few rx abbreviations
 ;; each time a bit of a regexp is used twice or more,
 ;; it makes sense to define an abbrev
@@ -320,6 +345,26 @@ but this has already been short-circuited."
      (or (eq (car table) 'hline)
          (consp (car table)))
      table)))
+
+(defun orgtbl-aggregate--block-from-name (file name)
+  "Parse an Org table named NAME in a distant Org file named FILE.
+FILE is a filename with possible relative or absolute path.
+If FILE is nil, look in the current buffer."
+  (with-current-buffer
+      (if file
+          (find-file-noselect file)
+        (current-buffer))
+    (save-excursion
+      (goto-char (point-min))
+      (let ((case-fold-search t))
+        (if (re-search-forward
+             (rx ;; a single regexp :)
+              tblname (literal name) (* blank) "\n"
+              (0+ blank) "#+begin" (0+ any) "\n"
+              (group (*? (or any "\n")))
+              bol (* space) "#+end")
+             nil t)
+            (match-string-no-properties 1))))))
 
 (defun orgtbl-aggregate--table-from-csv (file name params)
   "Parse a CSV formatted table located in FILE.
@@ -427,27 +472,6 @@ If FILE is nil, look in the current buffer."
 	       nil t))
         (re-search-forward (rx (skipmetatable "#")) nil t)
         (orgtbl-aggregate--table-to-lisp)))))
-
-(defun orgtbl-aggregate--block-from-name (file name)
-  "Parse an Org table named NAME in a distant Org file named FILE.
-FILE is a filename with possible relative or absolute path.
-If FILE is nil, look in the current buffer."
-  (message "orgtbl-aggregate--block-from-name %S %S" file name)
-  (with-current-buffer
-      (if file
-          (find-file-noselect file)
-        (current-buffer))
-    (save-excursion
-      (goto-char (point-min))
-      (let ((case-fold-search t))
-        (if (re-search-forward
-             (rx ;; a single regexp :)
-              tblname (literal name) (* blank) "\n"
-              (0+ blank) "#+begin" (0+ any) "\n"
-              (group (*? (or any "\n")))
-              bol (* space) "#+end")
-             nil t)
-            (match-string-no-properties 1))))))
 
 (defun orgtbl-aggregate--table-from-id (id)
   "Parse a table following a header in a distant Org file.
@@ -581,34 +605,6 @@ An horizontal line is translated as the special symbol `hline'."
       (if slice
           (org-babel-ref-index-list slice table)
         table)))
-
-(defun orgtbl-aggregate--remove-cookie-lines (table)
-  "Remove lines of TABLE which contain cookies.
-But do not remove cookies in the header, if any.
-The operation is destructive.  But on the other hand,
-if there are no cookies in TABLE, TABLE is returned
-without any change.
-A cookie is an alignment instruction like:
-  <l>   left align cells in this column
-  <c>   center cells
-  <r>   right align
-  <15>  make this column 15 characters wide."
-  (orgtbl-aggregate--pop-leading-hline table)
-  (cl-loop
-   with hline = nil
-   for line on table
-   if (and hline
-           (cl-loop
-            for cell in (car line)
-            thereis
-            (and (stringp cell)
-                 (string-match
-                  (rx bos "<" (? (any "lcr")) (* digit) ">" eos)
-                  cell))))
-   do (setcar line t)
-   if (eq (car line) 'hline)
-   do (setq hline t))
-  (delq t table))
 
 (defun orgtbl-aggregate--split-string-with-quotes (string)
   "Like (split-string STRING), but with quote protection.
@@ -795,39 +791,6 @@ special symbol `hline' to mean an horizontal line."
       (setcar (car bits) "|")
       (mapconcat #'identity (orgtbl-aggregate--list-get bits)))))
 
-(defun orgtbl-aggregate--recalculate-fast ()
-  "Wrapper arround `org-table-recalculate'.
-The standard `org-table-recalculate' function is slow because
-it must handle lots of cases. Here the table is freshely created,
-therefore a lot of special handling and cache updates can be
-safely bypassed. Moreover, the alignment of the resulting table
-is delegated to orgtbl-aggregate, which is fast.
-The result is a speedup up to x6, and a memory consumption
-divided by up to 5. It makes a difference for large tables."
-  (let ((old (symbol-function 'org-table-goto-column)))
-    (cl-letf (((symbol-function 'org-fold-core--fix-folded-region)
-               (lambda (_a _b _c)))
-              ((symbol-function 'jit-lock-after-change)
-               (lambda (_a _b _c)))
-              ;; Warning: this org-table-goto-column trick fixes a bug
-              ;; in org-table.el around line 3084, when computing
-              ;; column-count. The bug prevents single-cell formulas
-              ;; creating the cell in some rare cases.
-              ((symbol-function 'org-table-goto-column)
-               (lambda (n &optional on-delim _force)
-                 ;;                            △
-                 ;;╭───────────────────────────╯
-                 ;;╰╴parameter is forcibly changed to t╶─╮
-                 ;;                      ╭───────────────╯
-                 ;;                      ▽
-                 (funcall old n on-delim t))))
-      (condition-case nil
-          (org-table-recalculate t t)
-        ;;                       △ △
-        ;; for all lines╶────────╯ │
-        ;; do not re-align╶────────╯
-        (args-out-of-range nil)))))
-
 (defun orgtbl-aggregate--insert-elisp-table (table)
   "Insert TABLE in current buffer at point.
 TABLE is a list of lists of cells.  The list may contain the
@@ -835,6 +798,15 @@ special symbol `hline' to mean an horizontal line."
   ;; inactivating jit-lock-after-change boosts performance a lot
   (cl-letf (((symbol-function 'jit-lock-after-change) (lambda (_a _b _c)) ))
     (insert (orgtbl-aggregate--elisp-table-to-string table))))
+
+(defun orgtbl-aggregate--cell-to-string (cell)
+  "Convert CELL (a cell in the input table) to a string if it is not already."
+  (cond
+   ((not cell) cell)
+   ((stringp cell) cell)
+   ((numberp cell) (number-to-string cell))
+   ((symbolp cell) (symbol-name cell))
+   (t (error "cell %S is not a number neither a string" cell))))
 
 (defun orgtbl-aggregate--get-header-table (table &optional asstring)
   "Return the header of TABLE as a list of column names.
@@ -856,7 +828,7 @@ Actual column names which are not fully alphanumeric are quoted."
 	     (cl-loop for x in (car table)
                       do (setq x (orgtbl-aggregate--cell-to-string x))
 		      collect
-		      (if (string-match
+		      (if (string-match-p
                            (rx bos nakedname eos)
                            x)
 			  x
@@ -867,30 +839,6 @@ Actual column names which are not fully alphanumeric are quoted."
     (if asstring
 	(mapconcat #'identity header " ")
       header)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; The venerable Calc is used thoroughly by the Aggregate package.
-;; A few bugs were found.
-;; They have been fixed in recent versions of Emacs
-;; Uncomment the fixes if needed
-;(defun math-max-list (a b)
-;  (if b
-;      (if (or (Math-anglep (car b)) (eq (caar b) 'date)
-;	      (and (eq (car (car b)) 'intv) (math-intv-constp (car b)))
-;	      (math-infinitep (car b)))
-;	  (math-max-list (math-max a (car b)) (cdr b))
-;	(math-reject-arg (car b) 'anglep))
-;    a))
-;
-;(defun math-min-list (a b)
-;  (if b
-;      (if (or (Math-anglep (car b)) (eq (caar b) 'date)
-;	      (and (eq (car (car b)) 'intv) (math-intv-constp (car b)))
-;	      (math-infinitep (car b)))
-;	  (math-min-list (math-min a (car b)) (cdr b))
-;	(math-reject-arg (car b) 'anglep))
-;    a))
-;; End of Calc fixes
 
 ;; The *this* variable is accessible to the user.
 ;; It refers to the aggregated table before it is "printed"
@@ -940,7 +888,93 @@ with an Org Mode table."
       (eval post)))
    (t (user-error ":post %S header could not be understood" post))))
 
-(require 'calc-arith)
+(defun orgtbl-aggregate--alist-get-remove (key alist)
+  "A variant of alist-get which removes an entry once read.
+ALIST is a list of pairs (key . value).
+Search ALIST for a KEY. If found, replace the key in (key . value)
+by nil, and return value. If nothing is found, return nil."
+  (let ((x (assq key alist)))
+    (when x
+      (setcar x nil)
+      (cdr x))))
+
+(defun orgtbl-aggregate--recalculate-fast ()
+  "Wrapper arround `org-table-recalculate'.
+The standard `org-table-recalculate' function is slow because
+it must handle lots of cases. Here the table is freshely created,
+therefore a lot of special handling and cache updates can be
+safely bypassed. Moreover, the alignment of the resulting table
+is delegated to orgtbl-aggregate, which is fast.
+The result is a speedup up to x6, and a memory consumption
+divided by up to 5. It makes a difference for large tables."
+  (let ((old (symbol-function 'org-table-goto-column)))
+    (cl-letf (((symbol-function 'org-fold-core--fix-folded-region)
+               (lambda (_a _b _c)))
+              ((symbol-function 'jit-lock-after-change)
+               (lambda (_a _b _c)))
+              ;; Warning: this org-table-goto-column trick fixes a bug
+              ;; in org-table.el around line 3084, when computing
+              ;; column-count. The bug prevents single-cell formulas
+              ;; creating the cell in some rare cases.
+              ((symbol-function 'org-table-goto-column)
+               (lambda (n &optional on-delim _force)
+                 ;;                            △
+                 ;;╭───────────────────────────╯
+                 ;;╰╴parameter is forcibly changed to t╶─╮
+                 ;;                      ╭───────────────╯
+                 ;;                      ▽
+                 (funcall old n on-delim t))))
+      (condition-case nil
+          (org-table-recalculate t t)
+        ;;                       △ △
+        ;; for all lines╶────────╯ │
+        ;; do not re-align╶────────╯
+        (args-out-of-range nil)))))
+
+(defun orgtbl-aggregate--table-recalculate (content formula)
+  "Update the #+TBLFM: line and recompute all formulas.
+The computed table may have formulas which need to be recomputed.
+This function adds a #+TBLFM: line at the end of the table.
+It merges old formulas (if any) contained in CONTENT,
+with new formulas (if any) given in the `formula' directive."
+  (let ((tblfm
+         ;; Was there already a #+tblfm: line ? Recover it.
+         (and content
+	      (let ((case-fold-search t))
+	        (string-match
+	         (rx bol (* blank) (group "#+tblfm:" (* any)))
+	         content))
+              (match-string 1 content))))
+    (if (stringp formula)
+        ;; There is a :formula directive. Add it if not already there
+        (if tblfm
+	    (unless (string-match (regexp-quote formula) tblfm)
+	      (setq tblfm (format "%s::%s" tblfm formula)))
+	  (setq tblfm (format "#+TBLFM: %s" formula))))
+
+    (when tblfm
+      ;; There are formulas. They need to be evaluated.
+      (end-of-line)
+      (insert "\n" tblfm)
+      (forward-line -1)
+      (orgtbl-aggregate--recalculate-fast)
+
+      ;; Realign table after org-table-recalculate have changed or added
+      ;; some cells. It is way faster to re-read and re-write the table
+      ;; through orgtbl-aggregate routines than letting org-mode do the job.
+      (let* ((table (orgtbl-aggregate--table-to-lisp))
+             (width
+              (cl-loop for row in table
+                       if (consp row)
+                       maximize (length row))))
+        (cl-loop
+         for row in table
+         if (and (consp row) (< (length row) width))
+         do (nconc row (make-list (- width (length row)) nil)))
+        (delete-region (org-table-begin) (org-table-end))
+        (insert (orgtbl-aggregate--elisp-table-to-string table) "\n")))))
+
+;; bazilo]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Org Table Aggregation package really begins here
@@ -1379,6 +1413,27 @@ Actually, FORMULAS are evaluated by Org, not by orgtbl-aggregate."
       (insert "\n")
       (goto-char start))))
 
+(defun orgtbl-aggregate--add-hlines (result hline)
+  "Add hlines to RESULT between different blocks of rows.
+HLINE is a small number (1 or 2 or 3, maybe more)
+which gives the number of sorted columns to consider
+to split rows blocks with hlines.
+hlines are added in-place"
+  (let ((colnums
+	 (cl-loop for col in orgtbl-aggregate--columns-sorting
+		  for n from 1 to hline
+		  collect (orgtbl-aggregate--sorting-colnum col))))
+    (cl-loop for row on result
+	     unless
+	     (or (null oldrow)
+		 (cl-loop for c in colnums
+			  always
+                          (equal
+			   (nth c (orgtbl-aggregate--list-get (car row)))
+			   (nth c (orgtbl-aggregate--list-get (car oldrow))))))
+	     do (setcdr oldrow (cons 'hline (cdr oldrow)))
+	     for oldrow = row)))
+
 (defun orgtbl-aggregate--create-table-aggregated (table params)
   "Convert the source TABLE into an aggregated table.
 The source TABLE is a list of lists of cells.
@@ -1599,36 +1654,6 @@ The code was borrowed from org-table.el."
    ((numberp cell) cell)
    ((stringp cell) (string-to-number cell))
    (t (error "cell %S is not a number neither a string" cell))))
-
-(defun orgtbl-aggregate--cell-to-string (cell)
-  "Convert CELL (a cell in the input table) to a string if it is not already."
-  (cond
-   ((not cell) cell)
-   ((stringp cell) cell)
-   ((numberp cell) (number-to-string cell))
-   ((symbolp cell) (symbol-name cell))
-   (t (error "cell %S is not a number neither a string" cell))))
-
-(defun orgtbl-aggregate--add-hlines (result hline)
-  "Add hlines to RESULT between different blocks of rows.
-HLINE is a small number (1 or 2 or 3, maybe more)
-which gives the number of sorted columns to consider
-to split rows blocks with hlines.
-hlines are added in-place"
-  (let ((colnums
-	 (cl-loop for col in orgtbl-aggregate--columns-sorting
-		  for n from 1 to hline
-		  collect (orgtbl-aggregate--sorting-colnum col))))
-    (cl-loop for row on result
-	     unless
-	     (or (null oldrow)
-		 (cl-loop for c in colnums
-			  always
-                          (equal
-			   (nth c (orgtbl-aggregate--list-get (car row)))
-			   (nth c (orgtbl-aggregate--list-get (car oldrow))))))
-	     do (setcdr oldrow (cons 'hline (cdr oldrow)))
-	     for oldrow = row)))
 
 (defun orgtbl-aggregate--fmt-settings (fmt)
   "Convert the FMT user-given format.
@@ -1972,48 +1997,33 @@ Note:
 
 ;; aggregation in Pull mode
 
-(defun orgtbl-aggregate--table-recalculate (content formula)
-  "Update the #+TBLFM: line and recompute all formulas.
-The computed table may have formulas which need to be recomputed.
-This function adds a #+TBLFM: line at the end of the table.
-It merges old formulas (if any) contained in CONTENT,
-with new formulas (if any) given in the `formula' directive."
-  (let ((tblfm
-         ;; Was there already a #+tblfm: line ? Recover it.
-         (and content
-	      (let ((case-fold-search t))
-	        (string-match
-	         (rx bol (* blank) (group "#+tblfm:" (* any)))
-	         content))
-              (match-string 1 content))))
-    (if (stringp formula)
-        ;; There is a :formula directive. Add it if not already there
-        (if tblfm
-	    (unless (string-match (regexp-quote formula) tblfm)
-	      (setq tblfm (format "%s::%s" tblfm formula)))
-	  (setq tblfm (format "#+TBLFM: %s" formula))))
-
-    (when tblfm
-      ;; There are formulas. They need to be evaluated.
-      (end-of-line)
-      (insert "\n" tblfm)
-      (forward-line -1)
-      (orgtbl-aggregate--recalculate-fast)
-
-      ;; Realign table after org-table-recalculate have changed or added
-      ;; some cells. It is way faster to re-read and re-write the table
-      ;; through orgtbl-aggregate routines than letting org-mode do the job.
-      (let* ((table (orgtbl-aggregate--table-to-lisp))
-             (width
-              (cl-loop for row in table
-                       if (consp row)
-                       maximize (length row))))
-        (cl-loop
-         for row in table
-         if (and (consp row) (< (length row) width))
-         do (nconc row (make-list (- width (length row)) nil)))
-        (delete-region (org-table-begin) (org-table-end))
-        (insert (orgtbl-aggregate--elisp-table-to-string table) "\n")))))
+(defun orgtbl-aggregate--remove-cookie-lines (table)
+  "Remove lines of TABLE which contain cookies.
+But do not remove cookies in the header, if any.
+The operation is destructive.  But on the other hand,
+if there are no cookies in TABLE, TABLE is returned
+without any change.
+A cookie is an alignment instruction like:
+  <l>   left align cells in this column
+  <c>   center cells
+  <r>   right align
+  <15>  make this column 15 characters wide."
+  (orgtbl-aggregate--pop-leading-hline table)
+  (cl-loop
+   with hline = nil
+   for line on table
+   if (and hline
+           (cl-loop
+            for cell in (car line)
+            thereis
+            (and (stringp cell)
+                 (string-match
+                  (rx bos "<" (? (any "lcr")) (* digit) ">" eos)
+                  cell))))
+   do (setcar line t)
+   if (eq (car line) 'hline)
+   do (setq hline t))
+  (delq t table))
 
 ;;;###autoload
 (defun org-dblock-write:aggregate (params)
@@ -2111,27 +2121,18 @@ Note:
       post))
     (orgtbl-aggregate--table-recalculate content formula)))
 
+;; [bazilo synchronize orgtbl-αggregate & orgtbl-joιn
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Wizard
 
-(defun orgtbl-aggregate--alist-get-remove (key alist)
-  "A variant of alist-get which removes an entry once read.
-ALIST is a list of pairs (key . value).
-Search ALIST for a KEY. If found, replace the key in (key . value)
-by nil, and return value. If nothing is found, return nil."
-  (let ((x (assq key alist)))
-    (when x
-      (setcar x nil)
-      (cdr x))))
-
-;; This variable contains history of user entered
-;; :cols and :cond parameters, so that they can be entered
-;; again or edited
+;; This variable contains the history of user entered answers,
+;; so that they can be entered again or edited.
 (defvar orgtbl-aggregate-history-cols ())
 
 (defun orgtbl-aggregate--parse-header-arguments (type)
   "If (point) is on a #+begin: line, parse it, and return an a-list.
-TYPE is \"aggregate\" or \"transpose\", or possibly any type of block.
+TYPE is \"aggregate\", or possibly any type of block.
 If the line the (point) is on do not match TYPE, return nil."
   (let ((line (buffer-substring-no-properties
                (line-beginning-position)
@@ -2143,6 +2144,12 @@ If the line the (point) is on do not match TYPE, return nil."
       line)
      (equal (match-string 1 line) type)
      (cdr (org-babel-parse-header-arguments line t)))))
+
+(defun orgtbl-aggregate--dismiss-help ()
+  "Hide the wizard help window."
+  (let ((help-window (get-buffer-window "*orgtbl-aggregate-help*")))
+    (if help-window
+        (delete-window help-window))))
 
 (defun orgtbl-aggregate--display-help (explain &rest args)
   "Display help for each field the wizard queries.
@@ -2159,9 +2166,6 @@ It is an identifier hidden in a =properties= drawer.
 Org Mode globally keeps track of all Ids and knows how to access them.
 It is supposed that the ID location is followed by a table or
 a Babel block suitable for aggregation."
-           :file "* In which file is the table?
-The table may be in another file.
-Leave answer empty to mean that the table is in the current buffer."
            :name "* The input table may be:
 - a regular Org table,
 - a Babel block whose output will be the input table.
@@ -2184,6 +2188,28 @@ Leave empty for no slicing.
 - ~mytable[0:5]~     retains only the first 6 rows of the input table
 - ~mytable[*,0:1]~   retains only the first 2 columns
 - ~mytable[0:5,0:1]~ retains 5 rows and 2 columns"
+           :cond "* Filter rows (optional)
+Lisp function, lambda, or Babel block to filter out rows.
+** Available input columns
+  %s
+** Example
+  ~(>= (string-to-number quty) 3)~
+  only rows with cell ~quty~ higher or equal to ~3~ are retained.
+  ~(not (equal tag \"dispose\"))~
+  rows with cell ~tag~ equal to ~dispose~ are filtered out."
+           :post "* Post-process (optional)
+The output table may be post-processed prior to printing it
+in the current buffer.
+The processor may be a Lisp function, a lambda, or a Babel block.
+** Example:
+  ~(lambda (table) (append table '(hline (banana 42))))~
+  two rows are appended at the end of the output table:
+  ~hline~ which means horizontal line,
+  and a row with two cells."
+;; bazilo]
+           :file "* In which file is the table?
+The table may be in another file.
+Leave answer empty to mean that the table is in the current buffer."
            :precompute "* Precompute (optional)
 The input table may be enriched with additional columns prior to aggregating.
 The syntax is the regular Org table spreadsheet formulas for columns,
@@ -2211,36 +2237,19 @@ Each target column may be followed optionally by semicolon separated parameters:
   %s
 ** Examples:
   ~vmean(quty);f2~, ~vsum(amount);'total'~"
-           :cond "* Filter rows (optional)
-Lisp function, lambda, or Babel block to filter out rows.
-** Available input columns
-  %s
-** Example
-  ~(>= (string-to-number quty) 3)~
-  only rows with cell ~quty~ higher or equal to ~3~ are retained.
-  ~(not (equal tag \"dispose\"))~
-  rows with cell ~tag~ equal to ~dispose~ are filtered out."
            :hline "* Output horizontal separators level (optional)
 - ~0~ or empty means no lines in the output
 - ~1~ means separate rows of identical values on 1 column
 - ~2~ means separate rows of identical values on 2 columns
 - larger values are allowed, but questionably useful.
 The columns considered are the sorted ones."
-           :post "* Post-process (optional)
-The output table may be post-processed prior to printing it
-in the current buffer.
-The processor may be a Lisp function, a lambda, or a Babel block.
-** Example:
-  ~(lambda (table) (append table '(hline (banana 42))))~
-  two rows are appended at the end of the output table:
-  ~hline~ which means horizontal line,
-  and a row with two cells."
            :cols-tr "* Target columns
 ** Optional
 If the answer is left empty, all input columns are kept,
 in the same order.
 ** Available input columns
   %s"
+;; [bazilo synchronize orgtbl-αggregate & orgtbl-joιn
            ))
         (main-window (selected-window))
         (help-window (get-buffer-window "*orgtbl-aggregate-help*")))
@@ -2255,16 +2264,12 @@ in the same order.
     (goto-char (point-min))
     (select-window main-window)))
 
-(defun orgtbl-aggregate--dismiss-help ()
-  "Hide the wizard help window."
-  (let ((help-window (get-buffer-window "*orgtbl-aggregate-help*")))
-    (if help-window
-        (delete-window help-window))))
-
 (defun orgtbl-aggregate--wizard-query-table (table)
-  "Query the 3 fields composing a generalized table: file:name:slice.
-If TABLE is not nil, it is decomposed into file:name:slice, and each
-of those 3 fields serves as default answer when prompting.
+  "Query the 4 fields composing a generalized table: file:name:params:slice.
+It may be only 3 fields in case of orgid:params:slice or
+file.csv:(csv):slice.
+If TABLE is not nil, it is decomposed into file:name:params:slice, and each
+of those 4 fields serve as default answer when prompting.
 Alternately, file:name may be orgid, an ID which knows its file location."
   (let (file name orgid params slice isorgid)
     (if table
@@ -2320,9 +2325,9 @@ Alternately, file:name may be orgid, an ID which knows its file location."
      file
      (not params)
      (cond
-      ((string-match (rx ".csv"  eos) file)
+      ((string-match-p (rx ".csv"  eos) file)
        (setq params "(csv)"))
-      ((string-match (rx ".json" eos) file)
+      ((string-match-p (rx ".json" eos) file)
        (setq params "(json)"))))
 
     (orgtbl-aggregate--display-help :params)
@@ -2340,6 +2345,8 @@ Alternately, file:name may be orgid, an ID which knows its file location."
            'orgtbl-aggregate-history-cols))
 
     (orgtbl-aggregate--assemble-locator file name orgid params slice)))
+
+;; bazilo]
 
 (defun orgtbl-aggregate--wizard-aggregate-create-update (oldline)
   "Update OLDLINE parameters by interactivly querying user.
@@ -2443,11 +2450,25 @@ amended by the user."
      do (nconc params `(,(car pair) ,(cdr pair))))
     params))
 
+;; [bazilo synchronize orgtbl-αggregate & orgtbl-joιn
+
+;;;###autoload
+(defun orgtbl-aggregate-insert-dblock-aggregate ()
+  "Wizard to interactively insert a dynamic aggregated block."
+  (interactive)
+  (let* ((oldline (orgtbl-aggregate--parse-header-arguments "aggregate"))
+         (params (orgtbl-aggregate--wizard-aggregate-create-update oldline)))
+    (when oldline
+      (org-mark-element)
+      (delete-region (region-beginning) (1- (region-end))))
+    (org-create-dblock params)
+    (org-update-dblock)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unfold, Fold
 ;; Experimental
 ;; Typing TAB on a line like
-;; #+begin aggragate params…
+;; #+begin aggregate params…
 ;; unfolds the parameters: a new line for each parameter
 ;; and a dedicated help & completion for each activated by TAB
 
@@ -2502,6 +2523,47 @@ then proceed to folding, otherwise unfold."
          nil t))
       (org-TAB-begin-aggregate-fold)
     (org-TAB-begin-aggregate-unfold)))
+
+(defun orgtbl-aggregate-get-all-unfolded ()
+  "Prepare an a-list of all unfolded parameters."
+  (interactive)
+  (save-excursion
+    (re-search-backward (rx bol "#+begin:") nil t)
+    (let ((alist))
+      (while
+          (progn
+            (forward-line 1)
+            (re-search-forward
+             (rx point "#+aggregate:" (* blank)
+               (group (+ (any ":a-z0-9_-")))
+               (* blank)
+               (group (* any)))
+             nil t))
+        (push (cons
+               (intern (match-string-no-properties 1))
+               (match-string-no-properties 2))
+              alist))
+      (reverse alist))))
+
+(defun orgtbl-aggregate--TAB-replace-value (getter)
+  "Update a #+aggregate: line
+from
+  #+aggregate: :tag OLD
+to
+  #+aggregate: :tag NEW
+NEW being the result of executing (GETTER OLD)"
+  (let* ((start (point))
+         (end (pos-eol))
+         (new
+          (funcall
+           getter
+           (buffer-substring-no-properties start end))))
+    (when new
+      (delete-region start end)
+      (delete-horizontal-space)
+      (insert " " new))))
+
+;; bazilo]
 
 (defun org-TAB-begin-aggregate-fold ()
   "Turn all lines of the form #+aggregate: … into a single line.
@@ -2570,32 +2632,15 @@ individual parameter for an easier reading."
             (or (orgtbl-aggregate--alist-get-remove :hline      line) ""))
     (insert "\n#+aggregate: :post "
             (or (orgtbl-aggregate--alist-get-remove :post       line) ""))
+    (cl-loop
+     for pair in line
+     if (car pair)
+     do (insert (format "\n#+aggregate: %s %s" (car pair) (cdr pair))))
     (goto-char point)
     (beginning-of-line)
     (forward-word 2)
     (delete-region (point) point)
     t))
-
-(defun orgtbl-aggregate-get-all-unfolded ()
-  "Prepare an a-list of all unfolded parameters."
-  (interactive)
-  (save-excursion
-    (re-search-backward (rx bol "#+begin:") nil t)
-    (let ((alist))
-      (while
-          (progn
-            (forward-line 1)
-            (re-search-forward
-             (rx point "#+aggregate:" (* blank)
-               (group (+ (any ":a-z0-9_-")))
-               (* blank)
-               (group (* any)))
-             nil t))
-        (push (cons
-               (intern (match-string-no-properties 1))
-               (match-string-no-properties 2))
-              alist))
-      (reverse alist))))
 
 (defun orgtbl-aggregate--column-names-from-unfolded ()
   "Return a textual list of column names.
@@ -2616,24 +2661,7 @@ If there is no header, $1 $2 $3... is returned."
      (lambda (x) (format " ~%s~" x))
      (orgtbl-aggregate--get-header-table table))))
 
-(defun orgtbl-aggregate--TAB-replace-value (getter)
-  "Update a #+aggregate: line
-from
-  #+aggregate: :tag OLD
-to
-  #+aggregate: :tag NEW
-NEW being the result of executing (GETTER OLD)"
-  (let* (;;(insert-default-directory t)
-         (start (point))
-         (end (progn (end-of-line) (point)))
-         (new
-          (funcall
-           getter
-           (buffer-substring-no-properties start end))))
-    (when new
-      (delete-region start end)
-      (delete-horizontal-space)
-      (insert " " new))))
+;; [bazilo synchronize orgtbl-αggregate & orgtbl-joιn
 
 (defun org-TAB-aggregate-:file ()
   "Provide help and completion for the #+aggregate: file XXX parameter."
@@ -2680,16 +2708,21 @@ NEW being the result of executing (GETTER OLD)"
 (defun org-TAB-aggregate-:slice ()
   (orgtbl-aggregate--display-help :slice))
 
-(defun org-TAB-aggregate-:precompute ()
-  (orgtbl-aggregate--display-help :precompute
-   (orgtbl-aggregate--column-names-from-unfolded)))
-  
 (defun org-TAB-aggregate-:cols ()
   (orgtbl-aggregate--display-help :cols
    (orgtbl-aggregate--column-names-from-unfolded)))
 
 (defun org-TAB-aggregate-:cond ()
   (orgtbl-aggregate--display-help :cond
+   (orgtbl-aggregate--column-names-from-unfolded)))
+
+(defun org-TAB-aggregate-:post ()
+  (orgtbl-aggregate--display-help :post))
+
+;; bazilo]
+
+(defun org-TAB-aggregate-:precompute ()
+  (orgtbl-aggregate--display-help :precompute
    (orgtbl-aggregate--column-names-from-unfolded)))
 
 (defun org-TAB-aggregate-:hline ()
@@ -2706,22 +2739,7 @@ nothing → 1 → 2 → 3 → nothing."
       ((equal old "3") "" )
       (t "")))))
 
-(defun org-TAB-aggregate-:post ()
-  (orgtbl-aggregate--display-help :post))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;###autoload
-(defun orgtbl-aggregate-insert-dblock-aggregate ()
-  "Wizard to interactively insert an aggregate dynamic block."
-  (interactive)
-  (let* ((oldline (orgtbl-aggregate--parse-header-arguments "aggregate"))
-         (params (orgtbl-aggregate--wizard-aggregate-create-update oldline)))
-    (when oldline
-      (org-mark-element)
-      (delete-region (region-beginning) (1- (region-end))))
-    (org-create-dblock params)
-    (org-update-dblock)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Transposition package
@@ -2990,6 +3008,8 @@ amended by the user."
     (org-create-dblock params)
     (org-update-dblock)))
 
+;; [bazilo synchronize orgtbl-αggregate & orgtbl-joιn
+
 ;; Insert a dynamic bloc with the C-c C-x x dispatcher
 ;; and activate TAB on #+begin: aggregate ...
 ;;;###autoload
@@ -3006,6 +3026,8 @@ amended by the user."
 ;;;###autoload
 (eval-after-load 'orgtbl-aggregate
   '(add-hook 'org-cycle-tab-first-hook #'orgtbl-aggregate-dispatch-TAB))
+
+;; bazilo]
 
 (provide 'orgtbl-aggregate)
 ;;; orgtbl-aggregate.el ends here

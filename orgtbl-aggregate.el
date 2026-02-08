@@ -164,6 +164,12 @@
     "Remove leading hlines from TABLE, if any."
     `(while (not (listp (car ,table)))
        (orgtbl-aggregate--pop-simple ,table)))
+
+  (defmacro string-match-p (regexp string &optional start)
+    "Same as standard `string-match-p'
+but written as a defmacro instead of a defsubst,
+which saves 4 or 5 byte-codes at each call."
+    `(string-match ,regexp ,string ,start t))
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -288,10 +294,10 @@ COLNAMES, if not nil, is a list of column names."
     (seq bol (* blank) "#+" (? "tbl") "name:" (* blank)))
 
   ;; skip lines beginning with # in order to reach the start of table
-  (rx-define skipmetatable (firstchars)
-    (seq point
-         (0+ (0+ blank) (? firstchars (0+ any)) "\n")
-         (0+ blank) "|"))
+  (rx-define skip-meta-table (firstchars)
+    (seq
+     (0+ (0+ blank) (? firstchars (0+ any)) "\n")
+     (0+ blank) "|"))
 
   ;; just to get ride of a few parenthesis
   (rx-define notany (&rest list)
@@ -466,12 +472,14 @@ If FILE is nil, look in the current buffer."
         (current-buffer))
     (save-excursion
       (goto-char (point-min))
-      (when (let ((case-fold-search t))
-	      (re-search-forward
-	       (rx tblname (literal name) (* blank) eol)
-	       nil t))
-        (re-search-forward (rx (skipmetatable "#")) nil t)
-        (orgtbl-aggregate--table-to-lisp)))))
+      (and
+       (let ((case-fold-search t))
+	 (re-search-forward
+	  (rx
+           tblname (literal name) (* blank) eol
+           (skip-meta-table "#"))
+	  nil t))
+       (orgtbl-aggregate--table-to-lisp)))))
 
 (defun orgtbl-aggregate--table-from-id (id)
   "Parse a table following a header in a distant Org file.
@@ -483,7 +491,10 @@ The header have an ID property equal to ID in a PROPERTY drawer."
           (goto-char (marker-position id-loc))
           (move-marker id-loc nil)
           (and
-           (re-search-forward (rx (skipmetatable (any "*#:"))) nil t)
+           (let ((case-fold-search t))
+             (re-search-forward
+              (rx point (skip-meta-table (any "*#:")))
+              nil t))
            (orgtbl-aggregate--table-to-lisp)))))))
 
 (defun orgtbl-aggregate--nil-if-empty (field)
@@ -575,10 +586,10 @@ An horizontal line is translated as the special symbol `hline'."
        (table
         (cond
          ;; name-or-id = "file:(csv …)"
-         ((and params (string-match (rx bos "(csv") params))
+         ((and params (string-match-p (rx bos "(csv") params))
           (orgtbl-aggregate--table-from-csv file name params))
          ;; name-or-id = "file:(json …)"
-         ((and params (string-match (rx bos "(json") params))
+         ((and params (string-match-p (rx bos "(json") params))
           (orgtbl-aggregate--table-from-json file name params))
          ;; name-or-id = "34cbc63a-c664-471e-a620-d654b26ffa31"
          ;; pointing to a header in a distant org file, followed by a table
@@ -948,7 +959,7 @@ with new formulas (if any) given in the `formula' directive."
     (if (stringp formula)
         ;; There is a :formula directive. Add it if not already there
         (if tblfm
-	    (unless (string-match (regexp-quote formula) tblfm)
+	    (unless (string-match-p (regexp-quote formula) tblfm)
 	      (setq tblfm (format "%s::%s" tblfm formula)))
 	  (setq tblfm (format "#+TBLFM: %s" formula))))
 
@@ -1112,8 +1123,8 @@ into the column number."
 	 ;; if a formula is just an input column name,
 	 ;; then it is a key-grouping-column
 	 (key
-	  (if (string-match
-               (rx bos (group (quotedcolname nakedname)) eos)
+	  (if (string-match-p
+               (rx bos (quotedcolname nakedname) eos)
 	       formula)
 	      (orgtbl-aggregate--colname-to-int formula table t))))
 
@@ -1255,17 +1266,17 @@ a hash-table, whereas GROUPS is a Lisp list."
    ;; the purely numerical cell case arises very often
    ;; short-circuiting general functions boosts performance (a lot)
    ((and
-     (string-match
+     (string-match-p
       (rx bos
 	  (? (any "+-")) (* digit)
 	  (? "." (* digit))
 	  (? "e" (? (any "+-")) (+ digit))
 	  eos)
       expr)
-     (not (string-match (rx bos (* (any "+-.")) "e") expr)))
+     (not (string-match-p (rx bos (* (any "+-.")) "e") expr)))
     (math-read-number expr))
    ;; Convert an Org-mode date to Calc internal representation
-   ((string-match org-ts-regexp0 expr)
+   ((string-match-p org-ts-regexp0 expr)
     (math-parse-date
      (replace-regexp-in-string (rx (any "[<>].a-zA-Z")) " " expr)))
    ;; Convert a duration into a number of seconds
@@ -1698,7 +1709,7 @@ Result is the FMT-SETTINGS assoc list."
           (?q (plist-put fmt-settings :debug ?q))
 	  (?Q (plist-put fmt-settings :debug ?Q)))
 	(setq fmt (replace-match "" t t fmt)))
-      (when (string-match (rx (not (syntax whitespace))) fmt)
+      (when (string-match-p (rx (not (syntax whitespace))) fmt)
 	(plist-put fmt-settings :fmt fmt)))
     fmt-settings))
 
@@ -2017,7 +2028,7 @@ A cookie is an alignment instruction like:
             for cell in (car line)
             thereis
             (and (stringp cell)
-                 (string-match
+                 (string-match-p
                   (rx bos "<" (? (any "lcr")) (* digit) ">" eos)
                   cell))))
    do (setcar line t)
@@ -2518,9 +2529,10 @@ then proceed to folding, otherwise unfold."
   (if (save-excursion
         (forward-line 1)
         (beginning-of-line)
-        (re-search-forward
-         (rx point "#+aggregate:")
-         nil t))
+        (let ((case-fold-search t))
+          (re-search-forward
+           (rx point "#+aggregate:")
+           nil t)))
       (org-TAB-begin-aggregate-fold)
     (org-TAB-begin-aggregate-unfold)))
 
@@ -2529,21 +2541,20 @@ then proceed to folding, otherwise unfold."
   (interactive)
   (save-excursion
     (re-search-backward (rx bol "#+begin:") nil t)
-    (let ((alist))
-      (while
-          (progn
-            (forward-line 1)
-            (re-search-forward
-             (rx point "#+aggregate:" (* blank)
-               (group (+ (any ":a-z0-9_-")))
-               (* blank)
-               (group (* any)))
-             nil t))
-        (push (cons
-               (intern (match-string-no-properties 1))
-               (match-string-no-properties 2))
-              alist))
-      (reverse alist))))
+    (cl-loop
+     do (forward-line 1)
+     while
+     (let ((case-fold-search t))
+       (re-search-forward
+        (rx point "#+aggregate:" (* blank)
+            (group (+ (any ":a-z0-9_-")))
+            (* blank)
+            (group (* any)))
+        nil t))
+     collect
+     (cons
+      (intern (match-string-no-properties 1))
+      (match-string-no-properties 2)))))
 
 (defun orgtbl-aggregate--TAB-replace-value (getter)
   "Update a #+aggregate: line
@@ -2598,7 +2609,7 @@ individual parameters."
         (insert (format " :post \"%s\""  (alist-get :post  alist))))
     (forward-line 1)
     (while
-        (progn
+        (let ((case-fold-search t))
           (beginning-of-line)
           (re-search-forward (rx point "#+aggregate:") nil t))
       (beginning-of-line)

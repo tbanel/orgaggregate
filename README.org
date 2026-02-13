@@ -24,12 +24,13 @@ See [[#csv-input][CSV input]] and [[#json-input][JSON input]].
   - [[#example-without-days][Example without days]]
   - [[#example-of-counting-each-combination][Example of counting each combination]]
 - [[#stop-reading-here-8020][Stop reading here! 80/20]]
-  - [[#to-summarize][To summarize]]
-  - [[#dont-try-to-do-what-orgaggregate-was-not-designed-for][Don't try to do what OrgAggregate was not designed for]]
-- [[#equivalent-in-sql-r-datamash][Equivalent in SQL, R, Datamash]]
+  - [[#to-summarize-the-20][To summarize the 20%]]
+  - [[#keep-it-simple][Keep it simple]]
+- [[#equivalent-in-sql-r-datamash-el-tblfn][Equivalent in SQL, R, Datamash, el-tblfn]]
   - [[#sql-equivalent][SQL equivalent]]
   - [[#r-equivalent][R equivalent]]
   - [[#datamash-equivalent][Datamash equivalent]]
+  - [[#el-tblfn][el-tblfn]]
 - [[#wizards][Wizards]]
   - [[#guiding-traditional-wizard][Guiding (traditional) wizard]]
   - [[#experimental-free-form-wizard][Experimental free form wizard]]
@@ -306,7 +307,7 @@ of the use cases.
 
 ** To summarize the 20%
 :PROPERTIES:
-:CUSTOM_ID: to-summarize
+:CUSTOM_ID: to-summarize-the-20
 :END:
 
 - *Data:* select one of your Org table, and be ready to aggregate values
@@ -363,7 +364,7 @@ C-c C-c here╶─╮
 
 ** Keep it simple
 :PROPERTIES:
-:CUSTOM_ID: dont-try-to-do-what-orgaggregate-was-not-designed-for
+:CUSTOM_ID: keep-it-simple
 :END:
 
 She (the user) may be tempted to add the grand total at the bottom of
@@ -433,9 +434,9 @@ grand total:
 Easy, maintainable, no awkward decisions to remember and document.
 She keeps it simple.
 
-* Equivalent in SQL, R, Datamash
+* Equivalent in SQL, R, Datamash, el-tblfn
 :PROPERTIES:
-:CUSTOM_ID: equivalent-in-sql-r-datamash
+:CUSTOM_ID: equivalent-in-sql-r-datamash-el-tblfn
 :END:
 
 Aggregation is a widely used method to get insights in tabular
@@ -491,6 +492,25 @@ Wednesday     18           54
 Thursday      43           83
 Friday         8           22
 #+end_src
+
+** el-tblfn
+:PROPERTIES:
+:CUSTOM_ID: el-tblfn
+:END:
+The Misohena's el-tblfn package aggregates Org Mode tables through
+Lisp scripts. See https://github.com/misohena/el-tblfn. Example:
+
+#+begin_example
+,#+begin_src elisp :var original=original :colnames no :hlines yes
+(require 'tblfn)
+(thread-first
+  (tblfn-aggregate original "Quantity" "Total"))
+,#+end_src
+#+end_example
+
+It is not clear how el-tblfn can compute the =mean= (or other
+aggregating functions) on the =Level= column. Would the author want to
+complete the example?
 
 * Wizards
 :PROPERTIES:

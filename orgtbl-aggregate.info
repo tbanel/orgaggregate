@@ -7,6 +7,11 @@ START-INFO-DIR-ENTRY
 * Orgtbl Aggregate: (orgtbl-aggregate).     Create an aggregated Org table from another one
 END-INFO-DIR-ENTRY
 
+INFO-DIR-SECTION Misc
+START-INFO-DIR-ENTRY
+* (orgtbl-aggregate).   Aggregate Values in a Table.
+END-INFO-DIR-ENTRY
+
 
 File: orgtbl-aggregate.info,  Node: Top,  Next: New,  Up: (dir)
 
@@ -21,7 +26,7 @@ and so on, out of material from the first table.
 * New::
 * Examples::
 * Stop reading here! 80/20::
-* Equivalent in SQL, R, Datamash: Equivalent in SQL R Datamash.
+* Equivalent in SQL, R, Datamash, el-tblfn: Equivalent in SQL R Datamash el-tblfn.
 * Wizards::
 * Thecols parameter: The cols parameter.
 * Column names::
@@ -53,11 +58,12 @@ Stop reading here! 80/20
 * To summarize the 20%::
 * Keep it simple::
 
-Equivalent in SQL, R, Datamash
+Equivalent in SQL, R, Datamash, el-tblfn
 
 * SQL equivalent::
 * R equivalent::
 * Datamash equivalent::
+* el-tblfn::
 
 Wizards
 
@@ -352,7 +358,7 @@ type:
      #+end
 
 
-File: orgtbl-aggregate.info,  Node: Stop reading here! 80/20,  Next: Equivalent in SQL R Datamash,  Prev: Examples,  Up: Top
+File: orgtbl-aggregate.info,  Node: Stop reading here! 80/20,  Next: Equivalent in SQL R Datamash el-tblfn,  Prev: Examples,  Up: Top
 
 3 Stop reading here! 80/20
 **************************
@@ -486,10 +492,10 @@ grand total:
 She keeps it simple.
 
 
-File: orgtbl-aggregate.info,  Node: Equivalent in SQL R Datamash,  Next: Wizards,  Prev: Stop reading here! 80/20,  Up: Top
+File: orgtbl-aggregate.info,  Node: Equivalent in SQL R Datamash el-tblfn,  Next: Wizards,  Prev: Stop reading here! 80/20,  Up: Top
 
-4 Equivalent in SQL, R, Datamash
-********************************
+4 Equivalent in SQL, R, Datamash, el-tblfn
+******************************************
 
 Aggregation is a widely used method to get insights in tabular data.
 Use whatever environment best suits your needs.
@@ -503,9 +509,10 @@ Lisp packages.
 * SQL equivalent::
 * R equivalent::
 * Datamash equivalent::
+* el-tblfn::
 
 
-File: orgtbl-aggregate.info,  Node: SQL equivalent,  Next: R equivalent,  Up: Equivalent in SQL R Datamash
+File: orgtbl-aggregate.info,  Node: SQL equivalent,  Next: R equivalent,  Up: Equivalent in SQL R Datamash el-tblfn
 
 4.1 SQL equivalent
 ==================
@@ -518,7 +525,7 @@ If you are familiar with SQL, you would get a similar result with the
      group by Day;
 
 
-File: orgtbl-aggregate.info,  Node: R equivalent,  Next: Datamash equivalent,  Prev: SQL equivalent,  Up: Equivalent in SQL R Datamash
+File: orgtbl-aggregate.info,  Node: R equivalent,  Next: Datamash equivalent,  Prev: SQL equivalent,  Up: Equivalent in SQL R Datamash el-tblfn
 
 4.2 R equivalent
 ================
@@ -532,7 +539,7 @@ similar result with ‘factor’ and ‘aggregate’ functions:
      aggregate (original$Quantity, list(Day=day_factor), sum )
 
 
-File: orgtbl-aggregate.info,  Node: Datamash equivalent,  Prev: R equivalent,  Up: Equivalent in SQL R Datamash
+File: orgtbl-aggregate.info,  Node: Datamash equivalent,  Next: el-tblfn,  Prev: R equivalent,  Up: Equivalent in SQL R Datamash el-tblfn
 
 4.3 Datamash equivalent
 =======================
@@ -549,7 +556,26 @@ a similar result:
      Friday         8           22
 
 
-File: orgtbl-aggregate.info,  Node: Wizards,  Next: The cols parameter,  Prev: Equivalent in SQL R Datamash,  Up: Top
+File: orgtbl-aggregate.info,  Node: el-tblfn,  Prev: Datamash equivalent,  Up: Equivalent in SQL R Datamash el-tblfn
+
+4.4 el-tblfn
+============
+
+The Misohena’s el-tblfn package aggregates Org Mode tables through Lisp
+scripts.  See <https://github.com/misohena/el-tblfn>.  Example:
+
+     #+begin_src elisp :var original=original :colnames no :hlines yes
+     (require 'tblfn)
+     (thread-first
+       (tblfn-aggregate original "Quantity" "Total"))
+     #+end_src
+
+   It is not clear how el-tblfn can compute the ‘mean’ (or other
+aggregating functions) on the ‘Level’ column.  Would the author want to
+complete the example?
+
+
+File: orgtbl-aggregate.info,  Node: Wizards,  Next: The cols parameter,  Prev: Equivalent in SQL R Datamash el-tblfn,  Up: Top
 
 5 Wizards
 *********
@@ -3214,84 +3240,85 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 Tag Table:
-Node: Top93
-Node: New2773
-Node: Examples3043
-Node: A very simple example3313
-Node: Demonstrate sum and average computing5668
-Node: Example without days9006
-Node: Example of counting each combination9874
-Node: Stop reading here! 80/2012554
-Node: To summarize the 20%12949
-Node: Keep it simple14780
-Node: Equivalent in SQL R Datamash17486
-Node: SQL equivalent18023
-Node: R equivalent18352
-Node: Datamash equivalent18869
-Node: Wizards19409
-Node: Guiding (traditional) wizard19688
-Node: Experimental free form wizard21482
-Node: The cols parameter23453
-Node: Names of input columns24124
-Node: Grouping specifications in cols25199
-Node: The hline column25755
-Node: The @# column28543
-Node: Aggregation formulas in cols31024
-Node: Correlation of two columns38565
-Node: [Almost) any expression can be specified40304
-Node: Column names41778
-Node: Input table with or without a header42054
-Node: Column names of the input table43447
-Node: Multiple lines header44616
-Node: Custom column names47533
-Node: Formatters49943
-Node: Org Mode compatible formatters50169
-Node: Debugging formatters52370
-Node: Discarding an output column53052
-Node: Sorting55842
-Node: Example with one sorting column56048
-Node: Several sorting columns57329
-Node: hlines in the output table59681
-Node: Output hlines depends on sorting columns60079
-Node: Example with hline 262975
-Node: Cells processing68067
-Node: Where Calc interpretation happens?68519
-Node: Dates73996
-Node: Durations76001
-Node: Empty and malformed input cells77835
-Node: Symbolic computation79505
-Node: Wide variety of inputs81784
-Node: Standard Org Mode input82331
-Node: Virtual input table from Babel82808
-Node: An Org ID85409
-Node: CSV input86010
-Node: JSON input87531
-Node: Input slicing89932
-Node: The cond filter90655
-Node: Virtual input columns92155
-Node: Post-processing97655
-Node: Spreadsheet formulas98180
-Node: Algorithm post processing99278
-Node: Chaining101233
-Node: Pull & Push102936
-Node: Pull mode103170
-Node: Push mode104873
-Node: Pull or push ?107081
-Node: Debugging107815
-Node: Seeing the $ forms108338
-Node: Seeing Calc formulas before evaluation109548
-Node: Seeing Lisp internal form of Calc formulas110682
-Node: Example of debugging vsum(nn^2)111891
-Node: Summary of debugging formatters113320
-Node: Tricks113816
-Node: Sorting (1)114094
-Node: A few lowest or highest values114909
-Node: Span of values116210
-Node: No aggregation116769
-Node: Installation118623
-Node: Authors contributors119265
-Node: Changes120893
-Node: GPL 3 License125100
+Node: Top209
+Node: New2931
+Node: Examples3201
+Node: A very simple example3471
+Node: Demonstrate sum and average computing5826
+Node: Example without days9164
+Node: Example of counting each combination10032
+Node: Stop reading here! 80/2012712
+Node: To summarize the 20%13116
+Node: Keep it simple14947
+Node: Equivalent in SQL R Datamash el-tblfn17653
+Node: SQL equivalent18232
+Node: R equivalent18570
+Node: Datamash equivalent19096
+Node: el-tblfn19662
+Node: Wizards20298
+Node: Guiding (traditional) wizard20586
+Node: Experimental free form wizard22380
+Node: The cols parameter24351
+Node: Names of input columns25022
+Node: Grouping specifications in cols26097
+Node: The hline column26653
+Node: The @# column29441
+Node: Aggregation formulas in cols31922
+Node: Correlation of two columns39463
+Node: [Almost) any expression can be specified41202
+Node: Column names42676
+Node: Input table with or without a header42952
+Node: Column names of the input table44345
+Node: Multiple lines header45514
+Node: Custom column names48431
+Node: Formatters50841
+Node: Org Mode compatible formatters51067
+Node: Debugging formatters53268
+Node: Discarding an output column53950
+Node: Sorting56740
+Node: Example with one sorting column56946
+Node: Several sorting columns58227
+Node: hlines in the output table60579
+Node: Output hlines depends on sorting columns60977
+Node: Example with hline 263873
+Node: Cells processing68965
+Node: Where Calc interpretation happens?69417
+Node: Dates74894
+Node: Durations76899
+Node: Empty and malformed input cells78733
+Node: Symbolic computation80403
+Node: Wide variety of inputs82682
+Node: Standard Org Mode input83229
+Node: Virtual input table from Babel83706
+Node: An Org ID86307
+Node: CSV input86908
+Node: JSON input88429
+Node: Input slicing90830
+Node: The cond filter91553
+Node: Virtual input columns93053
+Node: Post-processing98553
+Node: Spreadsheet formulas99078
+Node: Algorithm post processing100176
+Node: Chaining102131
+Node: Pull & Push103834
+Node: Pull mode104068
+Node: Push mode105771
+Node: Pull or push ?107979
+Node: Debugging108713
+Node: Seeing the $ forms109236
+Node: Seeing Calc formulas before evaluation110446
+Node: Seeing Lisp internal form of Calc formulas111580
+Node: Example of debugging vsum(nn^2)112789
+Node: Summary of debugging formatters114218
+Node: Tricks114714
+Node: Sorting (1)114992
+Node: A few lowest or highest values115807
+Node: Span of values117108
+Node: No aggregation117667
+Node: Installation119521
+Node: Authors contributors120163
+Node: Changes121791
+Node: GPL 3 License125998
 
 End Tag Table
 

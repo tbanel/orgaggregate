@@ -109,3 +109,28 @@ buffer. When done, the buffer and the original, untouched
 |----------+---------|
 |      366 |       9 |
 #+END:
+
+* quote quotes
+#+begin_src elisp :results none
+(orgtbl-aggregate-unfold-test
+ "C-a <right> <tab>"
+ "C-s : p o s <left> <end> ( lambda SPC ( table ) SPC ( append SPC table SPC ' ( hline SPC ( \"total\" SPC 0 ) ) ) ) "
+ "C-r b e g i <right> <tab>"
+ "C-c C-c")
+#+end_src
+#+BEGIN: aggregate :table "distant-tests.org:distanttable" :cols "tag vsum(val)" :post "(lambda (table) (append table '(hline (\"total\" 0))))"
+| tag   | vsum(val) |
+|-------+-----------|
+| A     |    405.43 |
+| BB    |    453.63 |
+| CCC   |    215.71 |
+|-------+-----------|
+| total |         0 |
+#+END:
+#+BEGIN: aggregate :table "distant-tests.org:distanttable" :cols "tag vsum(val)"
+| tag | vsum(val) |
+|-----+-----------|
+| A   |    405.43 |
+| BB  |    453.63 |
+| CCC |    215.71 |
+#+END:

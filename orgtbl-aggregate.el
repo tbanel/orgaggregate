@@ -2536,6 +2536,17 @@ then proceed to folding, otherwise unfold."
       (org-TAB-begin-aggregate-fold)
     (org-TAB-begin-aggregate-unfold)))
 
+(defun orgtbl-aggregate--insert-remove-pair-from-alist (tag alist)
+  "Helper function for folding a pair (TAG . VALUE) in ALIST."
+  (let ((value
+         (orgtbl-aggregate--nil-if-empty
+          (orgtbl-aggregate--alist-get-remove tag alist))))
+    (if value
+        (insert
+         (format " %s %s"
+                 tag
+                 (prin1-to-string value))))))
+
 (defun orgtbl-aggregate-get-all-unfolded ()
   "Prepare an a-list of all unfolded parameters."
   (interactive)
@@ -2590,23 +2601,21 @@ individual parameters."
     (insert
      " :table \""
      (orgtbl-aggregate--assemble-locator
-      (alist-get :file   alist)
-      (alist-get :name   alist)
-      (alist-get :orgid  alist)
-      (alist-get :params alist)
-      (alist-get :slice  alist))
+      (orgtbl-aggregate--alist-get-remove :file   alist)
+      (orgtbl-aggregate--alist-get-remove :name   alist)
+      (orgtbl-aggregate--alist-get-remove :orgid  alist)
+      (orgtbl-aggregate--alist-get-remove :params alist)
+      (orgtbl-aggregate--alist-get-remove :slice  alist))
      "\"")
-    (if (orgtbl-aggregate--nil-if-empty (alist-get :precompute alist))
-        (insert
-         (format " :precompute \"%s\"" (alist-get :precompute alist))))
-    (insert
-     (format " :cols \"%s\"" (or (alist-get :cols alist) "")))
-    (if (orgtbl-aggregate--nil-if-empty  (alist-get :cond  alist))
-        (insert (format " :cond \"%s\""  (alist-get :cond  alist))))
-    (if (orgtbl-aggregate--nil-if-empty  (alist-get :hline alist))
-        (insert (format " :hline \"%s\"" (alist-get :hline alist))))
-    (if (orgtbl-aggregate--nil-if-empty  (alist-get :post  alist))
-        (insert (format " :post \"%s\""  (alist-get :post  alist))))
+    (orgtbl-aggregate--insert-remove-pair-from-alist :precompute alist)
+    (orgtbl-aggregate--insert-remove-pair-from-alist :cols       alist)
+    (orgtbl-aggregate--insert-remove-pair-from-alist :cond       alist)
+    (orgtbl-aggregate--insert-remove-pair-from-alist :hline      alist)
+    (orgtbl-aggregate--insert-remove-pair-from-alist :post       alist)
+    (cl-loop
+     for pair in alist
+     if (car pair)
+     do (orgtbl-aggregate--insert-remove-pair-from-alist (car pair) alist))
     (forward-line 1)
     (while
         (let ((case-fold-search t))

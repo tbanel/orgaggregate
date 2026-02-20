@@ -165,7 +165,7 @@
     `(while (not (listp (car ,table)))
        (orgtbl-aggregate--pop-simple ,table)))
 
-  (defmacro string-match-p (regexp string &optional start)
+  (defmacro orgtbl-aggregate--string-match-p (regexp string &optional start)
     "Same as standard `string-match-p'
 but written as a defmacro instead of a defsubst,
 which saves 4 or 5 byte-codes at each call."

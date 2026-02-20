@@ -24,8 +24,9 @@ See [[#csv-input][CSV input]] and [[#json-input][JSON input]].
   - [[#example-without-days][Example without days]]
   - [[#example-of-counting-each-combination][Example of counting each combination]]
 - [[#stop-reading-here-8020][Stop reading here! 80/20]]
-  - [[#to-summarize-the-20][To summarize the 20%]]
-  - [[#keep-it-simple][Keep it simple]]
+  - [[#name-your-input-table][Name your input table]]
+  - [[#create-an-aggregation-block][Create an aggregation block]]
+  - [[#refresh-the-aggregation][Refresh the aggregation]]
 - [[#equivalent-in-sql-r-datamash-el-tblfn][Equivalent in SQL, R, Datamash, el-tblfn]]
   - [[#sql-equivalent][SQL equivalent]]
   - [[#r-equivalent][R equivalent]]
@@ -63,6 +64,8 @@ See [[#csv-input][CSV input]] and [[#json-input][JSON input]].
   - [[#durations][Durations]]
   - [[#empty-and-malformed-input-cells][Empty and malformed input cells]]
   - [[#symbolic-computation][Symbolic computation]]
+  - [[#intervals][Intervals]]
+  - [[#error-or-precision-forms][Error or precision forms]]
 - [[#wide-variety-of-inputs][Wide variety of inputs]]
   - [[#standard-org-mode-input][Standard Org Mode input]]
   - [[#virtual-input-table-from-babel][Virtual input table from Babel]]
@@ -75,6 +78,7 @@ See [[#csv-input][CSV input]] and [[#json-input][JSON input]].
 - [[#post-processing][Post-processing]]
   - [[#spreadsheet-formulas][Spreadsheet formulas]]
   - [[#algorithm-post-processing][Algorithm post processing]]
+  - [[#grand-total][Grand total]]
   - [[#chaining][Chaining]]
 - [[#pull--push][Pull & Push]]
   - [[#pull-mode][Pull mode]]
@@ -305,15 +309,16 @@ If you managed to get here, you are at 80/20 (thanks Pareto!). You
 grasped only 20% of the OrgAggregate features, but those 20% cover 80%
 of the use cases.
 
-** To summarize the 20%
-:PROPERTIES:
-:CUSTOM_ID: to-summarize-the-20
-:END:
+To summarize the 20%:
 
-- *Data:* select one of your Org table, and be ready to aggregate values
+** Name your input table
+:PROPERTIES:
+:CUSTOM_ID: name-your-input-table
+:END:
+- Select one of your Org table, and be ready to aggregate values
   from it right in the same file.
 
-- *Name:* give a name to your table with a special line just above it.
+- Give a name to your table with a special line just above it.
 
 #+begin_example
 name here╶───╮
@@ -327,7 +332,10 @@ name here╶───╮
 …
 #+end_example
 
-- *Block:* create an aggregation block.
+** Create an aggregation block
+:PROPERTIES:
+:CUSTOM_ID: create-an-aggregation-block
+:END:
 
 #+begin_example
 #+begin: aggregate
@@ -346,8 +354,13 @@ input╶───────────────────────╮
 #+end:
 #+end_example
 
-- *Refresh:* type =C-c C-c= on the =#+begin:= line now and whenever you
-   want to refresh the aggregation.
+** Refresh the aggregation
+:PROPERTIES:
+:CUSTOM_ID: refresh-the-aggregation
+:END:
+
+- Type =C-c C-c= on the =#+begin:= line now and whenever you want to
+  refresh the aggregation.
 
 #+begin_example
 C-c C-c here╶─╮
@@ -361,78 +374,6 @@ C-c C-c here╶─╮
 …
 #+end:
 #+end_example
-
-** Keep it simple
-:PROPERTIES:
-:CUSTOM_ID: keep-it-simple
-:END:
-
-She (the user) may be tempted to add the grand total at the bottom of
-the aggregation. Don't do that!
-
-Example of such a temptation:
-
-#+begin_example
-,#+begin: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
-| Day       | vmean(Level) | vsum(Quantity) |
-|-----------+--------------+----------------|
-| Monday    |         27.5 |             14 |
-| Tuesday   |           43 |             45 |
-| Wednesday |           18 |             54 |
-| Thursday  |           43 |             83 |
-| Friday    |            8 |             22 |
-|-----------+--------------+----------------|
-| Total     |              |            218 |
-,#+TBLFM: @7$3=vsum(@I..@II)
-,#+end
-#+end_example
-
-Even though OrgAggregate offers ways to do that (for instance with the
-=:post= parameter, see [[#algorithm-post-processing][Algorithm post processing]]), there are many
-reasons not to. If she does, she is quietly entering the same
-nightmare which plagues spreadsheets. Everything will become harder
-and harder to maintain.
-
-It seems natural to add a grand total right below the column. But
-suppose that now she also want the standard deviation of this same
-column. Where to put it? There is a blank cell just left of the grand
-total. She puts the standard deviation there:
-
-#+begin_example
-#+begin: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
-| Day       | vmean(Level) | vsum(Quantity) |
-|-----------+--------------+----------------|
-| Monday    |         27.5 |             14 |
-| Tuesday   |           43 |             45 |
-| Wednesday |           18 |             54 |
-| Thursday  |           43 |             83 |
-| Friday    |            8 |             22 |
-|-----------+--------------+----------------|
-| Total     |    27.409852 |            218 |
-#+TBLFM: @7$3=vsum(@I..@II)::@7$2=vsdev(@I$3..@II$3)
-#+end
-#+end_example
-
-But then this =27.409852= looks like the grand total of the second
-column, but it is not.
-
-Later on, she may want to further process this aggregated table, for
-example to plot it. The grand total row will be an annoyance. It will
-be tedious to get ride of it.
-
-She should instead consider creating a second aggregation with the
-grand total:
-
-#+begin_example
-,#+begin: aggregate :table original :cols "vmean(Level) vsum(Quantity)"
-| vmean(Level) | vsum(Quantity) |
-|--------------+----------------|
-|    27.928571 |            218 |
-,#+end
-#+end_example
-
-Easy, maintainable, no awkward decisions to remember and document.
-She keeps it simple.
 
 * Equivalent in SQL, R, Datamash, el-tblfn
 :PROPERTIES:
@@ -575,7 +516,7 @@ the 2 main parameters╶────────╮─────────�
 #+end:
 #+end_example
 
-Then, hitting the =TAB= key anywhere on the "begin" line (but not at the
+Then, hitting the =TAB= key anywhere on the =#+begin:= line (but not at the
 beginning) unfolds it. The result is this one:
 
 #+begin_example
@@ -596,8 +537,8 @@ beginning) unfolds it. The result is this one:
 This unfolded form is easier to read. Furthermore, help and completion
 is available on each line, by hitting the =TAB= key.
 
-Hit =TAB= again on the "begin" line (not at the beginning) to fold back
-the form.
+Hit =TAB= again on the =#+begin:= line (not at the beginning) to fold back
+the form. Then hit =C-c C-c= as usual to refresh the aggregation.
 
 The usual behaviour of Org Mode =TAB= is preserved when the =TAB= key is
 pressed at the beginning of line.
@@ -701,7 +642,7 @@ lines:
 
 And here is the aggregation by those 3 blocks:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table originalhl :cols "hline vmean(Level) vsum(Quantity)"
 | hline | vmean(Level) | vsum(Quantity) |
 |-------+--------------+----------------|
@@ -709,7 +650,7 @@ And here is the aggregation by those 3 blocks:
 |     1 |         26.8 |            107 | ◀─╴second block, n° 1
 |     2 |        18.25 |             52 | ◀─╴third block , n° 2
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 If we want additional details with the =Color= column, we just name it:
 
@@ -979,14 +920,14 @@ column =x=:
 #+tblfm: $3=$2*10+random(1000)/500;%.3f
 #+end_example
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table noisydata :cols "bin vcorr(x,y) vcov(x,y) vpcov(x,y)"
 | bin   |     vcorr(x,y) |     vcov(x,y) |    vpcov(x,y) |
 |-------+----------------+---------------+---------------|
 | small | 0.999459736649 |        25.434 |       20.3472 |
 | large | 0.999542438688 | 46.4656666667 | 39.8277142857 |
 #+END
-#+END_EXAMPLE
+#+end_example
 
 We see that the correlation between =x= and =y= is very close to =1=,
 meaning that both columns are correlated. Indeed they are, as the =y=
@@ -1008,12 +949,12 @@ or in the form of =$1=, =$2=, ..., or the virtual columns =hline= and
 computed as an aggregation.
 
 For instance:
-#+BEGIN_EXAMPLE
+#+begin_example
 (3)                        ;; a constant
 vmean(2*X+1)               ;; aggregate an expression
 exp(vmean(map(log,N)))     ;; the exponential average
 vsum((X-vmean(X))^2)       ;; X-vmean(X) centers the sample on zero
-#+END_EXAMPLE
+#+end_example
 
 Arguably, the first expression is useless, but legal.  The aggregation
 can be applied to a computed list of values.  The result of an
@@ -1163,7 +1104,7 @@ ignored in the header.
 In this example, output column have names which are difficult to
 handle:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table original :cols "Day vmean(Level*2) vsum(Quantity^2)"
                                               ╰─────┬──────╯ ╰──────┬───────╯
                     ╭───────────────────────────────╯               │
@@ -1177,11 +1118,11 @@ handle:
 | Thursday  |             86 |             2317 |
 | Friday    |             16 |              170 |
 #+END
-#+END_EXAMPLE
+#+end_example
 
 We can give them custom names with the =;'custom name'= decoration:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table original :cols "Day vmean(Level*2);'mean2' vsum(Quantity^2);'sum_squares'"
                                                              ╰──┬──╯                  ╰─────┬─────╯
                 ╭───────────────────────────────────────────────╯                           │
@@ -1195,7 +1136,7 @@ We can give them custom names with the =;'custom name'= decoration:
 | Thursday  |    86 |        2317 |
 | Friday    |    16 |         170 |
 #+END
-#+END_EXAMPLE
+#+end_example
 
 Decorators are optional.
 
@@ -1211,11 +1152,11 @@ Decorators are optional.
 An expression may optionally be followed by modifiers and formatters,
 after a semicolon. Examples:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 vsum(X);p20    ;; increase Calc internal precision to 20 digits
 vsum(X);f3     ;; output the result with 3 digits after the decimal dot
 vsum(X);%.3f   ;; output the result with 3 digits after the decimal dot
-#+END_EXAMPLE
+#+end_example
 
 The modifiers and formatters are fully compatible with those of the
 Org Mode spreadsheet.
@@ -1605,7 +1546,7 @@ Example of input table. Besides numbers, there are cells with
 mathematical expressions like =20*30=, or just labels as =Red&Green=
 without any mathematical meaning.
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+name: to_Calc_or_not_to_Calc
 | Day       | Color      | Level  |
 |-----------+------------+--------|
@@ -1617,14 +1558,14 @@ without any mathematical meaning.
 | Wednesday | Red        | (27)   |
 | Wednesday | Red        | (12+1) |
 | Wednesday | Green      | [15]   |
-#+END_EXAMPLE
+#+end_example
 
 Basically, Calc operates twice. For example in the formula
 =vsum(Level)=:
 - Calc computes =Level= for every input cell in the =Level= column,
 - then Calc computes =vsum()= applied to the resulting list.
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day vsum(Level)"
 | Day       | vsum(Level) |
 |-----------+-------------|
@@ -1632,7 +1573,7 @@ Basically, Calc operates twice. For example in the formula
 | Tuesday   |           6 |
 | Wednesday |          55 |
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 There are a few occasions were Calc computation does not happen:
 =vcount()= and =vlist(X)=.
@@ -1641,7 +1582,7 @@ The =vcount()= sub-formula is evaluated as the number of input rows in
 each group, without Calc intervention. However, later on Calc can
 handle this number in a formula as this one: =vsum(Level)/vcount()=
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day vcount() vsum(Level)/vcount()"
 | Day       | vcount() | vsum(Level)/vcount() |
 |-----------+----------+----------------------|
@@ -1649,12 +1590,12 @@ handle this number in a formula as this one: =vsum(Level)/vcount()=
 | Tuesday   |        3 |                    2 |
 | Wednesday |        3 |            18.333333 |
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 And of course when input cells do not have a mathematical meaning, the
 result may be non-sens:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day vsum(Color)"
 | Day       | vsum(Color)                                    |
 |-----------+------------------------------------------------|
@@ -1662,7 +1603,7 @@ result may be non-sens:
 | Tuesday   | Red + error(3, '"Syntax error") + Blue + Green |
 | Wednesday | 2 Red + Green                                  |
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 But it can also make sens. The last row, which aggregate =Wednesday=
 rows, is computed as =2 Red + Green=. This is correct. This symbolic
@@ -1675,7 +1616,7 @@ must appear alone (not embedded as part of a bigger formula). The cells
 cell which concatenates input cells verbatim. For instance, the input
 cell =20*30= is left as-is.
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day vlist(Color) vlist(Level)"
 | Day       | vlist(Color)               | vlist(Level)       |
 |-----------+----------------------------+--------------------|
@@ -1683,12 +1624,12 @@ cell =20*30= is left as-is.
 | Tuesday   | Red, Red&Green, Blue+Green | 1, 2, 3            |
 | Wednesday | Red, Red, Green            | (27), (12+1), [15] |
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 As a contrast, the formula =(Level)= yields a list processed through
 Calc. For instance, the =20*30= formula is replaced by =600=.
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day (Color) (Level)"
 | Day       | (Color)                                        | (Level)        |
 |-----------+------------------------------------------------+----------------|
@@ -1696,13 +1637,13 @@ Calc. For instance, the =20*30= formula is replaced by =600=.
 | Tuesday   | [Red, error(3, '"Syntax error"), Blue + Green] | [1, 2, 3]      |
 | Wednesday | [Red, Red, Green]                              | [27, 13, [15]] |
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 Here we used parenthesis in =(Color)= and =(Level)= because otherwise
 they would have been /key columns/. Instead of parenthesis, we can
 embed such expressions in formulas, like =Level+1=:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day Level+1"
 | Day       | Level+1        |
 |-----------+----------------|
@@ -1710,7 +1651,7 @@ embed such expressions in formulas, like =Level+1=:
 | Tuesday   | [2, 3, 4]      |
 | Wednesday | [28, 14, [16]] |
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 To summarize, a column name embedded in a formula is evaluated as the
 list of input cells, processed by Calc. Except for the =vlist(Column)=
@@ -1720,7 +1661,7 @@ By the way, what is the meaning of the expression =Level*Level=? For
 =Monday=, it is =[600,100]*[600,100]=. Then Calc simplifies that as a
 /vector product/: sum of individual products. =600^2+100^2=
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table "to_Calc_or_not_to_Calc" :cols "Day Level*Level Level+Level"
 | Day       | Level*Level | Level+Level    |
 |-----------+-------------+----------------|
@@ -1728,7 +1669,7 @@ By the way, what is the meaning of the expression =Level*Level=? For
 | Tuesday   |          14 | [2, 4, 6]      |
 | Wednesday |        1123 | [54, 26, [30]] |
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 ** Dates
 :PROPERTIES:
@@ -1738,7 +1679,7 @@ By the way, what is the meaning of the expression =Level*Level=? For
 Some aggregations are possible on dates. Example. Here is a source
 table containing dates:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+tblname: datetable
 | Date                   |
 |------------------------|
@@ -1750,42 +1691,42 @@ table containing dates:
 | [2020-03-17 Tue 03:51] |
 | [2018-08-21 Tue 00:00] |
 | [2012-12-25 Tue 00:00] |
-#+END_EXAMPLE
+#+end_example
 
 Here are the earliest and the latest dates, along with the average of
 all input dates:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table datetable :cols "vmin(Date) vmax(Date) vmean(Date)"
 | vmin(Date)             | vmax(Date)             | vmean(Date) |
 |------------------------+------------------------+-------------|
 | <2012-12-25 Tue 00:00> | <2035-12-22 Sat 09:01> |   739448.44 |
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 The average of all dates is a number? Actually, it is a date expressed
 as the number of days since =[0000-12-31 Sun 00:00]=. To force a
 number of days to be interpreted as a date, use the =date()= function:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table datetable :cols "date(vmean(Date))"
 | date(vmean(Date))      |
 |------------------------|
 | <2025-07-16 Wed 10:29> |
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 With the =date()= function in mind, all kinds of dates handling can be
 done. Example: the average of earliest and the latest dates is
 different from the average of all dates:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table datetable :cols "date(vmean(vmin(Date),vmax(Date))) date(vmean(Date))"
 | date(vmean(vmin(Date),vmax(Date))) | date(vmean(Date))      |
 |------------------------------------+------------------------|
 | <2024-06-23 Sun 16:30>             | <2025-07-16 Wed 10:29> |
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 Note that =date()= is not special to OrgAggregate. It can be used in
 Org Mode spreadsheet formulas.
@@ -1805,22 +1746,22 @@ as in =1255:45:00=.
 To output such a form, use a formatter: =;T=; =;t=, =;U=. For example, we
 have 3 durations as input, and we want the average of them:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+name: some_durations
 |      dur |
 |----------|
 | 07:45:30 |
 |    13:55 |
 |    17:12 |
-#+END_EXAMPLE
+#+end_example
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table "some_durations" :cols "vmean(dur) vmean(dur);T vmean(dur);t vmean(dur);U"
 | vmean(dur) | vmean(dur) | vmean(dur) | vmean(dur) |
 |------------+------------+------------+------------|
 |      46650 |   12:57:30 |      12.96 |      12:57 |
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 - With no formatter, we get a number of seconds
 - The =T= formatter outputs the result as =HH:MM:SS=
@@ -1830,28 +1771,28 @@ have 3 durations as input, and we want the average of them:
   after dot)
 
 The Calc syntax for durations is also recognized:
-#+BEGIN_EXAMPLE
+#+begin_example
 HH@ MM'
 HH@ MM' SS"
-#+END_EXAMPLE
+#+end_example
 Example:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+name: calc_durations
 | dur        |
 |------------|
 | 07@ 45' 30 |
 | 13@ 55'    |
 | 17@ 12'    |
-#+END_EXAMPLE
+#+end_example
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table "calc_durations" :cols "vmean(dur)"
 | vmean(dur)   |
 |--------------|
 | 12@ 57' 30." |
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 ** Empty and malformed input cells
 :PROPERTIES:
@@ -1882,7 +1823,7 @@ be inconsistent.
 Sometimes an input table may be malformed, with incomplete rows, like
 this one:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 | Color | Level | Quantity | Day       |
 |-------+-------+----------+-----------|
 | Red   |    30 |       11 | Monday    |
@@ -1893,7 +1834,7 @@ this one:
 | Blue  |    12 |       16 | Wednesday |
 | Blue  |    15 |       15 |
 |
-#+END_EXAMPLE
+#+end_example
 
 Missing cells are handled as though they were empty.
 
@@ -1907,7 +1848,7 @@ Thus, symbolic computations are built-in. Example:
 
 This is the source table:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+NAME: symtable
 | Day       | Color |  Level | Quantity |
 |-----------+-------+--------+----------|
@@ -1925,11 +1866,11 @@ This is the source table:
 | Friday    | Blue  |      7 |      5+a |
 | Friday    | Blue  |      6 |        8 |
 | Friday    | Blue  |     11 |        9 |
-#+END_EXAMPLE
+#+end_example
 
 And here is the aggregated, symbolic result:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table "symtable" :cols "Day vmean(Level) vsum(Quantity)"
 | Day       | vmean(Level)          | vsum(Quantity) |
 |-----------+-----------------------+----------------|
@@ -1939,7 +1880,7 @@ And here is the aggregated, symbolic result:
 | Thursday  | x / 3 + 43.           | 4 a + 83       |
 | Friday    | 8                     | a + 22         |
 #+END
-#+END_EXAMPLE
+#+end_example
 
 Symbolic calculations are correctly performed on =x= and =a=, which
 are symbolic (as opposed to numeric) expressions.
@@ -1952,6 +1893,75 @@ The =N= modifier (see [[#org-mode-compatible-formatters][Org Mode compatible for
 because even though it will replace empty cells with zero, it will do
 the same for anything which does not look like a number.  The best is
 to just avoid empty cells when dealing with symbolic calculations.
+
+** Intervals
+:PROPERTIES:
+:CUSTOM_ID: intervals
+:END:
+Org Mode tables and OrgAggregate backend engine being Emacs Calc,
+intervals are seamlessly handled. An interval is made of two numerical
+values separated by two dots.
+
+Example of a spreadsheet. The third column is computed by multiplying
+the first two:
+
+#+begin_example
+,#+name: int
+| 3..5 |    10 | (30 .. 50) |
+| 3..5 | -1..2 | (-5 .. 10) |
+|    5 |     2 | 10         |
+,#+TBLFM: $3=$1*$2
+#+end_example
+
+Example of an aggregation. The sum of the third column is computed,
+resulting in an interval:
+
+#+begin_example
+,#+BEGIN: aggregate :table "int" :cols "vsum($3)"
+| vsum($3)   |
+|------------|
+| (35 .. 70) |
+,#+END:
+#+end_example
+
+** Error or precision forms
+:PROPERTIES:
+:CUSTOM_ID: error-or-precision-forms
+:END:
+
+In Emacs Calc, an error form is a numerical value along with its
+precision, both values separated by =+/-=.
+
+The separation may also be the Unicode character =±=. In this
+spreadsheet example, the second column is 10 times the first:
+
+#+begin_example
+,#+name: cert
+| 12±2 | 120 +/- 20 |
+| 55±3 | 550 +/- 30 |
+| 9±0  | 90         |
+| 15±1 | 150 +/- 10 |
+| 21±1 | 210 +/- 10 |
+,#+TBLFM: $2=10*$1
+#+end_example
+
+Now, in the following example, OrgAggregate computes the sum of the
+second column:
+
+#+begin_example
+,#+BEGIN: aggregate :table "cert" :cols "vsum($2);f2"
+| vsum($2)       |
+|----------------|
+| 1120 +/- 38.73 |
+,#+END:
+#+end_example
+
+The computation made by Emacs Calc assumes that all input values
+follow a Gaussian distribution, and are independent variables. Then it
+applies the textbook formula for combining Gaussian distributions.
+Beware that your input values may not be independent with each
+other. In this case, the resulting error will be slightly off (too
+small).
 
 * Wide variety of inputs
 :PROPERTIES:
@@ -2356,9 +2366,9 @@ If the title =Month= is not specified, then the new virtual column will
 be referred to as =$3=.
 
 Note that here the title was specified with single quotes. This is
-required to disambiguate with a coming syntax about format. The syntax
-will be consistent with the one used in the =:cols= parameter and the
-one used by Org Mode for spreadsheet formulas.
+required to disambiguate with the format. The syntax is consistent
+with the one used in the =:cols= parameter and the one used by Org Mode
+spreadsheet formulas.
 
 The pre-computations may also be Lisp expressions, exactly like in the
 usual Org table spreadsheet. In this example, we want to aggregate on
@@ -2454,7 +2464,7 @@ previous example, adding a =:formula= parameter, we specify a new column
 =$4= which uses the aggregated columns.  It is translated into a usual
 =#+TBLFM:= spreadsheet line.
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)" :formula "$4=$2*$3"
 | Day       | vmean(Level) | vsum(Quantity) |      |
 |-----------+--------------+----------------+------|
@@ -2465,7 +2475,7 @@ previous example, adding a =:formula= parameter, we specify a new column
 | Friday    |            8 |             22 |  176 |
 #+TBLFM: $4=$2*$3
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 Moreover, if a =#+TBLFM:= was already there, it survives aggregation re-computations.
 
@@ -2506,13 +2516,15 @@ In this example, a =lambda= expression adds a =hline= and a row for /Sunday/.
 The =lambda= can be moved to a =defun=. The function is then passed to the
 =:post= parameter:
 
-: #+begin_src elisp
-: (defun my-function (table)
-:   (append table
-:           '(hline (Sunday "0.0"))))
-: #+end_src
+#+begin_example
+,#+begin_src elisp
+(defun my-function (table)
+  (append table
+          '(hline (Sunday "0.0"))))
+,#+end_src
 
-: ... :post my-function
+... :post my-function
+#+end_example
 
 The =:post= parameter can also refer to a Babel Block. Example:
 
@@ -2522,14 +2534,131 @@ The =:post= parameter can also refer to a Babel Block. Example:
 #+END:
 #+end_example
 
-: #+name: my-babel-block
-: #+begin_src elisp :var tbl=""
-: (append tbl
-:         '(hline (Sunday "0.0")))
-: #+end_src
+#+begin_example
+,#+name: my-babel-block
+,#+begin_src elisp :var tbl=""
+(append tbl
+        '(hline (Sunday "0.0")))
+,#+end_src
+#+end_example
 
 *Beware!* You may want to add =:colnames t= to your Babel block. Otherwise
-the table's header be lost.
+the table's header will be lost.
+
+** Grand total
+:PROPERTIES:
+:CUSTOM_ID: grand-total
+:END:
+
+She (the user) may be tempted to add the grand total at the bottom of
+the aggregation. Example of such a temptation:
+
+#+begin_example
+,#+begin: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
+| Day       | vmean(Level) | vsum(Quantity) |
+|-----------+--------------+----------------|
+| Monday    |         27.5 |             14 |
+| Tuesday   |           43 |             45 |
+| Wednesday |           18 |             54 |
+| Thursday  |           43 |             83 |
+| Friday    |            8 |             22 |
+|-----------+--------------+----------------|
+| Total     |              |            218 |
+,#+TBLFM: @7$3=vsum(@I..@II)
+,#+end
+#+end_example
+
+With OrgAggreagate post-processing, it is easy.
+1. Just put in place a small algorithm to add two lines.
+
+#+begin_example
+:post (append *this* '(hline ("Total" "" "")))
+                ▲        ▲               ▲
+                ╰─────╮  │               │
+the aggregated table╶─╯  │               │
+one horizontal line╶─────╯               │
+an empty cell to recieve the total╶──────╯
+#+end_example
+
+The =*this*= Lisp variable contains the aggregated table, just while the
+post-processing takes place. The =append= Lisp function adds two rows to
+the aggregated table, and returns the amended table.
+
+Note that the =:post= parameter may be:
+- a small Lisp expression, as in this example,
+- a lambda expression, which parameter is the aggregated table,
+- the name of a Lisp function, which is passed the aggregate table,
+- the name of a Babel block, written in any supported language.
+
+2. Fill the additional cell with a formula for the total.
+
+#+begin_example
+@>$2=vsum(@I..@II)
+▲ ▲   ▲   ▲   ▲
+│ │   │   │   ╰──────────────╮
+│ │   │   ╰────────────────╮ │
+│ │   ╰─────────────────╮  │ │
+│ ╰────────────╮        │  │ │
+╰──────────╮   │        │  │ │
+last line╶─╯   │        │  │ │
+second column╶─╯        │  │ │
+sum all values between╶─╯  │ │
+the first horizontal line╶─╯ │
+and the second one╶──────────╯
+#+end_example
+
+In this way, the grand-total will be recomputed each time the
+aggregation is refreshed (=C-c C-c=). Note the use of =@>$2= for the
+coordinates of the cell receiving the total, instead of, for instance
+=@7$3=. This ensures that the formula will continue to be applied on the
+last row, even if the aggregated table grows later on. The same idea
+applies for the =@I..@II= range, instead of, for instance =@2..@6=.
+
+Even though OrgAggregate offers the user a versatil post-processing to
+add a grand total, there are many reasons not to. If she does, she is
+quietly entering the same nightmare which plagues spreadsheets.
+Everything will become harder and harder to maintain.
+
+It seems natural to add a grand total right below the column. But
+suppose that now she also want the standard deviation of this same
+column. Where to put it? There is a blank cell just left of the grand
+total. She puts the standard deviation there:
+
+#+begin_example
+#+begin: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
+| Day       | vmean(Level) | vsum(Quantity) |
+|-----------+--------------+----------------|
+| Monday    |         27.5 |             14 |
+| Tuesday   |           43 |             45 |
+| Wednesday |           18 |             54 |
+| Thursday  |           43 |             83 |
+| Friday    |            8 |             22 |
+|-----------+--------------+----------------|
+| Total     |    27.409852 |            218 |
+#+TBLFM: @7$3=vsum(@I..@II)::@7$2=vsdev(@I$3..@II$3)
+#+end
+#+end_example
+
+But then this =27.409852= looks like the grand total of the second
+column, but it is not.
+
+Later on, she may want to further process this aggregated table, for
+example to plot it. The grand total row will be an annoyance. It will
+be tedious to get ride of it.
+
+She should instead consider creating a second aggregation with the
+grand total:
+
+#+begin_example
+,#+begin: aggregate :table original :cols "vsdev(Level) vsum(Quantity)"
+| vsdev(Level) | vsum(Quantity) |
+|--------------+----------------|
+|    27.409852 |            218 |
+,#+end
+#+end_example
+
+Easy, maintainable, no awkward decisions to remember and document.
+She keeps it simple.
 
 ** Chaining
 :PROPERTIES:
@@ -2541,7 +2670,7 @@ processing.  To do that, just add a =#+NAME:= or =#+TBLNAME:= line
 just above the aggregated table.  Here is an example of a double
 aggregation:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+NAME: squantity
 #+BEGIN: aggregate :table original :cols "Day vsum(Quantity)"
 | Day       | SQuantity |
@@ -2559,7 +2688,7 @@ aggregation:
 |-----------------|
 |             218 |
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 Note the spreadsheet cell formula =@1$2=SQuantity=, which changes the
 column heading from it default =vsum(Quantity)= to =SQuantity=.  This
@@ -2569,7 +2698,7 @@ Sometimes the name of the aggregated table is not found by some babel
 block referencing it (Gnuplot blocks are among them). To fix that,
 just exchange the =#+NAME:= and =#+BEGIN:= lines:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table original :cols "Day vsum(Quantity)"
 #+NAME: squantity
 | Day       | SQuantity |
@@ -2581,7 +2710,7 @@ just exchange the =#+NAME:= and =#+BEGIN:= lines:
 | Friday    |        22 |
 #+TBLFM: @1$2=SQuantity
 #+END:
-#+END_EXAMPLE
+#+end_example
 
 The =#.NAME:= line will survive when recomputing the aggregation (as
 =#.TBLFM:= line survives)
@@ -2606,7 +2735,7 @@ Example:
 We have a source table which is unaware that it will be derived in an
 aggregated table:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+NAME: source1
 | Day       | Color | Level | Quantity |
 |-----------+-------+-------+----------|
@@ -2624,12 +2753,12 @@ aggregated table:
 | Friday    | Blue  |     7 |        5 |
 | Friday    | Blue  |     6 |        8 |
 | Friday    | Blue  |    11 |        9 |
-#+END_EXAMPLE
+#+end_example
 
 We create somewhere else a /dynamic block/ which carries the
 specification of the aggregation:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN: aggregate :table "source1" :cols "Day vmean(Level) vsum(Quantity)"
 | Day       | vmean(Level) | vsum(Quantity) |
 |-----------+--------------+----------------|
@@ -2639,7 +2768,7 @@ specification of the aggregation:
 | Thursday  |           43 |             83 |
 | Friday    |            8 |             22 |
 #+END
-#+END_EXAMPLE
+#+end_example
 
 Typing =C-c C-c= in the dynamic block recomputes it freshly.
 
@@ -2652,7 +2781,7 @@ In /push/ mode, the source table drives the creation of derived
 tables. We specify the wanted results in =#+ORGTBL: SEND= directives
 (as many as desired):
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+ORGTBL: SEND derived1 orgtbl-to-aggregated-table :cols "vmean(Level) vsum(Quantity)"
 #+ORGTBL: SEND derived2 orgtbl-to-aggregated-table :cols "Day vmean(Level) vsum(Quantity)"
 | Day       | Color | Level | Quantity |
@@ -2671,32 +2800,32 @@ tables. We specify the wanted results in =#+ORGTBL: SEND= directives
 | Friday    | Blue  |     7 |        5 |
 | Friday    | Blue  |     6 |        8 |
 | Friday    | Blue  |    11 |        9 |
-#+END_EXAMPLE
+#+end_example
 
 We must create the receiving blocks somewhere else in the same file:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN RECEIVE ORGTBL derived1
 #+END RECEIVE ORGTBL derived1
-#+END_EXAMPLE
+#+end_example
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN RECEIVE ORGTBL derived2
 #+END RECEIVE ORGTBL derived2
-#+END_EXAMPLE
+#+end_example
 
 Then we come back to the source table and type =C-c C-c= with the
 cursor on the 1st pipe of the table, to refresh the derived tables:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN RECEIVE ORGTBL derived1
 |  vmean(Level) | vsum(Quantity) |
 |---------------+----------------|
 | 27.9285714286 |            218 |
 #+END RECEIVE ORGTBL derived1
-#+END_EXAMPLE
+#+end_example
 
-#+BEGIN_EXAMPLE
+#+begin_example
 #+BEGIN RECEIVE ORGTBL derived2
 | Day       | vmean(Level) | vsum(Quantity) |
 |-----------+--------------+----------------|
@@ -2706,7 +2835,7 @@ cursor on the 1st pipe of the table, to refresh the derived tables:
 | Thursday  |           43 |             83 |
 | Friday    |            8 |             22 |
 #+END RECEIVE ORGTBL derived2
-#+END_EXAMPLE
+#+end_example
 
 ** Pull or push ?
 :PROPERTIES:
@@ -3013,26 +3142,26 @@ single value, any aggregating function will do the trick: =vmin()=,
 Emacs package on Melpa: add the following lines to your =.emacs= file,
 and reload it.
 
-#+BEGIN_EXAMPLE
+#+begin_example
 (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
 (package-initialize)
-#+END_EXAMPLE
+#+end_example
 
 You may also customize this variable:
-#+BEGIN_EXAMPLE
+#+begin_example
 M-x customize-variable package-archives
-#+END_EXAMPLE
+#+end_example
 
 Then browse the list of available packages and install =orgtbl-aggregate=
-#+BEGIN_EXAMPLE
+#+begin_example
 M-x package-list-packages
-#+END_EXAMPLE
+#+end_example
 
 Alternatively, you can download the lisp file, and load it:
 
-#+BEGIN_EXAMPLE
+#+begin_example
 (load-file "orgtbl-aggregate.el")
-#+END_EXAMPLE
+#+end_example
 
 * Authors, contributors
 :PROPERTIES:
@@ -3146,6 +3275,8 @@ Top: earliest change. Bottom: latest change.
 - New free-form wizard.
 - Illustrate README with Uniline graphics.
 - JSON and CSV input tables can now live inside Org Mode blocks.
+- Example for computing a refreshable grand total.
+- Document intervals and error-forms handling.
 
 * GPL 3 License
 :PROPERTIES:

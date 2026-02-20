@@ -55,8 +55,9 @@ Examples
 
 Stop reading here! 80/20
 
-* To summarize the 20%::
-* Keep it simple::
+* Name your input table::
+* Create an aggregation block::
+* Refresh the aggregation::
 
 Equivalent in SQL, R, Datamash, el-tblfn
 
@@ -110,6 +111,8 @@ Cells processing
 * Durations::
 * Empty and malformed input cells::
 * Symbolic computation::
+* Intervals::
+* Error or precision forms::
 
 Wide variety of inputs
 
@@ -126,6 +129,7 @@ Post-processing
 
 * Spreadsheet formulas::
 * Algorithm post processing::
+* Grand total::
 * Chaining::
 
 Pull & Push
@@ -367,22 +371,24 @@ If you managed to get here, you are at 80/20 (thanks Pareto!).  You
 grasped only 20% of the OrgAggregate features, but those 20% cover 80%
 of the use cases.
 
+   To summarize the 20%:
+
 * Menu:
 
-* To summarize the 20%::
-* Keep it simple::
+* Name your input table::
+* Create an aggregation block::
+* Refresh the aggregation::
 
 
-File: orgtbl-aggregate.info,  Node: To summarize the 20%,  Next: Keep it simple,  Up: Stop reading here! 80/20
+File: orgtbl-aggregate.info,  Node: Name your input table,  Next: Create an aggregation block,  Up: Stop reading here! 80/20
 
-3.1 To summarize the 20%
-========================
+3.1 Name your input table
+=========================
 
-   • *Data:* select one of your Org table, and be ready to aggregate
-     values from it right in the same file.
+   • Select one of your Org table, and be ready to aggregate values from
+     it right in the same file.
 
-   • *Name:* give a name to your table with a special line just above
-     it.
+   • Give a name to your table with a special line just above it.
 
      name here╶───╮
              ╭────╯
@@ -394,7 +400,11 @@ File: orgtbl-aggregate.info,  Node: To summarize the 20%,  Next: Keep it simple,
      | Monday    | Blue  |    25 |        3 |
      …
 
-   • *Block:* create an aggregation block.
+
+File: orgtbl-aggregate.info,  Node: Create an aggregation block,  Next: Refresh the aggregation,  Prev: Name your input table,  Up: Stop reading here! 80/20
+
+3.2 Create an aggregation block
+===============================
 
      #+begin: aggregate
      #+end:
@@ -410,8 +420,14 @@ File: orgtbl-aggregate.info,  Node: To summarize the 20%,  Next: Keep it simple,
      #+begin: aggregate :table original :cols "Day vsum(Quantity)"
      #+end:
 
-   • *Refresh:* type ‘C-c C-c’ on the ‘#+begin:’ line now and whenever
-     you want to refresh the aggregation.
+
+File: orgtbl-aggregate.info,  Node: Refresh the aggregation,  Prev: Create an aggregation block,  Up: Stop reading here! 80/20
+
+3.3 Refresh the aggregation
+===========================
+
+   • Type ‘C-c C-c’ on the ‘#+begin:’ line now and whenever you want to
+     refresh the aggregation.
 
      C-c C-c here╶─╮
                    │
@@ -423,73 +439,6 @@ File: orgtbl-aggregate.info,  Node: To summarize the 20%,  Next: Keep it simple,
      | Tuesday   |             45 |
      …
      #+end:
-
-
-File: orgtbl-aggregate.info,  Node: Keep it simple,  Prev: To summarize the 20%,  Up: Stop reading here! 80/20
-
-3.2 Keep it simple
-==================
-
-She (the user) may be tempted to add the grand total at the bottom of
-the aggregation.  Don’t do that!
-
-   Example of such a temptation:
-
-     #+begin: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
-     | Day       | vmean(Level) | vsum(Quantity) |
-     |-----------+--------------+----------------|
-     | Monday    |         27.5 |             14 |
-     | Tuesday   |           43 |             45 |
-     | Wednesday |           18 |             54 |
-     | Thursday  |           43 |             83 |
-     | Friday    |            8 |             22 |
-     |-----------+--------------+----------------|
-     | Total     |              |            218 |
-     #+TBLFM: @7$3=vsum(@I..@II)
-     #+end
-
-   Even though OrgAggregate offers ways to do that (for instance with
-the ‘:post’ parameter, see *note Algorithm post processing::), there are
-many reasons not to.  If she does, she is quietly entering the same
-nightmare which plagues spreadsheets.  Everything will become harder and
-harder to maintain.
-
-   It seems natural to add a grand total right below the column.  But
-suppose that now she also want the standard deviation of this same
-column.  Where to put it?  There is a blank cell just left of the grand
-total.  She puts the standard deviation there:
-
-     #+begin: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
-     | Day       | vmean(Level) | vsum(Quantity) |
-     |-----------+--------------+----------------|
-     | Monday    |         27.5 |             14 |
-     | Tuesday   |           43 |             45 |
-     | Wednesday |           18 |             54 |
-     | Thursday  |           43 |             83 |
-     | Friday    |            8 |             22 |
-     |-----------+--------------+----------------|
-     | Total     |    27.409852 |            218 |
-     #+TBLFM: @7$3=vsum(@I..@II)::@7$2=vsdev(@I$3..@II$3)
-     #+end
-
-   But then this ‘27.409852’ looks like the grand total of the second
-column, but it is not.
-
-   Later on, she may want to further process this aggregated table, for
-example to plot it.  The grand total row will be an annoyance.  It will
-be tedious to get ride of it.
-
-   She should instead consider creating a second aggregation with the
-grand total:
-
-     #+begin: aggregate :table original :cols "vmean(Level) vsum(Quantity)"
-     | vmean(Level) | vsum(Quantity) |
-     |--------------+----------------|
-     |    27.928571 |            218 |
-     #+end
-
-   Easy, maintainable, no awkward decisions to remember and document.
-She keeps it simple.
 
 
 File: orgtbl-aggregate.info,  Node: Equivalent in SQL R Datamash el-tblfn,  Next: Wizards,  Prev: Stop reading here! 80/20,  Up: Top
@@ -643,8 +592,8 @@ Suppose we have an aggregate block like this one:
      #+begin: aggregate :table "my_table" :cols "vsum(b) count()" :hline "1"
      #+end:
 
-   Then, hitting the ‘TAB’ key anywhere on the "begin" line (but not at
-the beginning) unfolds it.  The result is this one:
+   Then, hitting the ‘TAB’ key anywhere on the ‘#+begin:’ line (but not
+at the beginning) unfolds it.  The result is this one:
 
      #+begin: aggregate                   ╭─╴the 2 main parameters
      #+aggregate: :file                   │
@@ -662,8 +611,8 @@ the beginning) unfolds it.  The result is this one:
    This unfolded form is easier to read.  Furthermore, help and
 completion is available on each line, by hitting the ‘TAB’ key.
 
-   Hit ‘TAB’ again on the "begin" line (not at the beginning) to fold
-back the form.
+   Hit ‘TAB’ again on the ‘#+begin:’ line (not at the beginning) to fold
+back the form.  Then hit ‘C-c C-c’ as usual to refresh the aggregation.
 
    The usual behaviour of Org Mode ‘TAB’ is preserved when the ‘TAB’ key
 is pressed at the beginning of line.
@@ -1697,6 +1646,8 @@ flexibility.
 * Durations::
 * Empty and malformed input cells::
 * Symbolic computation::
+* Intervals::
+* Error or precision forms::
 
 
 File: orgtbl-aggregate.info,  Node: Where Calc interpretation happens?,  Next: Dates,  Up: Cells processing
@@ -1970,7 +1921,7 @@ this one:
    Missing cells are handled as though they were empty.
 
 
-File: orgtbl-aggregate.info,  Node: Symbolic computation,  Prev: Empty and malformed input cells,  Up: Cells processing
+File: orgtbl-aggregate.info,  Node: Symbolic computation,  Next: Intervals,  Prev: Empty and malformed input cells,  Up: Cells processing
 
 11.5 Symbolic computation
 =========================
@@ -2021,6 +1972,69 @@ This is probably not the expected result.
 help, because even though it will replace empty cells with zero, it will
 do the same for anything which does not look like a number.  The best is
 to just avoid empty cells when dealing with symbolic calculations.
+
+
+File: orgtbl-aggregate.info,  Node: Intervals,  Next: Error or precision forms,  Prev: Symbolic computation,  Up: Cells processing
+
+11.6 Intervals
+==============
+
+Org Mode tables and OrgAggregate backend engine being Emacs Calc,
+intervals are seamlessly handled.  An interval is made of two numerical
+values separated by two dots.
+
+   Example of a spreadsheet.  The third column is computed by
+multiplying the first two:
+
+     #+name: int
+     | 3..5 |    10 | (30 .. 50) |
+     | 3..5 | -1..2 | (-5 .. 10) |
+     |    5 |     2 | 10         |
+     #+TBLFM: $3=$1*$2
+
+   Example of an aggregation.  The sum of the third column is computed,
+resulting in an interval:
+
+     #+BEGIN: aggregate :table "int" :cols "vsum($3)"
+     | vsum($3)   |
+     |------------|
+     | (35 .. 70) |
+     #+END:
+
+
+File: orgtbl-aggregate.info,  Node: Error or precision forms,  Prev: Intervals,  Up: Cells processing
+
+11.7 Error or precision forms
+=============================
+
+In Emacs Calc, an error form is a numerical value along with its
+precision, both values separated by ‘+/-’.
+
+   The separation may also be the Unicode character ‘±’.  In this
+spreadsheet example, the second column is 10 times the first:
+
+     #+name: cert
+     | 12±2 | 120 +/- 20 |
+     | 55±3 | 550 +/- 30 |
+     | 9±0  | 90         |
+     | 15±1 | 150 +/- 10 |
+     | 21±1 | 210 +/- 10 |
+     #+TBLFM: $2=10*$1
+
+   Now, in the following example, OrgAggregate computes the sum of the
+second column:
+
+     #+BEGIN: aggregate :table "cert" :cols "vsum($2);f2"
+     | vsum($2)       |
+     |----------------|
+     | 1120 +/- 38.73 |
+     #+END:
+
+   The computation made by Emacs Calc assumes that all input values
+follow a Gaussian distribution, and are independent variables.  Then it
+applies the textbook formula for combining Gaussian distributions.
+Beware that your input values may not be independent with each other.
+In this case, the resulting error will be slightly off (too small).
 
 
 File: orgtbl-aggregate.info,  Node: Wide variety of inputs,  Next: Post-processing,  Prev: Cells processing,  Up: Top
@@ -2422,9 +2436,9 @@ way.
 will be referred to as ‘$3’.
 
    Note that here the title was specified with single quotes.  This is
-required to disambiguate with a coming syntax about format.  The syntax
-will be consistent with the one used in the ‘:cols’ parameter and the
-one used by Org Mode for spreadsheet formulas.
+required to disambiguate with the format.  The syntax is consistent with
+the one used in the ‘:cols’ parameter and the one used by Org Mode
+spreadsheet formulas.
 
    The pre-computations may also be Lisp expressions, exactly like in
 the usual Org table spreadsheet.  In this example, we want to aggregate
@@ -2509,6 +2523,7 @@ processed:
 
 * Spreadsheet formulas::
 * Algorithm post processing::
+* Grand total::
 * Chaining::
 
 
@@ -2539,7 +2554,7 @@ re-computations.
    This happens in _pull mode_ only.
 
 
-File: orgtbl-aggregate.info,  Node: Algorithm post processing,  Next: Chaining,  Prev: Spreadsheet formulas,  Up: Post-processing
+File: orgtbl-aggregate.info,  Node: Algorithm post processing,  Next: Grand total,  Prev: Spreadsheet formulas,  Up: Post-processing
 
 13.2 Algorithm post processing
 ==============================
@@ -2594,12 +2609,118 @@ to the ‘:post’ parameter:
      #+end_src
 
    *Beware!*  You may want to add ‘:colnames t’ to your Babel block.
-Otherwise the table’s header be lost.
+Otherwise the table’s header will be lost.
 
 
-File: orgtbl-aggregate.info,  Node: Chaining,  Prev: Algorithm post processing,  Up: Post-processing
+File: orgtbl-aggregate.info,  Node: Grand total,  Next: Chaining,  Prev: Algorithm post processing,  Up: Post-processing
 
-13.3 Chaining
+13.3 Grand total
+================
+
+She (the user) may be tempted to add the grand total at the bottom of
+the aggregation.  Example of such a temptation:
+
+     #+begin: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
+     | Day       | vmean(Level) | vsum(Quantity) |
+     |-----------+--------------+----------------|
+     | Monday    |         27.5 |             14 |
+     | Tuesday   |           43 |             45 |
+     | Wednesday |           18 |             54 |
+     | Thursday  |           43 |             83 |
+     | Friday    |            8 |             22 |
+     |-----------+--------------+----------------|
+     | Total     |              |            218 |
+     #+TBLFM: @7$3=vsum(@I..@II)
+     #+end
+
+   With OrgAggreagate post-processing, it is easy.
+  1. Just put in place a small algorithm to add two lines.
+
+     :post (append *this* '(hline ("Total" "" "")))
+                     ▲        ▲               ▲
+                     ╰─────╮  │               │
+     the aggregated table╶─╯  │               │
+     one horizontal line╶─────╯               │
+     an empty cell to recieve the total╶──────╯
+
+   The ‘*this*’ Lisp variable contains the aggregated table, just while
+the post-processing takes place.  The ‘append’ Lisp function adds two
+rows to the aggregated table, and returns the amended table.
+
+   Note that the ‘:post’ parameter may be:
+   • a small Lisp expression, as in this example,
+   • a lambda expression, which parameter is the aggregated table,
+   • the name of a Lisp function, which is passed the aggregate table,
+   • the name of a Babel block, written in any supported language.
+
+   • Fill the additional cell with a formula for the total.
+
+     @>$2=vsum(@I..@II)
+     ▲ ▲   ▲   ▲   ▲
+     │ │   │   │   ╰──────────────╮
+     │ │   │   ╰────────────────╮ │
+     │ │   ╰─────────────────╮  │ │
+     │ ╰────────────╮        │  │ │
+     ╰──────────╮   │        │  │ │
+     last line╶─╯   │        │  │ │
+     second column╶─╯        │  │ │
+     sum all values between╶─╯  │ │
+     the first horizontal line╶─╯ │
+     and the second one╶──────────╯
+
+   In this way, the grand-total will be recomputed each time the
+aggregation is refreshed (‘C-c C-c’).  Note the use of ‘@>$2’ for the
+coordinates of the cell receiving the total, instead of, for instance
+‘@7$3’.  This ensures that the formula will continue to be applied on
+the last row, even if the aggregated table grows later on.  The same
+idea applies for the ‘@I..@II’ range, instead of, for instance ‘@2..@6’.
+
+   Even though OrgAggregate offers the user a versatil post-processing
+to add a grand total, there are many reasons not to.  If she does, she
+is quietly entering the same nightmare which plagues spreadsheets.
+Everything will become harder and harder to maintain.
+
+   It seems natural to add a grand total right below the column.  But
+suppose that now she also want the standard deviation of this same
+column.  Where to put it?  There is a blank cell just left of the grand
+total.  She puts the standard deviation there:
+
+     #+begin: aggregate :table original :cols "Day vmean(Level) vsum(Quantity)"
+     | Day       | vmean(Level) | vsum(Quantity) |
+     |-----------+--------------+----------------|
+     | Monday    |         27.5 |             14 |
+     | Tuesday   |           43 |             45 |
+     | Wednesday |           18 |             54 |
+     | Thursday  |           43 |             83 |
+     | Friday    |            8 |             22 |
+     |-----------+--------------+----------------|
+     | Total     |    27.409852 |            218 |
+     #+TBLFM: @7$3=vsum(@I..@II)::@7$2=vsdev(@I$3..@II$3)
+     #+end
+
+   But then this ‘27.409852’ looks like the grand total of the second
+column, but it is not.
+
+   Later on, she may want to further process this aggregated table, for
+example to plot it.  The grand total row will be an annoyance.  It will
+be tedious to get ride of it.
+
+   She should instead consider creating a second aggregation with the
+grand total:
+
+     #+begin: aggregate :table original :cols "vsdev(Level) vsum(Quantity)"
+     | vsdev(Level) | vsum(Quantity) |
+     |--------------+----------------|
+     |    27.409852 |            218 |
+     #+end
+
+   Easy, maintainable, no awkward decisions to remember and document.
+She keeps it simple.
+
+
+File: orgtbl-aggregate.info,  Node: Chaining,  Prev: Grand total,  Up: Post-processing
+
+13.4 Chaining
 =============
 
 The result of an aggregation may become the source of further
@@ -3215,6 +3336,8 @@ Top: earliest change.  Bottom: latest change.
    • New free-form wizard.
    • Illustrate README with Uniline graphics.
    • JSON and CSV input tables can now live inside Org Mode blocks.
+   • Example for computing a refreshable grand total.
+   • Document intervals and error-forms handling.
 
 
 File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
@@ -3241,84 +3364,88 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Tag Table:
 Node: Top209
-Node: New2931
-Node: Examples3201
-Node: A very simple example3471
-Node: Demonstrate sum and average computing5826
-Node: Example without days9164
-Node: Example of counting each combination10032
-Node: Stop reading here! 80/2012712
-Node: To summarize the 20%13116
-Node: Keep it simple14947
-Node: Equivalent in SQL R Datamash el-tblfn17653
-Node: SQL equivalent18232
-Node: R equivalent18570
-Node: Datamash equivalent19096
-Node: el-tblfn19662
-Node: Wizards20298
-Node: Guiding (traditional) wizard20586
-Node: Experimental free form wizard22380
-Node: The cols parameter24351
-Node: Names of input columns25022
-Node: Grouping specifications in cols26097
-Node: The hline column26653
-Node: The @# column29441
-Node: Aggregation formulas in cols31922
-Node: Correlation of two columns39463
-Node: [Almost) any expression can be specified41202
-Node: Column names42676
-Node: Input table with or without a header42952
-Node: Column names of the input table44345
-Node: Multiple lines header45514
-Node: Custom column names48431
-Node: Formatters50841
-Node: Org Mode compatible formatters51067
-Node: Debugging formatters53268
-Node: Discarding an output column53950
-Node: Sorting56740
-Node: Example with one sorting column56946
-Node: Several sorting columns58227
-Node: hlines in the output table60579
-Node: Output hlines depends on sorting columns60977
-Node: Example with hline 263873
-Node: Cells processing68965
-Node: Where Calc interpretation happens?69417
-Node: Dates74894
-Node: Durations76899
-Node: Empty and malformed input cells78733
-Node: Symbolic computation80403
-Node: Wide variety of inputs82682
-Node: Standard Org Mode input83229
-Node: Virtual input table from Babel83706
-Node: An Org ID86307
-Node: CSV input86908
-Node: JSON input88429
-Node: Input slicing90830
-Node: The cond filter91553
-Node: Virtual input columns93053
-Node: Post-processing98553
-Node: Spreadsheet formulas99078
-Node: Algorithm post processing100176
-Node: Chaining102131
-Node: Pull & Push103834
-Node: Pull mode104068
-Node: Push mode105771
-Node: Pull or push ?107979
-Node: Debugging108713
-Node: Seeing the $ forms109236
-Node: Seeing Calc formulas before evaluation110446
-Node: Seeing Lisp internal form of Calc formulas111580
-Node: Example of debugging vsum(nn^2)112789
-Node: Summary of debugging formatters114218
-Node: Tricks114714
-Node: Sorting (1)114992
-Node: A few lowest or highest values115807
-Node: Span of values117108
-Node: No aggregation117667
-Node: Installation119521
-Node: Authors contributors120163
-Node: Changes121791
-Node: GPL 3 License125998
+Node: New3032
+Node: Examples3302
+Node: A very simple example3572
+Node: Demonstrate sum and average computing5927
+Node: Example without days9265
+Node: Example of counting each combination10133
+Node: Stop reading here! 80/2012813
+Node: Name your input table13285
+Node: Create an aggregation block13938
+Node: Refresh the aggregation14860
+Node: Equivalent in SQL R Datamash el-tblfn15466
+Node: SQL equivalent16045
+Node: R equivalent16383
+Node: Datamash equivalent16909
+Node: el-tblfn17475
+Node: Wizards18111
+Node: Guiding (traditional) wizard18399
+Node: Experimental free form wizard20193
+Node: The cols parameter22239
+Node: Names of input columns22910
+Node: Grouping specifications in cols23985
+Node: The hline column24541
+Node: The @# column27329
+Node: Aggregation formulas in cols29810
+Node: Correlation of two columns37351
+Node: [Almost) any expression can be specified39090
+Node: Column names40564
+Node: Input table with or without a header40840
+Node: Column names of the input table42233
+Node: Multiple lines header43402
+Node: Custom column names46319
+Node: Formatters48729
+Node: Org Mode compatible formatters48955
+Node: Debugging formatters51156
+Node: Discarding an output column51838
+Node: Sorting54628
+Node: Example with one sorting column54834
+Node: Several sorting columns56115
+Node: hlines in the output table58467
+Node: Output hlines depends on sorting columns58865
+Node: Example with hline 261761
+Node: Cells processing66853
+Node: Where Calc interpretation happens?67348
+Node: Dates72825
+Node: Durations74830
+Node: Empty and malformed input cells76664
+Node: Symbolic computation78334
+Node: Intervals80631
+Node: Error or precision forms81427
+Node: Wide variety of inputs82598
+Node: Standard Org Mode input83145
+Node: Virtual input table from Babel83622
+Node: An Org ID86223
+Node: CSV input86824
+Node: JSON input88345
+Node: Input slicing90746
+Node: The cond filter91469
+Node: Virtual input columns92969
+Node: Post-processing98442
+Node: Spreadsheet formulas98983
+Node: Algorithm post processing100081
+Node: Grand total102044
+Node: Chaining106866
+Node: Pull & Push108555
+Node: Pull mode108789
+Node: Push mode110492
+Node: Pull or push ?112700
+Node: Debugging113434
+Node: Seeing the $ forms113957
+Node: Seeing Calc formulas before evaluation115167
+Node: Seeing Lisp internal form of Calc formulas116301
+Node: Example of debugging vsum(nn^2)117510
+Node: Summary of debugging formatters118939
+Node: Tricks119435
+Node: Sorting (1)119713
+Node: A few lowest or highest values120528
+Node: Span of values121829
+Node: No aggregation122388
+Node: Installation124242
+Node: Authors contributors124884
+Node: Changes126512
+Node: GPL 3 License130827
 
 End Tag Table
 

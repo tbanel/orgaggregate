@@ -27,11 +27,13 @@ See [[#csv-input][CSV input]] and [[#json-input][JSON input]].
   - [[#name-your-input-table][Name your input table]]
   - [[#create-an-aggregation-block][Create an aggregation block]]
   - [[#refresh-the-aggregation][Refresh the aggregation]]
-- [[#equivalent-in-sql-r-datamash-el-tblfn][Equivalent in SQL, R, Datamash, el-tblfn]]
+- [[#equivalent-in-sql-r-datamash-el-tblfn-awk-c][Equivalent in SQL, R, Datamash, el-tblfn, Awk, C++]]
   - [[#sql-equivalent][SQL equivalent]]
   - [[#r-equivalent][R equivalent]]
   - [[#datamash-equivalent][Datamash equivalent]]
   - [[#el-tblfn][el-tblfn]]
+  - [[#awk-equivalent][Awk equivalent]]
+  - [[#c-equivalent][C++ equivalent]]
 - [[#wizards][Wizards]]
   - [[#guiding-traditional-wizard][Guiding (traditional) wizard]]
   - [[#experimental-free-form-wizard][Experimental free form wizard]]
@@ -375,9 +377,9 @@ C-c C-c here╶─╮
 #+end:
 #+end_example
 
-* Equivalent in SQL, R, Datamash, el-tblfn
+* Equivalent in SQL, R, Datamash, el-tblfn, Awk, C++
 :PROPERTIES:
-:CUSTOM_ID: equivalent-in-sql-r-datamash-el-tblfn
+:CUSTOM_ID: equivalent-in-sql-r-datamash-el-tblfn-awk-c
 :END:
 
 Aggregation is a widely used method to get insights in tabular
@@ -452,6 +454,65 @@ Lisp scripts. See https://github.com/misohena/el-tblfn. Example:
 It is not clear how el-tblfn can compute the =mean= (or other
 aggregating functions) on the =Level= column. Would the author want to
 complete the example?
+
+** Awk equivalent
+:PROPERTIES:
+:CUSTOM_ID: awk-equivalent
+:END:
+Awk is a line-oriented filter which has been arround in Unix for
+decades. Here we use the standard Org Mode support for Awk.
+
+#+begin_example
+#+begin_src awk :stdin original
+NR>1 {
+     Day         =$1
+     Color       =$2
+     Level       =$3
+     Quantity    =$4
+     SumLevel[Day]    += Level
+     SumQuantity[Day] += Quantity
+     Count[Day]       ++
+}
+END {
+    for (d in SumQuantity) {
+        printf "%s %s %s\n", d, SumLevel[d]/Count[d], SumQuantity[d]
+    }
+}
+#+end_src
+#+end_example
+
+** C++ equivalent
+:PROPERTIES:
+:CUSTOM_ID: c-equivalent
+:END:
+C++ has hash-maps in its standard template library. And Org Mode
+provides support for C++ Babel blocks. Thus, it is quite
+straigthforward to aggegrate in this language.
+
+(Don't forget to customize =org-src-lang-modes= to activate C++ support
+in Org Mode).
+
+#+begin_example
+#+begin_src C++ :var original=original :includes '(<iostream> <unordered_map>)
+using namespace std;
+unordered_map<string,double> SumLevel;
+unordered_map<string,double> SumQuantity;
+unordered_map<string,double> Count;
+for (auto row : original) {
+  auto Day      = row[0];
+  auto Color    = row[1];
+  auto Level    = stod(row[2]);
+  auto Quantity = stod(row[3]);
+  SumLevel[Day]    += Level;
+  SumQuantity[Day] += Quantity;
+  Count[Day]       ++;
+}
+for (auto it : SumQuantity)
+  cout<<it.first<<" "
+      <<SumLevel[it.first]/Count[it.first]<<" "
+      <<SumQuantity[it.first]<<"\n";
+#+end_src
+#+end_example
 
 * Wizards
 :PROPERTIES:

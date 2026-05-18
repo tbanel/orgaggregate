@@ -6,12 +6,15 @@ Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the first table.
 
 * New
-Transpose-babel blocks now handle =@#= and =hline= special columns. =@#= is
-the input table row number. =hline= is the block number between two
-horizontal lines where the current row is located.
+Blocks surrounded by =#+begin:= =#+end:= may contain an old table, and
+also several tags like =#+name:=, =#+plot:=, =#+tblfm:= and any other
+information.
 
-And by the way, yes, =orgtbl-aggregate= comes with =orgtbl-transpose= as a
-bonus. It flips rows with columns.
+Upon refresh (=C-c C-c=) or wizard update (=C-c C-x x=) the contain of the
+block is preserved.
+
+Previously, only =#+tblfm:= was preserved (and enriched by additional
+formulas in a possible =:formula= parameter).
 
 * Table of Contents
 :PROPERTIES:
@@ -378,6 +381,33 @@ C-c C-c here╶─╮
 …
 #+end:
 #+end_example
+
+The block may contain additional information beside the old
+table. Example:
+
+#+begin_example
+#+begin: aggregate :table original :cols "Day vsum(Quantity)"
+note: my table should include the "Year" column.
+#+name: my_aggregated-table
+| Day     | vsum(Quantity) |      |
+|---------+----------------+------|
+| Monday  |             14 | 1400 |
+| Tuesday |             45 | 4500 |
+#+tblfm: $3=$2*100
+#+plot: …
+Note: change the style of the plot.
+#+end:
+#+end_example
+
+In this example, the block contains tags like =#+name:= and free text
+like "note: my table…". All that is preserved upon refresh (=C-c C-c=)
+or wizard update (=C-c C-x x=) (see [[#guiding-traditional-wizard][Guiding (traditional) wizard]]). Blank
+lines are removed thought.
+
+The =#+tblfm:= tag is special. It is preserved of course. It may also be
+enriched by a possible =:formula= parameter (see [[#spreadsheet-formulas][Spreadsheet
+formulas]]). The new table computed by aggregation is then updated by
+the spreadsheet formulas.
 
 * Equivalent in SQL, R, Datamash, el-tblfn, Awk, C++
 :PROPERTIES:
@@ -2548,7 +2578,16 @@ previous example, adding a =:formula= parameter, we specify a new column
 #+END:
 #+end_example
 
-Moreover, if a =#+TBLFM:= was already there, it survives aggregation re-computations.
+Moreover, if a =#+TBLFM:= was already there, it survives aggregation
+re-computations. And it may be enriched by a =:formula= parameter as in
+the previous example.
+
+The spreadsheet application is delegated to Org Mode, ensuring that
+everything works reliably. However many side processings done by Org
+Mode are bypassed, mainly because the table handled to Org Mode is a
+fresh one. The alignment of columns is done by OrgAggregate, which is
+way faster than the Org Mode one. The result is about 5× faster than
+the stock Org Mode one.
 
 This happens in /pull mode/ only.
 
@@ -3349,6 +3388,8 @@ Top: earliest change. Bottom: latest change.
 - Example for computing a refreshable grand total.
 - Document intervals and error-forms handling.
 - Special columns =@#= and =hline= are handled by transpose.
+- Preserve every side lines in =#+begin:= … =#+end:= blocks upon refresh
+  or wizard update.
 
 * GPL 3 License
 :PROPERTIES:

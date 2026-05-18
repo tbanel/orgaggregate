@@ -384,7 +384,7 @@ If FILE is nil, look in the current buffer."
              (rx ;; a single regexp :)
               tblname (literal name) (* blank) "\n"
               (0+ blank) "#+begin" (0+ nonl) "\n"
-              (group (*? (or any "\n")))
+              (group (*? anything))
               bol (* space) "#+end")
              nil t)
             (match-string-no-properties 1))))))
@@ -1003,7 +1003,43 @@ with new formulas (if any) given in the `formula' directive."
          if (and (consp row) (< (length row) width))
          do (nconc row (make-list (- width (length row)) nil)))
         (delete-region (org-table-begin) (org-table-end))
-        (insert (orgtbl-aggregate--elisp-table-to-string table) "\n")))))
+        (insert (orgtbl-aggregate--elisp-table-to-string table) "\n")
+        (forward-line 1)))))
+
+(defun orgtbl-aggregate--replace-table (params table)
+  "Replaces a table in a #+begin: #+end: block by TABLE.
+There may not be a pre-existing table in the block,
+and this is not a problem.
+Try to keep as much material there is in the block, in the same order.
+If there is a #+tblfm: line, it is kept, under the new table,
+possibly enriched with a :formula parameter.
+TABLE is a list of lists."
+  (let ((content (plist-get params :content))
+        (after ""))
+    (when content
+      (setq content
+            (replace-regexp-in-string
+             (rx bol (* blank) "\n")
+             ""
+             content))
+      (if (string-match
+           (rx
+            bos
+            (group (*? anything))
+            (+
+             bol (* blank)
+             (or "|" "#+tblfm:")
+             (* nonl) "\n")
+            (group (* anything))
+            eos)
+           content)
+          (progn
+            (insert      (match-string 1 content))
+            (setq after  (match-string 2 content)))
+        (insert content)))
+    (orgtbl-aggregate--insert-elisp-table table)
+    (orgtbl-aggregate--table-recalculate content (plist-get params :formula))
+    (insert after)))
 
 ;; bazilo]
 
@@ -2135,33 +2171,17 @@ Note:
 Note:
  The name `org-dblock-write:aggregate' is constrained
  by the `org-update-dblock' function."
+;; [bazilo synchronize orgtbl-αggregate & orgtbl-joιn
   (interactive)
-  (let ((formula (plist-get params :formula))
-	(content (plist-get params :content))
-	(post    (plist-get params :post)))
-    (if content
-	(let ((case-fold-search t))
-	  (string-match
-	   (rx bos
-               (* (* blank) "\n")
-               (group (* (* blank) (? "#+" (* nonl)) "\n")))
-	   content)
-          (insert
-           (replace-regexp-in-string
-            (rx bol (* (or blank "\n")) eos)
-            ""
-            (replace-regexp-in-string
-             (rx bol "#+tblfm" (* (or any "\n")) eos)
-             ""
-             (match-string 1 content))))))
-    (orgtbl-aggregate--insert-elisp-table
-     (orgtbl-aggregate--post-process
-      (orgtbl-aggregate--create-table-aggregated
-       (orgtbl-aggregate--remove-cookie-lines
-        (orgtbl-aggregate-table-from-any-ref (plist-get params :table)))
-       params)
-      post))
-    (orgtbl-aggregate--table-recalculate content formula)))
+  (orgtbl-aggregate--replace-table
+   params
+   (orgtbl-aggregate--post-process
+    (orgtbl-aggregate--create-table-aggregated
+     (orgtbl-aggregate--remove-cookie-lines
+      (orgtbl-aggregate-table-from-any-ref (plist-get params :table)))
+     params)
+    (plist-get params :post))))
+;; bazilo]
 
 ;; [bazilo synchronize orgtbl-αggregate & orgtbl-joιn
 
@@ -3012,33 +3032,15 @@ Note:
  The name `org-dblock-write:transpose' is constrained
  by the `org-update-dblock' function."
   (interactive)
-  (let ((formula (plist-get params :formula))
-	(content (plist-get params :content))
-	(post    (plist-get params :post)))
-    (if content
-	(let ((case-fold-search t))
-	  (string-match
-	   (rx bos
-               (* (* blank) "\n")
-               (group (* (* blank) (? "#+" (* nonl)) "\n")))
-	   content)
-          (insert
-           (replace-regexp-in-string
-            (rx bol (* (or blank "\n")) eos)
-            ""
-            (replace-regexp-in-string
-             (rx bol "#+tblfm" (* (or any "\n")) eos)
-             ""
-             (match-string 1 content))))))
-    (orgtbl-aggregate--insert-elisp-table
-     (orgtbl-aggregate--post-process
-      (orgtbl-aggregate--create-table-transposed
-       (orgtbl-aggregate--remove-cookie-lines
-        (orgtbl-aggregate-table-from-any-ref (plist-get params :table)))
-       (plist-get params :cols)
-       (plist-get params :cond))
-      post))
-    (orgtbl-aggregate--table-recalculate content formula)))
+  (orgtbl-aggregate--replace-table
+   params
+   (orgtbl-aggregate--post-process
+    (orgtbl-aggregate--create-table-transposed
+     (orgtbl-aggregate--remove-cookie-lines
+      (orgtbl-aggregate-table-from-any-ref (plist-get params :table)))
+     (plist-get params :cols)
+     (plist-get params :cond))
+    (plist-get params :post))))
 
 (defun orgtbl-aggregate--wizard-transpose-create-update (oldline expert)
   "Update OLDLINE parameters by interactivly querying user.

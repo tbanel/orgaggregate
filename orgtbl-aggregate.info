@@ -166,7 +166,7 @@ Blocks surrounded by ‘#+begin:’ ‘#+end:’ may contain an old table, and
 also several tags like ‘#+name:’, ‘#+plot:’, ‘#+tblfm:’ and any other
 information.
 
-   Upon refresh (‘C-c C-c’) or wizard update (‘C-c C-x x’) the contain
+   Upon refresh (‘C-c C-c’) or wizard update (‘C-c C-x x’) the content
 of the block is preserved.
 
    Previously, only ‘#+tblfm:’ was preserved (and enriched by additional

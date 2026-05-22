@@ -472,20 +472,22 @@ Friday         8           22
 :PROPERTIES:
 :CUSTOM_ID: el-tblfn
 :END:
-The Misohena's el-tblfn package aggregates Org Mode tables through
+The Misohena's =el-tblfn= package aggregates Org Mode tables through
 Lisp scripts. See https://github.com/misohena/el-tblfn. Example:
 
 #+begin_example
 ,#+begin_src elisp :var original=original :colnames no :hlines yes
 (require 'tblfn)
-(thread-first
-  (tblfn-aggregate original "Quantity" "Total"))
+(tblfn-join
+ (tblfn-aggregate original "Day" "Level" "vmean")
+ (tblfn-aggregate original "Day" "Quantity")
+ "Day")
 ,#+end_src
 #+end_example
 
-It is not clear how el-tblfn can compute the =mean= (or other
-aggregating functions) on the =Level= column. Would the author want to
-complete the example?
+Two separate aggregations are performed, then they are joined
+together. As the =el-tblfn= package is quite young, this is subject to
+changes in the future.
 
 ** Awk equivalent
 :PROPERTIES:
@@ -3307,6 +3309,8 @@ Contributors
 - Jason Hemann, output column names no longer have quotes
 - Tilmann Singer, computed aggregating bins, ="month(Date)"= in his use
   case
+- Misohena (on GitHub this time) gave feedback on the =el-tblfn=
+  example.
 
 * Changes
 :PROPERTIES:

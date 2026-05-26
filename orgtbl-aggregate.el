@@ -3122,24 +3122,24 @@ it is queried even when EXPERT is nil."
 
 ;;;###autoload
 (defun orgtbl-aggregate-insert-dblock-transpose (&optional expert)
-  "Wizard to interactively insert a transpose dynamic block."
+  "Wizard to interactively insert a transpose dynamic block.
+When EXPERT is nil, only basic parameters are queried.
+Note that when an expert parameter was set prior to entering the wizard,
+it is queried even when EXPERT is nil."
   (interactive "P")
   (let* ((oldline (orgtbl-aggregate--parse-header-arguments "transpose"))
          (params
-          (save-excursion (orgtbl-aggregate--wizard-transpose-create-update oldline expert)))
-         tblfm)
-    (when oldline
-      (org-mark-element)
-      (setq tblfm
-            (orgtbl-aggregate--recover-TBLFM
-             (buffer-substring-no-properties
-              (region-beginning) (1- (region-end)))))
-      (delete-region (region-beginning) (1- (region-end))))
-    (org-create-dblock params)
-    (when tblfm
+          (save-excursion (orgtbl-aggregate--wizard-transpose-create-update oldline expert))))
+    (if (not oldline)
+        (org-create-dblock params)
+      (beginning-of-line)
+      (kill-line)
+      (org-create-dblock params)
+      (delete-blank-lines)
       (forward-line 1)
-      (insert "\n" tblfm)
-      (forward-line -2))
+      (kill-line 1)
+      (forward-line -1)
+      (delete-blank-lines))
     (org-update-dblock)))
 
 ;; [bazilo synchronize orgtbl-αggregate & orgtbl-joιn

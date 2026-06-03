@@ -48,9 +48,9 @@ buffer. When done, the buffer and the original, untouched
 ;; with 2 copies of the simple one
 (rx-define aggregateblock
   (group
-   "#+begin: " (* not-newline) "\n"
+   (* blank) "#+begin: " (* not-newline) "\n"
    (*? (* any) "\n")
-   "#+end:" (* any) "\n"))
+   (* blank) "#+end:" (* any) "\n"))
 
 (save-excursion
   (goto-char (point-min))
@@ -134,3 +134,27 @@ buffer. When done, the buffer and the original, untouched
 | BB  |    453.63 |
 | CCC |    215.71 |
 #+END:
+
+* not sticked to beginning of line
+#+begin_src elisp :results none
+(orgtbl-aggregate-unfold-test
+ "C-e <tab>"
+ "<down> <down> <down> <down> <down> <down> <down>"
+ "<tab> <end> SPC count()"
+ "C-a <up> <up> <up> <up> <up> <up> <up> <end> <tab>"
+ "C-c C-c")
+#+end_src
+   #+BEGIN: aggregate :table "wizardtests.org:tagqty" :cols "tag vsum(val);f2 vsum(qty);f2 count()"
+   | tag | vsum(val) | vsum(qty) | count() |
+   |-----+-----------+-----------+---------|
+   | ccc |     34.92 |      4.90 |       8 |
+   | a   |     29.84 |      9.80 |       7 |
+   | bb  |     30.74 |     21.10 |       7 |
+   #+END:
+   #+BEGIN: aggregate :table "wizardtests.org:tagqty" :cols "tag vsum(val);f2 vsum(qty);f2"
+   | tag | vsum(val) | vsum(qty) |
+   |-----+-----------+-----------|
+   | ccc |     34.92 |      4.90 |
+   | a   |     29.84 |      9.80 |
+   | bb  |     30.74 |     21.10 |
+         #+END:

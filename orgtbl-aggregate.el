@@ -2594,6 +2594,7 @@ It it returns non-nil, the TAB processing will stop there."
            (re-search-forward
             (rx
              point
+             (* blank)
              "#+"
              (group (+ (any "a-z0-9_-")))
              ":"
@@ -2622,7 +2623,7 @@ then proceed to folding, otherwise unfold."
         (beginning-of-line)
         (let ((case-fold-search t))
           (re-search-forward
-           (rx point "#+aggregate:")
+           (rx point (* blank) "#+aggregate:")
            nil t)))
       (org-TAB-begin-aggregate-fold)
     (org-TAB-begin-aggregate-unfold)))
@@ -2642,13 +2643,13 @@ then proceed to folding, otherwise unfold."
   "Prepare an a-list of all unfolded parameters."
   (interactive)
   (save-excursion
-    (re-search-backward (rx bol "#+begin:") nil t)
+    (re-search-backward (rx bol (* blank) "#+begin:") nil t)
     (cl-loop
      do (forward-line 1)
      while
      (let ((case-fold-search t))
        (re-search-forward
-        (rx point "#+aggregate:" (* blank)
+        (rx point (* blank) "#+aggregate:" (* blank)
             (group (+ (any ":a-z0-9_-")))
             (* blank)
             (group (* nonl)))
@@ -2680,7 +2681,7 @@ NEW being the result of executing (GETTER OLD)"
 
 (defun org-TAB-begin-aggregate-fold ()
   "Turn all lines of the form #+aggregate: … into a single line.
-That is, fold the may lines of the form:
+That is, fold the many lines of the form:
   #+aggregate: param…
 into the single line of the form:
   #+begin: aggregate params…
@@ -2711,7 +2712,7 @@ individual parameters."
     (while
         (let ((case-fold-search t))
           (beginning-of-line)
-          (re-search-forward (rx point "#+aggregate:") nil t))
+          (re-search-forward (rx point (* blank) "#+aggregate:") nil t))
       (beginning-of-line)
       (delete-line))
     (forward-line -1)

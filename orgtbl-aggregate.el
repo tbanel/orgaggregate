@@ -2568,7 +2568,6 @@ it is queried even when EXPERT is nil."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unfold, Fold
-;; Experimental
 ;; Typing TAB on a line like
 ;; #+begin aggregate params…
 ;; unfolds the parameters: a new line for each parameter
@@ -2649,7 +2648,9 @@ then proceed to folding, otherwise unfold."
      while
      (let ((case-fold-search t))
        (re-search-forward
-        (rx point (* blank) "#+aggregate:" (* blank)
+        (rx point (* blank)
+            "#+" (or "aggregate" "transpose" "join") ":"
+            (* blank)
             (group (+ (any ":a-z0-9_-")))
             (* blank)
             (group (* nonl)))
@@ -3142,6 +3143,157 @@ it is queried even when EXPERT is nil."
       (forward-line -1)
       (delete-blank-lines))
     (org-update-dblock)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Unfold, Fold
+;; Typing TAB on a line like
+;; #+begin transpose params…
+;; unfolds the parameters: a new line for each parameter
+;; and a dedicated help & completion for each activated by TAB
+
+(defun org-TAB-begin-transpose ()
+  "Dispatch to unfolding or folding code.
+If the line following
+  #+begin: transpose
+is an unfoled one of the form:
+  #+transpose: …
+then proceed to folding, otherwise unfold."
+  (if (save-excursion
+        (forward-line 1)
+        (beginning-of-line)
+        (let ((case-fold-search t))
+          (re-search-forward
+           (rx point (* blank) "#+transpose:")
+           nil t)))
+      (org-TAB-begin-transpose-fold)
+    (org-TAB-begin-transpose-unfold)))
+
+(defun org-TAB-begin-transpose-fold ()
+  "Turn all lines of the form #+transpose: … into a single line.
+That is, fold the many lines of the form:
+  #+transpose: param…
+into the single line of the form:
+  #+begin: transpose params…."
+  (orgtbl-aggregate--dismiss-help)
+  (let* ((alist (orgtbl-aggregate-get-all-unfolded)))
+    (end-of-line)
+    (insert
+     " :table \""
+     (orgtbl-aggregate--assemble-locator
+      (orgtbl-aggregate--alist-get-remove :file   alist)
+      (orgtbl-aggregate--alist-get-remove :name   alist)
+      (orgtbl-aggregate--alist-get-remove :orgid  alist)
+      (orgtbl-aggregate--alist-get-remove :params alist)
+      (orgtbl-aggregate--alist-get-remove :slice  alist))
+     "\"")
+    (orgtbl-aggregate--insert-remove-pair-from-alist :precompute alist)
+    (orgtbl-aggregate--insert-remove-pair-from-alist :cols       alist)
+    (orgtbl-aggregate--insert-remove-pair-from-alist :cond       alist)
+    (orgtbl-aggregate--insert-remove-pair-from-alist :hline      alist)
+    (orgtbl-aggregate--insert-remove-pair-from-alist :post       alist)
+    (cl-loop
+     for pair in alist
+     if (car pair)
+     do (orgtbl-aggregate--insert-remove-pair-from-alist (car pair) alist))
+    (forward-line 1)
+    (while
+        (let ((case-fold-search t))
+          (beginning-of-line)
+          (re-search-forward (rx point (* blank) "#+transpose:") nil t))
+      (beginning-of-line)
+      (delete-line))
+    (forward-line -1)
+    t))
+
+(defun org-TAB-begin-transpose-unfold ()
+  "Turn the single line #+begin: transpose into several lines.
+That is, move all parameters in the line
+  #+begin: transpose params…
+into several lines, each with a single parameter.
+Note that the :table XXX parameter is decomposed into several
+individual parameter for an easier reading."
+  (let* ((line (orgtbl-aggregate--parse-header-arguments "transpose"))
+         (point (progn (end-of-line) (point)))
+         (struct (orgtbl-aggregate--parse-locator
+                  (orgtbl-aggregate--plist-get-remove line :table))))
+    (insert "\n#+transpose: :file "   (or (aref struct 0) ""))
+    (insert "\n#+transpose: :name "   (or (aref struct 1) ""))
+    (insert "\n#+transpose: :orgid "  (or (aref struct 2) ""))
+    (insert "\n#+transpose: :params " (or (aref struct 3) ""))
+    (insert "\n#+transpose: :slice "  (or (aref struct 4) ""))
+    (insert "\n#+transpose: :cols "
+            (orgtbl-aggregate--merge-list-into-single-string
+             (or (orgtbl-aggregate--plist-get-remove line :cols ) "")))
+    (insert "\n#+transpose: :cond "
+            (format "%s" (or (orgtbl-aggregate--plist-get-remove  line :cond ) "")))
+    (insert "\n#+transpose: :post "
+            (format "%s" (or (orgtbl-aggregate--plist-get-remove  line :post ) "")))
+    (cl-loop
+     for pair on line
+     if (car pair)
+     do (insert (format "\n#+transpose: %s %s" (car pair) (cadr pair)))
+     do (setq pair (cdr pair)))
+    (goto-char point)
+    (beginning-of-line)
+    (forward-word 2)
+    (delete-region (point) point)
+    t))
+
+(defun org-TAB-transpose-:file ()
+  "Provide help and completion for the #+transpose: file XXX parameter."
+  (orgtbl-aggregate--display-help :file)
+  (orgtbl-aggregate--TAB-replace-value
+   (lambda (old)
+     (read-file-name
+      "File: "
+      (file-name-directory    old)
+      nil
+      nil
+      (file-name-nondirectory old)))))
+
+(defun org-TAB-transpose-:name ()
+  "Provide help and completion for the #+transpose: name XXX parameter."
+  (orgtbl-aggregate--display-help :name)
+  (orgtbl-aggregate--TAB-replace-value
+   (lambda (old)
+     (completing-read
+      "Table or Babel name: "
+      (orgtbl-aggregate--list-local-tables
+       (orgtbl-aggregate--nil-if-empty
+        (alist-get :file (orgtbl-aggregate-get-all-unfolded))))
+      nil
+      nil ;; user is free to input anything
+      old))))
+
+(defun org-TAB-transpose-:orgid ()
+  "Provide help and completion for the #+transpose: id XXX parameter."
+  (orgtbl-aggregate--display-help :orgid)
+  (unless org-id-locations (org-id-locations-load))
+  (orgtbl-aggregate--TAB-replace-value
+   (lambda (old)
+     (completing-read
+      "Org-ID: "
+      (hash-table-keys org-id-locations)
+      nil
+      nil ;; user is free to input anything
+      old))))
+
+(defun org-TAB-transpose-:params ()
+  (orgtbl-aggregate--display-help :params))
+
+(defun org-TAB-transpose-:slice ()
+  (orgtbl-aggregate--display-help :slice))
+
+(defun org-TAB-transpose-:cols ()
+  (orgtbl-aggregate--display-help :cols-tr
+   (orgtbl-aggregate--column-names-from-unfolded)))
+
+(defun org-TAB-transpose-:cond ()
+  (orgtbl-aggregate--display-help :cond
+   (orgtbl-aggregate--column-names-from-unfolded)))
+
+(defun org-TAB-transpose-:post ()
+  (orgtbl-aggregate--display-help :post))
 
 ;; [bazilo synchronize orgtbl-αggregate & orgtbl-joιn
 

@@ -16,6 +16,8 @@ block is preserved.
 Previously, only =#+tblfm:= was preserved (and enriched by additional
 formulas in a possible =:formula= parameter).
 
+Also, the directory part is simplified when querying a file name.
+
 * Table of Contents
 :PROPERTIES:
 :TOC:      :include siblings :depth 2 :force () :ignore (this) :local (nothing)
@@ -3394,6 +3396,7 @@ Top: earliest change. Bottom: latest change.
 - Special columns =@#= and =hline= are handled by transpose.
 - Preserve every side lines in =#+begin:= … =#+end:= blocks upon refresh
   or wizard update.
+- Simplify directory part when querying a file name.
 
 * GPL 3 License
 :PROPERTIES:

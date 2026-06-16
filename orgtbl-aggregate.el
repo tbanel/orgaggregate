@@ -2334,6 +2334,26 @@ in the same order.
     (goto-char (point-min))
     (select-window main-window)))
 
+(defun orgtbl-aggregate--read-file-name (prompt oldfile)
+  "Like `read-file-name', but avoid full directory.
+When the selected file is in the current directory, the
+directory part of the filename is stripped.
+OLDFILE, if any, is the filename to modify,
+with or without a directory part.
+PROMPT is the same as for `read-file-name'."
+  (unless oldfile (setq oldfile ""))
+  (let ((file
+         (read-file-name
+          prompt
+          (or (file-name-directory oldfile) default-directory)
+          nil
+          nil
+          (file-name-nondirectory oldfile))))
+    (if (equal (file-name-directory (expand-file-name file))
+               default-directory)
+        (file-name-nondirectory file)
+      file)))
+
 (defun orgtbl-aggregate--wizard-query-table (table expert)
   "Query the 4 fields composing a generalized table: file:name:params:slice.
 It may be only 3 fields in case of orgid:params:slice or
@@ -2381,11 +2401,7 @@ it is queried even when EXPERT is nil."
         (let ((insert-default-directory nil))
           (setq file
                 (orgtbl-aggregate--nil-if-empty
-                 (read-file-name "File (RET for current buffer): "
-                                 nil
-                                 nil
-                                 nil
-                                 file)))))
+                 (orgtbl-aggregate--read-file-name "File (RET for current buffer): " file)))))
 
       (orgtbl-aggregate--display-help :name)
       (setq name
@@ -2762,7 +2778,9 @@ individual parameter for an easier reading."
 They are computed by looking at the distant table
 (an Org table, a Babel block, a CSV, or a JSON)
 and recovering its header if any.
-If there is no header, $1 $2 $3... is returned."
+If there is no header, $1 $2 $3... is returned.
+TYPE is either \"aggregate\" or \"transpose\"
+"
   (let*
       ((alist (orgtbl-aggregate-get-all-unfolded))
        (table
@@ -2782,13 +2800,7 @@ If there is no header, $1 $2 $3... is returned."
   "Provide help and completion for the #+aggregate: file XXX parameter."
   (orgtbl-aggregate--display-help :file)
   (orgtbl-aggregate--TAB-replace-value
-   (lambda (old)
-     (read-file-name
-      "File: "
-      (file-name-directory    old)
-      nil
-      nil
-      (file-name-nondirectory old)))))
+   (lambda (old) (orgtbl-aggregate--read-file-name "File: " old))))
 
 (defun org-TAB-aggregate-:name ()
   "Provide help and completion for the #+aggregate: name XXX parameter."
@@ -3243,13 +3255,7 @@ individual parameter for an easier reading."
   "Provide help and completion for the #+transpose: file XXX parameter."
   (orgtbl-aggregate--display-help :file)
   (orgtbl-aggregate--TAB-replace-value
-   (lambda (old)
-     (read-file-name
-      "File: "
-      (file-name-directory    old)
-      nil
-      nil
-      (file-name-nondirectory old)))))
+   (lambda (old) (orgtbl-aggregate--read-file-name "File: " old))))
 
 (defun org-TAB-transpose-:name ()
   "Provide help and completion for the #+transpose: name XXX parameter."

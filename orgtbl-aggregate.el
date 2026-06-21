@@ -522,7 +522,6 @@ The header have an ID property equal to ID in a PROPERTY drawer."
 
 (defun orgtbl-aggregate--cell-to-string (cell)
   "Convert CELL (a cell in the input table) to a string if it is not already."
-  (message "cell-to-string %S" cell)
   (cond
    ((stringp cell) cell)
    ((not cell) "")

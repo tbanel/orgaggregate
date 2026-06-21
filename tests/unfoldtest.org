@@ -178,3 +178,55 @@ buffer. When done, the buffer and the original, untouched
 | tag |   |     A |    BB |   CCC |    BB |     A |     A |  CCC |     A |    BB |    BB |     A |  CCC |    BB |    BB |     A |   CCC |   CCC |    BB |     A |     A |
 | val |   | 11.58 | 98.43 | 87.74 | 87.97 | 84.32 | 83.79 | 4.32 | 31.07 | 70.82 | 32.32 | 88.22 | 8.61 | 55.17 | 52.73 | 33.96 | 23.42 | 91.62 | 56.19 | 10.78 | 61.71 |
 #+END:
+
+* preserving additional unknown parameters
+
+#+begin_src elisp :results none
+(orgtbl-aggregate-unfold-test
+ "C-e <tab> <tab> C-c C-c"))
+#+end_src
+#+BEGIN: aggregate :table "unittests.org:suitableforlist" :cols "Day Color vsum(Level)" :hline "1" :truc "machin"
+| Day       | Color      | vsum(Level) |
+|-----------+------------+-------------|
+| Monday    | Red        |         600 |
+| Monday    | Blue       |          80 |
+| Tuesday   | Red        |          96 |
+| Tuesday   | Blue       |          33 |
+| Wednesday | Red        |          27 |
+| Wednesday | Blue       |          12 |
+| Wednesday | Green      |          15 |
+| Thursday  | Red        |          80 |
+| Thursday  | Red+Green  |          49 |
+| Friday    | Blue       |          14 |
+| Friday    | Blue&Green |          11 |
+#+END:
+#+BEGIN: aggregate :table "unittests.org:suitableforlist" :cols "Day Color vsum(Level)" :hline "1" :truc "machin"
+| Day       | Color      | vsum(Level) |
+|-----------+------------+-------------|
+| Monday    | Red        |         600 |
+| Monday    | Blue       |          80 |
+| Tuesday   | Red        |          96 |
+| Tuesday   | Blue       |          33 |
+| Wednesday | Red        |          27 |
+| Wednesday | Blue       |          12 |
+| Wednesday | Green      |          15 |
+| Thursday  | Red        |          80 |
+| Thursday  | Red+Green  |          49 |
+| Friday    | Blue       |          14 |
+| Friday    | Blue&Green |          11 |
+#+END:
+
+#+begin_src elisp :results none
+(orgtbl-aggregate-unfold-test
+ "C-e <tab> <tab> C-c C-c"))
+#+end_src
+#+BEGIN: transpose :table "unittests.org:suitableforlist" :truc "machin"
+| Day   |   | Monday | Monday | Tuesday | Tuesday | Tuesday | Wednesday | Wednesday | Wednesday | Thursday | Thursday | Thursday  | Friday | Friday | Friday     |
+| Color |   | Red    | Blue   | Red     | Red     | Blue    | Red       | Blue      | Green     | Red      | Red      | Red+Green | Blue   | Blue   | Blue&Green |
+| Level |   | 20*30  | 55+25  | 51      | 45      | 33      | 27        | 12        | 15        | 39       | 41       | 49        | (7)    | (6+1)  | [11]       |
+#+END:
+#+BEGIN: transpose :table "unittests.org:suitableforlist" :cols "" :truc "machin"
+| Day   |   | Monday | Monday | Tuesday | Tuesday | Tuesday | Wednesday | Wednesday | Wednesday | Thursday | Thursday | Thursday  | Friday | Friday | Friday     |
+| Color |   | Red    | Blue   | Red     | Red     | Blue    | Red       | Blue      | Green     | Red      | Red      | Red+Green | Blue   | Blue   | Blue&Green |
+| Level |   | 20*30  | 55+25  | 51      | 45      | 33      | 27        | 12        | 15        | 39       | 41       | 49        | (7)    | (6+1)  | [11]       |
+#+END:

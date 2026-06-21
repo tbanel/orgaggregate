@@ -520,6 +520,16 @@ The header have an ID property equal to ID in a PROPERTY drawer."
    (not (string-match-p (rx bos (* blank) eos) field))
    field))
 
+(defun orgtbl-aggregate--cell-to-string (cell)
+  "Convert CELL (a cell in the input table) to a string if it is not already."
+  (message "cell-to-string %S" cell)
+  (cond
+   ((stringp cell) cell)
+   ((not cell) "")
+   ((numberp cell) (number-to-string cell))
+   ((symbolp cell) (symbol-name cell))
+   (t (format "%s" cell))))
+
 (defun orgtbl-aggregate--parse-locator (locator)
   "Parse LOCATOR, a description of where to find the input table.
 The result is a vector containing:
@@ -591,8 +601,7 @@ A slicing may be applied to the table, to select rows or columns.
 The syntax for slicing is like [1:3] or [1:3,2:5].
 Return it as a Lisp list of lists.
 An horizontal line is translated as the special symbol `hline'."
-  (unless (stringp name-or-id)
-    (setq name-or-id (format "%s" name-or-id)))
+  (setq name-or-id (orgtbl-aggregate--cell-to-string name-or-id))
   (let*
       ((struct (orgtbl-aggregate--parse-locator name-or-id))
        (file   (aref struct 0))
@@ -658,8 +667,7 @@ and the other way around."
 This is the opposite of `orgtbl-aggregate--split-string-with-quotes'."
   (if (listp cols)
       (mapconcat
-       (lambda (x)
-         (format "%s" x)) ;; x already a string? returns it unchanged
+       #'orgtbl-aggregate--cell-to-string ;; already a string? returns it unchanged
        cols " ")
     cols))
 
@@ -772,11 +780,8 @@ special symbol `hline' to mean an horizontal line."
 		      for mx on maxwidths
 		      for nu on numbers
 		      for ne on non-empty
-		      for cellnp = (car cell)
-		      do (cond ((not cellnp)
-				(setcar cell (setq cellnp "")))
-		       	       ((not (stringp cellnp))
-		      		(setcar cell (setq cellnp (format "%s" cellnp)))))
+		      for cellnp = (orgtbl-aggregate--cell-to-string (car cell))
+                      do (setcar cell cellnp)
 		      if (string-match-p org-table-number-regexp cellnp)
 		      do (setcar nu (1+ (car nu)))
 		      unless (string= cellnp "")
@@ -836,15 +841,6 @@ special symbol `hline' to mean an horizontal line."
   ;; inactivating jit-lock-after-change boosts performance a lot
   (cl-letf (((symbol-function 'jit-lock-after-change) (lambda (_a _b _c)) ))
     (insert (orgtbl-aggregate--elisp-table-to-string table))))
-
-(defun orgtbl-aggregate--cell-to-string (cell)
-  "Convert CELL (a cell in the input table) to a string if it is not already."
-  (cond
-   ((not cell) cell)
-   ((stringp cell) cell)
-   ((numberp cell) (number-to-string cell))
-   ((symbolp cell) (symbol-name cell))
-   (t (error "cell %S is not a number neither a string" cell))))
 
 (defun orgtbl-aggregate--get-header-table (table &optional asstring)
   "Return the header of TABLE as a list of column names.
@@ -1143,8 +1139,7 @@ filled here too, and nowhere else.
 TABLE is used to convert a column name
 into the column number."
   ;; parse user specification
-  (unless (stringp col)
-    (setq col (format "%s" col)))
+  (setq col (orgtbl-aggregate--cell-to-string col))
   (unless (string-match
            (rx
             bos
@@ -2439,6 +2434,13 @@ it is queried even when EXPERT is nil."
 
     (orgtbl-aggregate--assemble-locator file name orgid params slice)))
 
+(defun orgtbl-aggregate--header-as-string (headerlist)
+  "Convert a table-header as a list to a string.
+The result is intended to be displayed in Org Mode."
+  (mapconcat
+   (lambda (x) (format " ~%s~" x))
+   headerlist))
+
 ;; bazilo]
 
 (defun orgtbl-aggregate--wizard-aggregate-create-update (oldline expert)
@@ -2469,9 +2471,7 @@ it is queried even when EXPERT is nil."
             (orgtbl-aggregate--get-header-table table))
 
       (setq header
-            (mapconcat
-             (lambda (x) (format " ~%s~" x))
-             headerlist))
+            (orgtbl-aggregate--header-as-string headerlist))
 
       (setq precompute (orgtbl-aggregate--plist-get-remove oldline :precompute))
       (when (or expert precompute)
@@ -2492,9 +2492,7 @@ it is queried even when EXPERT is nil."
                         (length headerlist))
                        collect (cdr pair))))
         (setq header
-              (mapconcat
-               (lambda (x) (format " ~%s~" x))
-               headerlist)))
+              (orgtbl-aggregate--header-as-string headerlist)))
 
       (orgtbl-aggregate--display-help :cols header)
       (setq aggcols
@@ -2512,7 +2510,7 @@ it is queried even when EXPERT is nil."
         (setq aggcond
               (read-string
                "Row filter (optional): "
-               (and aggcond (format "%s" aggcond))
+               (orgtbl-aggregate--cell-to-string aggcond)
                'orgtbl-aggregate-history-cols)))
 
       (setq hline (orgtbl-aggregate--plist-get-remove oldline :hline))
@@ -2757,11 +2755,11 @@ individual parameter for an easier reading."
             (orgtbl-aggregate--merge-list-into-single-string
              (or (orgtbl-aggregate--plist-get-remove line :cols ) "")))
     (insert "\n#+aggregate: :cond "
-            (format "%s" (or (orgtbl-aggregate--plist-get-remove  line :cond ) "")))
+            (orgtbl-aggregate--cell-to-string (orgtbl-aggregate--plist-get-remove  line :cond )))
     (insert "\n#+aggregate: :hline "
-            (format "%s" (or (orgtbl-aggregate--plist-get-remove  line :hline) "")))
+            (orgtbl-aggregate--cell-to-string (orgtbl-aggregate--plist-get-remove  line :hline)))
     (insert "\n#+aggregate: :post "
-            (format "%s" (or (orgtbl-aggregate--plist-get-remove  line :post ) "")))
+            (orgtbl-aggregate--cell-to-string (orgtbl-aggregate--plist-get-remove  line :post )))
     (cl-loop
      for pair on line
      if (car pair)
@@ -2790,9 +2788,7 @@ TYPE is either \"aggregate\" or \"transpose\"
          (alist-get :orgid  alist)
          (alist-get :params alist)
          (alist-get :slice  alist))))
-    (mapconcat
-     (lambda (x) (format " ~%s~" x))
-     (orgtbl-aggregate--get-header-table table))))
+    (orgtbl-aggregate--header-as-string (orgtbl-aggregate--get-header-table table))))
 
 ;; [bazilo synchronize orgtbl-αggregate & orgtbl-joιn
 
@@ -3083,9 +3079,7 @@ it is queried even when EXPERT is nil."
             (orgtbl-aggregate--get-header-table table))
 
       (setq header
-            (mapconcat
-             (lambda (x) (format " ~%s~" x))
-             headerlist))
+            (orgtbl-aggregate--header-as-string headerlist))
 
       (orgtbl-aggregate--display-help :cols-tr header)
       (setq aggcols
@@ -3237,9 +3231,9 @@ individual parameter for an easier reading."
             (orgtbl-aggregate--merge-list-into-single-string
              (or (orgtbl-aggregate--plist-get-remove line :cols ) "")))
     (insert "\n#+transpose: :cond "
-            (format "%s" (or (orgtbl-aggregate--plist-get-remove  line :cond ) "")))
+            (orgtbl-aggregate--cell-to-string (orgtbl-aggregate--plist-get-remove  line :cond )))
     (insert "\n#+transpose: :post "
-            (format "%s" (or (orgtbl-aggregate--plist-get-remove  line :post ) "")))
+            (orgtbl-aggregate--cell-to-string (orgtbl-aggregate--plist-get-remove  line :post )))
     (cl-loop
      for pair on line
      if (car pair)

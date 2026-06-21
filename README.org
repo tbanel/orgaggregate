@@ -419,7 +419,7 @@ the spreadsheet formulas.
 Aggregation is a widely used method to get insights in tabular
 data. Use whatever environment best suits your needs.
 
-OrgAggregate is great when you want to output and Org Mode
+OrgAggregate is great when you want to output an Org Mode
 table. Also, OrgAggregate has no dependency other than Emacs, not even
 other Lisp packages.
 
@@ -3397,6 +3397,7 @@ Top: earliest change. Bottom: latest change.
 - Preserve every side lines in =#+begin:= … =#+end:= blocks upon refresh
   or wizard update.
 - Simplify directory part when querying a file name.
+- Centralize cell→string in =-cell-to-string= which is the fastest.
 
 * GPL 3 License
 :PROPERTIES:

@@ -484,3 +484,42 @@ buffer. When done, the buffer and the original, untouched
  #+END:
  ▲
  ╰──indent in order to update the #+begin: line instead of creating it anew
+
+* preserving additional unknown parameters
+
+#+begin_src elisp :results none
+(orgtbl-aggregate-wizard-test
+ :init       "C-c C-x x agg <tab> <return>"
+ :file       "<return>"
+ :name       "<return>"
+ :slice      "<return>"
+ :cols       "<return>")
+#+end_src
+ #+BEGIN: aggregate :table "unittests.org:suitableforlist" :cols "Day Color vsum(Level)" :hline "1" :truc "machin"
+ | Day       | Color      | vsum(Level) |
+ |-----------+------------+-------------|
+ | Monday    | Red        |         600 |
+ | Monday    | Blue       |          80 |
+ | Tuesday   | Red        |          96 |
+ | Tuesday   | Blue       |          33 |
+ | Wednesday | Red        |          27 |
+ | Wednesday | Blue       |          12 |
+ | Wednesday | Green      |          15 |
+ | Thursday  | Red        |          80 |
+ | Thursday  | Red+Green  |          49 |
+ | Friday    | Blue       |          14 |
+ | Friday    | Blue&Green |          11 |
+ #+END:
+
+#+begin_src elisp :results none
+(orgtbl-aggregate-wizard-test
+ :init       "C-c C-x x tra <tab> <return>"
+ :file       "<return>"
+ :name       "<return>"
+ :cols       "<return>")
+#+end_src
+ #+BEGIN: transpose :table "unittests.org:suitableforlist" :cols "" :truc "machin"
+ | Day   |   | Monday | Monday | Tuesday | Tuesday | Tuesday | Wednesday | Wednesday | Wednesday | Thursday | Thursday | Thursday  | Friday | Friday | Friday     |
+ | Color |   | Red    | Blue   | Red     | Red     | Blue    | Red       | Blue      | Green     | Red      | Red      | Red+Green | Blue   | Blue   | Blue&Green |
+ | Level |   | 20*30  | 55+25  | 51      | 45      | 33      | 27        | 12        | 15        | 39       | 41       | 49        | (7)    | (6+1)  | [11]       |
+ #+END:

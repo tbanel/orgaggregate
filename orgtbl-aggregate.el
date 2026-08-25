@@ -764,14 +764,38 @@ again and again the same string."
 (defun orgtbl-aggregate--elisp-table-to-string (table)
   "Convert TABLE to a string formatted as an Org Mode table.
 TABLE is a list of lists of cells.  The list may contain the
-special symbol `hline' to mean an horizontal line."
+special symbol `hline' to mean an horizontal line.
+TABLE may have optionally a first row which gives the formatting of columns.
+In this case this first row must contain the usual Org Mode formatting cookies
+like <r> of <l12>.
+It may also contain nil, which means that the formatting is decided on whether
+the column is mainly numeric (right alignment) or mainly alpha (left alignment)"
   (let* ((nbcols (cl-loop
 		  for row in table
 		  maximize (if (listp row) (length row) 0)))
 	 (maxwidths  (make-list nbcols 1))
 	 (numbers    (make-list nbcols 0))
 	 (non-empty  (make-list nbcols 0))
-	 (spaces-cache (make-vector 100 nil)))
+	 (spaces-cache (make-vector 100 nil))
+         (colformat nil))
+    ;; detect whether the first row is a formatting one, like:
+    ;; ("<r>" "<12>" nil "<l7>")
+    (when
+        (cl-loop
+         for k in (car table)
+         always
+         (or
+          (not k)
+          (and
+           (stringp k)
+           (string-match-p
+            (rx bos "<" (* anychar) ">" eos)
+            k))))
+      (setq colformat (car table))
+      (setq table (cdr table)))
+    (setq
+     colformat
+     (append colformat (make-list (- nbcols (length colformat)) nil)))
 
     ;; compute maxwidths
     (cl-loop for row in table
@@ -789,47 +813,81 @@ special symbol `hline' to mean an horizontal line."
 		      if (< (car mx) (string-width cellnp))
 		      do (setcar mx (string-width cellnp))))
 
-    ;; change meaning of numbers from quantity of cells with numbers
-    ;; to flags saying whether alignment should be left (number alignment)
+    ;; transform colformat to a list of -1, 0, 1
     (cl-loop for nu on numbers
 	     for ne in non-empty
-	     do
-	     (setcar nu (< (car nu) (* org-table-number-fraction ne))))
+             for fo on colformat
+             for cfo = (car fo)
+             do
+             (cond
+              ((not cfo)
+               ;; no explicit format? see if column is mainly numeric
+               ;; and if so format to the right, otherwise to the left
+	       (setcar
+                fo
+                (if (< (car nu) (* org-table-number-fraction ne))
+                    -1
+                  1)))
+              ((and (stringp cfo)
+                    (string-match
+                     (rx bos "<" (group (any "rlc")) (* digit) ">" eos)
+                     cfo))
+               (setcar
+                fo
+                (pcase (match-string 1 cfo)
+                  ("r"  1)
+                  ("l" -1)
+                  ("c"  0)
+                  (_ (error "should not happen")))))
+              (t (setcar fo -1))))
 
     ;; create well padded and aligned cells
     (let ((bits (orgtbl-aggregate--list-create)))
-      (cl-loop for row in table
-	       do
-	       (if (listp row)
-		   (cl-loop for cell in row
-			    for mx in maxwidths
-			    for nu in numbers
-			    for pad = (- mx (string-width cell))
-                            do
-			    (orgtbl-aggregate--list-append bits "| ")
-			    (cond
-			     ;; no alignment
-                             ((<= pad 0)
-			      (orgtbl-aggregate--list-append bits cell))
-			     ;; left alignment
-			     (nu
-			      (orgtbl-aggregate--list-append bits cell)
-                              (orgtbl-aggregate--list-append
-                               bits
-                               (orgtbl-aggregate--insert-make-spaces pad spaces-cache)))
-			     ;; right alignment
-                             (t
-			      (orgtbl-aggregate--list-append
-                               bits
-                               (orgtbl-aggregate--insert-make-spaces pad spaces-cache))
-			      (orgtbl-aggregate--list-append bits cell)))
-			    (orgtbl-aggregate--list-append bits " "))
-		 (cl-loop for bar = "|" then "+"
-			  for mx in maxwidths
-                          do
-			  (orgtbl-aggregate--list-append bits bar)
-			  (orgtbl-aggregate--list-append bits (make-string (+ mx 2) ?-))))
-	       (orgtbl-aggregate--list-append bits "|\n"))
+      (cl-loop
+       for row in table
+       do
+       (if (listp row)
+	   (cl-loop
+            for cell in row
+	    for mx in maxwidths
+	    for fo in colformat
+	    for pad = (- mx (string-width cell))
+            do
+	    (orgtbl-aggregate--list-append bits "| ")
+	    (cond
+	     ;; no alignment
+             ((<= pad 0)
+	      (orgtbl-aggregate--list-append bits cell))
+	     ;; left alignment
+	     ((eq fo -1)
+	      (orgtbl-aggregate--list-append bits cell)
+              (orgtbl-aggregate--list-append
+               bits
+               (orgtbl-aggregate--insert-make-spaces pad spaces-cache)))
+	     ;; right alignment
+             ((eq fo 1)
+	      (orgtbl-aggregate--list-append
+               bits
+               (orgtbl-aggregate--insert-make-spaces pad spaces-cache))
+	      (orgtbl-aggregate--list-append bits cell))
+             ;; center alignement
+             ((eq fo 0)
+              (orgtbl-aggregate--list-append
+               bits
+               (orgtbl-aggregate--insert-make-spaces (/ pad 2) spaces-cache))
+              (orgtbl-aggregate--list-append bits cell)
+              (orgtbl-aggregate--list-append
+               bits
+               (orgtbl-aggregate--insert-make-spaces (/ (1+ pad) 2) spaces-cache)))
+             (t (error "this case should not happen")))
+	    (orgtbl-aggregate--list-append bits " "))
+	 (cl-loop
+          for bar = "|" then "+"
+	  for mx in maxwidths
+          do
+	  (orgtbl-aggregate--list-append bits bar)
+	  (orgtbl-aggregate--list-append bits (make-string (+ mx 2) ?-))))
+       (orgtbl-aggregate--list-append bits "|\n"))
       ;; remove the last \n because Org Mode re-adds it
       (setcar (car bits) "|")
       (mapconcat #'identity (orgtbl-aggregate--list-get bits)))))
@@ -1144,10 +1202,10 @@ into the column number."
             (*
              ";"
              (or
-              (seq     (group-n 2 (* (notany "^;'\"<"))))
-              (seq "^" (group-n 3 (* (notany "^;'\"<"))))
-              (seq "<" (group-n 4 (* (notany "^;'\">"))) ">")
-              (seq "'" (group-n 5 (* (notany "'"))) "'")))
+              (seq     (group-n 2     (* (notany "^;'\"<"))))
+              (seq "^" (group-n 3     (* (notany "^;'\"<"))))
+              (seq     (group-n 4 "<" (* (notany "^;'\">")) ">"))
+              (seq "'" (group-n 5     (* (notany "'"))) "'")))
             eos)
 	   col)
     (user-error "Bad column specification: %S" col))
@@ -1659,12 +1717,12 @@ which do not pass the filter found in PARAMS entry :cond."
       ;; beware! it assumes that the actual list in orgtbl-aggregate--lists
       ;; is pointed to by the cdr of the orgtbl-aggregate--list
       (if (cl-loop for col in aggcols
-		   thereis (equal (orgtbl-aggregate--outcol-invisible col) ""))
+		   thereis (equal (orgtbl-aggregate--outcol-invisible col) "<>"))
 	  (cl-loop for row in result
 		   if (consp row)
 		   do (cl-loop for col in aggcols
 			       with cel = row
-			       if (equal (orgtbl-aggregate--outcol-invisible col) "")
+			       if (equal (orgtbl-aggregate--outcol-invisible col) "<>")
 			       do    (setcdr cel (cddr cel))
 			       else do (orgtbl-aggregate--pop-simple cel))))
 
@@ -1673,7 +1731,18 @@ which do not pass the filter found in PARAMS entry :cond."
 	       if (consp (car row))
 	       do (setcar row (orgtbl-aggregate--list-get (car row))))
 
-      result)))
+      (if (cl-loop
+           for col in aggcols
+           never (orgtbl-aggregate--outcol-invisible col))
+          result
+        ;; add a first row containing the columns formatting if any
+        (cons
+         (cl-loop
+          for col in aggcols
+          for invisible = (orgtbl-aggregate--outcol-invisible col)
+          unless (equal invisible "<>")
+          collect invisible)
+         result)))))
 
 (defun orgtbl-aggregate--sort-predicate (rowa rowb)
   "Compares ROWA & ROWB (which are Org Mode table rows)

@@ -6,17 +6,13 @@ Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the first table.
 
 * New
-Blocks surrounded by =#+begin:= =#+end:= may contain an old table, and
-also several tags like =#+name:=, =#+plot:=, =#+tblfm:= and any other
-information.
+Output columns can now be aligned with the =<c>=, =<l>=, =<r>= cookies. They
+have the same meaning as in Org Mode.
 
-Upon refresh (=C-c C-c=) or wizard update (=C-c C-x x=) the content of the
-block is preserved.
+Previously, only the =<>= cookie was available to make a column
+invisible.
 
-Previously, only =#+tblfm:= was preserved (and enriched by additional
-formulas in a possible =:formula= parameter).
-
-Also, the directory part is simplified when querying a file name.
+See [[#alignment-cookies][Alignment cookies]].
 
 * Table of Contents
 :PROPERTIES:
@@ -60,6 +56,7 @@ Also, the directory part is simplified when querying a file name.
 - [[#formatters][Formatters]]
   - [[#org-mode-compatible-formatters][Org Mode compatible formatters]]
   - [[#debugging-formatters][Debugging formatters]]
+  - [[#alignment-cookies][Alignment cookies]]
   - [[#discarding-an-output-column][Discarding an output column]]
 - [[#sorting][Sorting]]
   - [[#example-with-one-sorting-column][Example with one sorting column]]
@@ -82,6 +79,7 @@ Also, the directory part is simplified when querying a file name.
   - [[#csv-input][CSV input]]
   - [[#json-input][JSON input]]
   - [[#input-slicing][Input slicing]]
+  - [[#malformed-input-tables][Malformed input tables]]
   - [[#the-cond-filter][The :cond filter]]
   - [[#virtual-input-columns-with-precompute][Virtual input columns with :precompute]]
 - [[#post-processing][Post-processing]]
@@ -1306,6 +1304,57 @@ Additionally, a few formatters are dedicated to debugging:
 - =Q= output the Lisp expression before it gets simplified and folded.
 
 See [[#debugging][Debugging]] for a detailed explanation.
+
+** Alignment cookies
+:PROPERTIES:
+:CUSTOM_ID: alignment-cookies
+:END:
+The cookies are the same as in Org Mode:
+- =<c>= to center the content of each cell
+- =<l>= to left align
+- =<r>= to right align
+
+Example:
+
+#+begin_example
+  we decided to center the names
+  of planets in the first column╶─────────────────╮
+                                                  │
+  the input table is not shown                    │
+  in this example╶───────────╮                    │
+                             ▼                    ▼
+#+BEGIN: aggregate :table "planet" :cols "planet;<c> 'mass kg';^n"
+| planet  |   mass kg |
+|---------+-----------|
+|  Pluto  |   1.25e22 |
+| Mercury | 3.3022e23 |
+|  Mars   | 6.4185e23 |
+|  Venus  | 4.8685e24 |
+|  Earth  | 5.9736e24 |
+| Uranus  | 8.6810e25 |
+| Neptune | 10.243e25 |
+| Saturn  | 5.6846e26 |
+| Jupiter | 1.8986e27 |
+|   Sun   | 1.9891e30 |
+#+END:
+#+end_example
+
+So, just add a semicolon and a cookie after a column specification,
+and OrgAggregate will happily comply, just for this column.
+
+If no alignment is specified for a column, then OrgAggregate decides
+in the same way as the Org Mode spreadsheet. If the column is mostly
+numeric, then it is right-aligned.  Otherwise it is left aligned. How
+much "mostly numeric" is, is given by the =org-table-number-fraction=
+variable. Its default value is =0.5=, and it can be customized.
+
+In Org Mode, a width can also be specified, for instance:
+
+=<l12>= means: "align the content of each cell to the left, and make it
+12 characters wide".
+
+The width specification is not yet available in OrgAggregate, but
+coming soon.
 
 ** Discarding an output column
 :PROPERTIES:
@@ -3475,6 +3524,7 @@ Top: earliest change. Bottom: latest change.
   or wizard update.
 - Simplify directory part when querying a file name.
 - Centralize cell→string in =-cell-to-string= which is the fastest.
+- Column alignment with the =<c>=, =<l>=, =<r>= cookies.
 
 * GPL 3 License
 :PROPERTIES:

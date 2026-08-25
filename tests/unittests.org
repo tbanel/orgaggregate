@@ -2174,3 +2174,68 @@ JSON in distant Org file
 | jes  |      555 |
 | ne   |     -176 |
 #+END:
+
+* Column formatting
+
+Using Org-Mode cookies like <c> to center or <r> to right align.
+
+#+BEGIN: aggregate :table "planet" :cols "planet;<c> 'mass kg';^n"
+| planet  |   mass kg |
+|---------+-----------|
+|  Pluto  |   1.25e22 |
+| Mercury | 3.3022e23 |
+|  Mars   | 6.4185e23 |
+|  Venus  | 4.8685e24 |
+|  Earth  | 5.9736e24 |
+| Uranus  | 8.6810e25 |
+| Neptune | 10.243e25 |
+| Saturn  | 5.6846e26 |
+| Jupiter | 1.8986e27 |
+|   Sun   | 1.9891e30 |
+#+END:
+
+#+BEGIN: aggregate :table "unsortedtable" :cols "Day;<c> Color;<r> vsum(Level);<r>"
+|    Day    | Color | vsum(Level) |
+|-----------+-------+-------------|
+|  Monday   |   Red |          60 |
+|  Monday   |  Blue |          30 |
+|  Tuesday  |   Red |         135 |
+|  Tuesday  |  Blue |          33 |
+| Wednesday |   Red |         159 |
+| Wednesday |  Blue |          52 |
+| Thursday  |   Red |          82 |
+|  Friday   |  Blue |          96 |
+#+END:
+
+#+ORGTBL: SEND kolorokvanto orgtbl-to-aggregated-table :cols "Koloro;<r> vsum(kvanto);<c>"
+| Koloro | kvanto |
+|--------+--------|
+| blanka |    921 |
+| griza  |    540 |
+| nigra  |    105 |
+| blua   |    725 |
+| ruĝa   |    581 |
+| flava  |    366 |
+| verda  |    193 |
+| oranĝa |    419 |
+| blua   |      2 |
+| griza  |    512 |
+| verda  |    395 |
+| nigra  |    564 |
+| flava  |    406 |
+| oranĝa |    191 |
+| ruĝa   |    501 |
+| blanka |    514 |
+
+#+BEGIN RECEIVE ORGTBL kolorokvanto
+| Koloro | vsum(kvanto) |
+|--------+--------------|
+| blanka |     1435     |
+|  griza |     1052     |
+|  nigra |     669      |
+|   blua |     727      |
+|   ruĝa |     1082     |
+|  flava |     772      |
+|  verda |     588      |
+| oranĝa |     610      |
+#+END   RECEIVE ORGTBL kolorokvanto

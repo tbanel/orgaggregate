@@ -166,7 +166,8 @@ File: orgtbl-aggregate.info,  Node: New,  Next: Examples,  Prev: Top,  Up: Top
 *****
 
 Output columns can now be aligned with the ‘<c>’, ‘<l>’, ‘<r>’ cookies.
-They have the same meaning as in Org Mode.
+The column width can also be specified: ‘<l15>’, ‘<7>’.  The cookies
+have the same meaning as in Org Mode.
 
    Previously, only the ‘<>’ cookie was available to make a column
 invisible.
@@ -1448,13 +1449,34 @@ numeric, then it is right-aligned.  Otherwise it is left aligned.  How
 much "mostly numeric" is, is given by the ‘org-table-number-fraction’
 variable.  Its default value is ‘0.5’, and it can be customized.
 
-   In Org Mode, a width can also be specified, for instance:
+   As in Org Mode, a column-width can also be specified.  For instance
+‘<l12>’ means: "align the content of each cell to the left, and make it
+12 characters wide".
 
-   ‘<l12>’ means: "align the content of each cell to the left, and make
-it 12 characters wide".
+   Example:
+     we want a somehow wider column╶────────────────────╮
+                                                        ▼
+     #+BEGIN: aggregate :table "planet" :cols "planet;<c12>"
+     |    planet    |
+     |--------------+
+     |    Pluto     |
+     |   Mercury    |
+     |     Mars     |
+     |    Venus     |
+     |    Earth     |
+     |    Uranus    |
+     |   Neptune    |
+     |    Saturn    |
+     |   Jupiter    |
+     |     Sun      |
+     #+END:
 
-   The width specification is not yet available in OrgAggregate, but
-coming soon.
+   Specifying just the width is allowed, as for example: ‘<12>’.  In
+this case, the left or right alignment will be decided upon the
+numericity of the column.
+
+   The width cannot be made smaller than what is needed to accommodate
+all cells.
 
 
 File: orgtbl-aggregate.info,  Node: Discarding an output column,  Prev: Alignment cookies,  Up: Formatters
@@ -3617,92 +3639,92 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 Tag Table:
 Node: Top209
 Node: New3207
-Node: Examples3548
-Node: A very simple example3818
-Node: Demonstrate sum and average computing6173
-Node: Example without days9511
-Node: Example of counting each combination10379
-Node: Stop reading here! 80/2013059
-Node: Name your input table13539
-Node: Create an aggregation block14192
-Node: Refresh the aggregation15114
-Node: Equivalent in SQL R Datamash el-tblfn Awk C++16754
-Node: SQL equivalent17398
-Node: R equivalent17744
-Node: Datamash equivalent18278
-Node: el-tblfn18852
-Node: Awk equivalent19584
-Node: C++ equivalent20314
-Node: Wizards21438
-Node: Guiding (traditional) wizard21734
-Node: Experimental free form wizard23903
-Node: The cols parameter25949
-Node: Names of input columns26620
-Node: Grouping specifications in cols27695
-Node: The hline column28251
-Node: The @# column31039
-Node: Aggregation formulas in cols33520
-Node: Correlation of two columns41061
-Node: [Almost) any expression can be specified42800
-Node: Column names44274
-Node: Input table with or without a header44550
-Node: Column names of the input table45943
-Node: Multiple lines header47112
-Node: Custom column names50029
-Node: Formatters52439
-Node: Org Mode compatible formatters52687
-Node: Debugging formatters54888
-Node: Alignment cookies55560
-Node: Discarding an output column57479
-Node: Sorting60266
-Node: Example with one sorting column60472
-Node: Several sorting columns61753
-Node: hlines in the output table64105
-Node: Output hlines depends on sorting columns64503
-Node: Example with hline 267399
-Node: Cells processing72491
-Node: Where Calc interpretation happens?72986
-Node: Dates78463
-Node: Durations80468
-Node: Empty and malformed input cells82302
-Node: Symbolic computation83972
-Node: Intervals86269
-Node: Error or precision forms87065
-Node: Wide variety of inputs88236
-Node: Standard Org Mode input88826
-Node: Virtual input table from Babel89303
-Node: An Org ID91904
-Node: CSV input92505
-Node: JSON input94026
-Node: Input slicing96502
-Node: Malformed input tables97232
-Node: The cond filter98137
-Node: Virtual input columns with precompute99662
-Node: Post-processing106404
-Node: Spreadsheet formulas106945
-Node: Algorithm post processing108502
-Node: Grand total110465
-Node: Chaining115287
-Node: Pull & Push116976
-Node: Pull mode117210
-Node: Push mode118913
-Node: Pull or push ?121121
-Node: Debugging121855
-Node: Seeing the $ forms122378
-Node: Seeing Calc formulas before evaluation123588
-Node: Seeing Lisp internal form of Calc formulas124722
-Node: Example of debugging vsum(nn^2)125931
-Node: Summary of debugging formatters127360
-Node: Tricks127856
-Node: Sorting (1)128178
-Node: A few lowest or highest values128993
-Node: Span of values130294
-Node: No aggregation130853
-Node: Look at the first rows of a large table132755
-Node: Installation133531
-Node: Authors contributors134173
-Node: Changes135889
-Node: GPL 3 License140600
+Node: Examples3620
+Node: A very simple example3890
+Node: Demonstrate sum and average computing6245
+Node: Example without days9583
+Node: Example of counting each combination10451
+Node: Stop reading here! 80/2013131
+Node: Name your input table13611
+Node: Create an aggregation block14264
+Node: Refresh the aggregation15186
+Node: Equivalent in SQL R Datamash el-tblfn Awk C++16826
+Node: SQL equivalent17470
+Node: R equivalent17816
+Node: Datamash equivalent18350
+Node: el-tblfn18924
+Node: Awk equivalent19656
+Node: C++ equivalent20386
+Node: Wizards21510
+Node: Guiding (traditional) wizard21806
+Node: Experimental free form wizard23975
+Node: The cols parameter26021
+Node: Names of input columns26692
+Node: Grouping specifications in cols27767
+Node: The hline column28323
+Node: The @# column31111
+Node: Aggregation formulas in cols33592
+Node: Correlation of two columns41133
+Node: [Almost) any expression can be specified42872
+Node: Column names44346
+Node: Input table with or without a header44622
+Node: Column names of the input table46015
+Node: Multiple lines header47184
+Node: Custom column names50101
+Node: Formatters52511
+Node: Org Mode compatible formatters52759
+Node: Debugging formatters54960
+Node: Alignment cookies55632
+Node: Discarding an output column58233
+Node: Sorting61020
+Node: Example with one sorting column61226
+Node: Several sorting columns62507
+Node: hlines in the output table64859
+Node: Output hlines depends on sorting columns65257
+Node: Example with hline 268153
+Node: Cells processing73245
+Node: Where Calc interpretation happens?73740
+Node: Dates79217
+Node: Durations81222
+Node: Empty and malformed input cells83056
+Node: Symbolic computation84726
+Node: Intervals87023
+Node: Error or precision forms87819
+Node: Wide variety of inputs88990
+Node: Standard Org Mode input89580
+Node: Virtual input table from Babel90057
+Node: An Org ID92658
+Node: CSV input93259
+Node: JSON input94780
+Node: Input slicing97256
+Node: Malformed input tables97986
+Node: The cond filter98891
+Node: Virtual input columns with precompute100416
+Node: Post-processing107158
+Node: Spreadsheet formulas107699
+Node: Algorithm post processing109256
+Node: Grand total111219
+Node: Chaining116041
+Node: Pull & Push117730
+Node: Pull mode117964
+Node: Push mode119667
+Node: Pull or push ?121875
+Node: Debugging122609
+Node: Seeing the $ forms123132
+Node: Seeing Calc formulas before evaluation124342
+Node: Seeing Lisp internal form of Calc formulas125476
+Node: Example of debugging vsum(nn^2)126685
+Node: Summary of debugging formatters128114
+Node: Tricks128610
+Node: Sorting (1)128932
+Node: A few lowest or highest values129747
+Node: Span of values131048
+Node: No aggregation131607
+Node: Look at the first rows of a large table133509
+Node: Installation134285
+Node: Authors contributors134927
+Node: Changes136643
+Node: GPL 3 License141354
 
 End Tag Table
 

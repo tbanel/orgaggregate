@@ -6,8 +6,9 @@ Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the first table.
 
 * New
-Output columns can now be aligned with the =<c>=, =<l>=, =<r>= cookies. They
-have the same meaning as in Org Mode.
+Output columns can now be aligned with the =<c>=, =<l>=, =<r>= cookies. The
+column width can also be specified: =<l15>=, =<7>=. The cookies have the
+same meaning as in Org Mode.
 
 Previously, only the =<>= cookie was available to make a column
 invisible.
@@ -1348,13 +1349,36 @@ numeric, then it is right-aligned.  Otherwise it is left aligned. How
 much "mostly numeric" is, is given by the =org-table-number-fraction=
 variable. Its default value is =0.5=, and it can be customized.
 
-In Org Mode, a width can also be specified, for instance:
-
+As in Org Mode, a column-width can also be specified. For instance
 =<l12>= means: "align the content of each cell to the left, and make it
 12 characters wide".
 
-The width specification is not yet available in OrgAggregate, but
-coming soon.
+Example:
+#+begin_example
+we want a somehow wider column╶────────────────────╮
+                                                   ▼
+#+BEGIN: aggregate :table "planet" :cols "planet;<c12>"
+|    planet    |
+|--------------+
+|    Pluto     |
+|   Mercury    |
+|     Mars     |
+|    Venus     |
+|    Earth     |
+|    Uranus    |
+|   Neptune    |
+|    Saturn    |
+|   Jupiter    |
+|     Sun      |
+#+END:
+#+end_example
+
+Specifying just the width is allowed, as for example: =<12>=. In this
+case, the left or right alignment will be decided upon the numericity
+of the column.
+
+The width cannot be made smaller than what is needed to accommodate
+all cells.
 
 ** Discarding an output column
 :PROPERTIES:

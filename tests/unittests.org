@@ -2194,6 +2194,21 @@ Using Org-Mode cookies like <c> to center or <r> to right align.
 |   Sun   | 1.9891e30 |
 #+END:
 
+#+BEGIN: aggregate :table "planet" :cols "planet;<c12> 'mass kg';^n;<15> planet;<r9> vmax('mass kg'/5.9736e24);<12>;f3;'n-earth'"
+|    planet    |         mass kg |    planet |      n-earth |
+|--------------+-----------------+-----------+--------------|
+|    Pluto     |         1.25e22 |     Pluto |        0.002 |
+|   Mercury    |       3.3022e23 |   Mercury |        0.055 |
+|     Mars     |       6.4185e23 |      Mars |        0.107 |
+|    Venus     |       4.8685e24 |     Venus |        0.815 |
+|    Earth     |       5.9736e24 |     Earth |        1.000 |
+|    Uranus    |       8.6810e25 |    Uranus |       14.532 |
+|   Neptune    |       10.243e25 |   Neptune |       17.147 |
+|    Saturn    |       5.6846e26 |    Saturn |       95.162 |
+|   Jupiter    |       1.8986e27 |   Jupiter |      317.832 |
+|     Sun      |       1.9891e30 |       Sun |   332981.787 |
+#+END:
+
 #+BEGIN: aggregate :table "unsortedtable" :cols "Day;<c> Color;<r> vsum(Level);<r>"
 |    Day    | Color | vsum(Level) |
 |-----------+-------+-------------|

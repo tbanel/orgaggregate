@@ -817,29 +817,34 @@ the column is mainly numeric (right alignment) or mainly alpha (left alignment)"
     (cl-loop for nu on numbers
 	     for ne in non-empty
              for fo on colformat
+             for mx on maxwidths
              for cfo = (car fo)
              do
-             (cond
-              ((not cfo)
+             (when (and (stringp cfo)
+                        (string-match
+                         (rx bos "<" (group (? (any "rlc"))) (group (* digit)) ">" eos)
+                         cfo))
+               (if (match-string 1 cfo)
+                   (setcar
+                    fo
+                    (pcase (match-string 1 cfo)
+                      ("r"  1)
+                      ("l" -1)
+                      ("c"  0)
+                      (""  nil) ;; no specification
+                      (_ (error "should not happen %s" (match-string 1 cfo))))))
+               (let ((width (string-to-number (match-string 2 cfo))))
+                 (if (< (car mx) width)
+                     (setcar mx width))))
+             do
+             (if (or (not (car fo)) (stringp (car fo)))
                ;; no explicit format? see if column is mainly numeric
                ;; and if so format to the right, otherwise to the left
 	       (setcar
                 fo
                 (if (< (car nu) (* org-table-number-fraction ne))
                     -1
-                  1)))
-              ((and (stringp cfo)
-                    (string-match
-                     (rx bos "<" (group (any "rlc")) (* digit) ">" eos)
-                     cfo))
-               (setcar
-                fo
-                (pcase (match-string 1 cfo)
-                  ("r"  1)
-                  ("l" -1)
-                  ("c"  0)
-                  (_ (error "should not happen")))))
-              (t (setcar fo -1))))
+                  1))))
 
     ;; create well padded and aligned cells
     (let ((bits (orgtbl-aggregate--list-create)))
@@ -879,7 +884,7 @@ the column is mainly numeric (right alignment) or mainly alpha (left alignment)"
               (orgtbl-aggregate--list-append
                bits
                (orgtbl-aggregate--insert-make-spaces (/ (1+ pad) 2) spaces-cache)))
-             (t (error "this case should not happen")))
+             (t (error "this case should not happen fo=%S" fo)))
 	    (orgtbl-aggregate--list-append bits " "))
 	 (cl-loop
           for bar = "|" then "+"

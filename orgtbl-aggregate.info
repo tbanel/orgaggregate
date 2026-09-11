@@ -1420,7 +1420,7 @@ The cookies are the same as in Org Mode:
    Example:
 
        we decided to center the names
-       of planets in the first column╶─────────────────╮
+       of planets in the 1st column╶───────────────────╮
                                                        │
        the input table is not shown                    │
        in this example╶───────────╮                    │
@@ -3675,56 +3675,56 @@ Node: Formatters52511
 Node: Org Mode compatible formatters52759
 Node: Debugging formatters54960
 Node: Alignment cookies55632
-Node: Discarding an output column58233
-Node: Sorting61020
-Node: Example with one sorting column61226
-Node: Several sorting columns62507
-Node: hlines in the output table64859
-Node: Output hlines depends on sorting columns65257
-Node: Example with hline 268153
-Node: Cells processing73245
-Node: Where Calc interpretation happens?73740
-Node: Dates79217
-Node: Durations81222
-Node: Empty and malformed input cells83056
-Node: Symbolic computation84726
-Node: Intervals87023
-Node: Error or precision forms87819
-Node: Wide variety of inputs88990
-Node: Standard Org Mode input89580
-Node: Virtual input table from Babel90057
-Node: An Org ID92658
-Node: CSV input93259
-Node: JSON input94780
-Node: Input slicing97256
-Node: Malformed input tables97986
-Node: The cond filter98891
-Node: Virtual input columns with precompute100416
-Node: Post-processing107158
-Node: Spreadsheet formulas107699
-Node: Algorithm post processing109256
-Node: Grand total111219
-Node: Chaining116041
-Node: Pull & Push117730
-Node: Pull mode117964
-Node: Push mode119667
-Node: Pull or push ?121875
-Node: Debugging122609
-Node: Seeing the $ forms123132
-Node: Seeing Calc formulas before evaluation124342
-Node: Seeing Lisp internal form of Calc formulas125476
-Node: Example of debugging vsum(nn^2)126685
-Node: Summary of debugging formatters128114
-Node: Tricks128610
-Node: Sorting (1)128932
-Node: A few lowest or highest values129747
-Node: Span of values131048
-Node: No aggregation131607
-Node: Look at the first rows of a large table133509
-Node: Installation134285
-Node: Authors contributors134927
-Node: Changes136643
-Node: GPL 3 License141354
+Node: Discarding an output column58237
+Node: Sorting61024
+Node: Example with one sorting column61230
+Node: Several sorting columns62511
+Node: hlines in the output table64863
+Node: Output hlines depends on sorting columns65261
+Node: Example with hline 268157
+Node: Cells processing73249
+Node: Where Calc interpretation happens?73744
+Node: Dates79221
+Node: Durations81226
+Node: Empty and malformed input cells83060
+Node: Symbolic computation84730
+Node: Intervals87027
+Node: Error or precision forms87823
+Node: Wide variety of inputs88994
+Node: Standard Org Mode input89584
+Node: Virtual input table from Babel90061
+Node: An Org ID92662
+Node: CSV input93263
+Node: JSON input94784
+Node: Input slicing97260
+Node: Malformed input tables97990
+Node: The cond filter98895
+Node: Virtual input columns with precompute100420
+Node: Post-processing107162
+Node: Spreadsheet formulas107703
+Node: Algorithm post processing109260
+Node: Grand total111223
+Node: Chaining116045
+Node: Pull & Push117734
+Node: Pull mode117968
+Node: Push mode119671
+Node: Pull or push ?121879
+Node: Debugging122613
+Node: Seeing the $ forms123136
+Node: Seeing Calc formulas before evaluation124346
+Node: Seeing Lisp internal form of Calc formulas125480
+Node: Example of debugging vsum(nn^2)126689
+Node: Summary of debugging formatters128118
+Node: Tricks128614
+Node: Sorting (1)128936
+Node: A few lowest or highest values129751
+Node: Span of values131052
+Node: No aggregation131611
+Node: Look at the first rows of a large table133513
+Node: Installation134289
+Node: Authors contributors134931
+Node: Changes136647
+Node: GPL 3 License141358
 
 End Tag Table
 

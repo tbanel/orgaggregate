@@ -1319,7 +1319,7 @@ Example:
 
 #+begin_example
   we decided to center the names
-  of planets in the first column╶─────────────────╮
+  of planets in the 1st column╶───────────────────╮
                                                   │
   the input table is not shown                    │
   in this example╶───────────╮                    │

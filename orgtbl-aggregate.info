@@ -701,11 +701,11 @@ Suppose we have an aggregate block like this one:
    Then, hitting the ‘TAB’ key anywhere on the ‘#+begin:’ line (but not
 at the beginning) unfolds it.  The result is this one:
 
-     #+begin: aggregate                   ╭─╴the 2 main parameters
-     #+aggregate: :file                   │
-     #+aggregate: :name my_table        ◀─╯
+     #+begin: aggregate
+     #+aggregate: :file
+     #+aggregate: :name my_table        ◀─╮
      #+aggregate: :orgid                  │
-     #+aggregate: :params                 │
+     #+aggregate: :params                 ├─╴the 2 main parameters
      #+aggregate: :slice                  │
      #+aggregate: :precompute             │
      #+aggregate: :cols vsum(b) count() ◀─╯
@@ -1265,10 +1265,10 @@ single column.
      | color  | quantity |  level | ╶╮                             │
      | <l>    |     <r7> |    <3> |  ├─╴header is 3 rows tall      │
      | kolor  |     kiom | nivelo | ╶╯                             │
-     |--------+----------+--------|                    ╭───────────╯───────────────╮
-     | yellow |       72 |      3 |                    │ only the first header row │
-     | green  |       55 |      5 |                    │ is used in formulas       │
-     | <c>    |          |        |                    ╰───────────╭───────────────╯
+     |--------+----------+--------|                    ╭───────────╯─────────────╮
+     | yellow |       72 |      3 |                    │ only the 1st header row │
+     | green  |       55 |      5 |                    │ is used in formulas     │
+     | <c>    |          |        |                    ╰───────────╭─────────────╯
      | orange |       80 |      2 |                                │
      | yellow |       13 |      1 |                                │
                                                                ╭───┴──╮
@@ -1609,10 +1609,10 @@ instance ‘1’.  Columns without a number are minor ones.
 
    Example:
      :cols "AAA;^a BBB;^N2 CCC DDD;^t1"
-     ╭────╮      ▲╷     ▲▲          ▲▲ ╭──────────────╮
-     │sort╰──────╯╰─╮   ││          │╰─╯first priority│
-     │alphabetically│   ││          ╰──╮sort by date  │
-     │third priority│   ││             ╰──────────────╯
+     ╭────╮      ▲╷     ▲▲          ▲▲ ╭─────────────╮
+     │sort╰──────╯╰─╮   ││          │╰─╯1st priority │
+     │alphabetically│   ││          ╰──╮sort by date │
+     │third priority│   ││             ╰─────────────╯
      ╰──────────────╯   ││  ╭────────────────╮
                         │╰──╯second priority │
                         ╰───╮sort numerically│
@@ -2902,16 +2902,16 @@ rows to the aggregated table, and returns the amended table.
 
      @>$2=vsum(@I..@II)
      ▲ ▲   ▲   ▲   ▲
-     │ │   │   │   ╰──────────────╮
-     │ │   │   ╰────────────────╮ │
-     │ │   ╰─────────────────╮  │ │
-     │ ╰────────────╮        │  │ │
-     ╰──────────╮   │        │  │ │
-     last line╶─╯   │        │  │ │
-     second column╶─╯        │  │ │
-     sum all values between╶─╯  │ │
-     the first horizontal line╶─╯ │
-     and the second one╶──────────╯
+     │ │   │   │   ╰───────────────╮
+     │ │   │   ╰────────────────╮  │
+     │ │   ╰─────────────────╮  │  │
+     │ ╰────────────╮        │  │  │
+     ╰──────────╮   │        │  │  │
+     last line╶─╯   │        │  │  │
+     second column╶─╯        │  │  │
+     sum all values between╶─╯  │  │
+     the 1st horizontal line╶───╯  │
+     and the second one╶───────────╯
 
    In this way, the grand-total will be recomputed each time the
 aggregation is refreshed (‘C-c C-c’).  Note the use of ‘@>$2’ for the
@@ -3242,11 +3242,11 @@ File: orgtbl-aggregate.info,  Node: Seeing Lisp internal form of Calc formulas, 
 We can also view the same results, formatted as Lisp forms (rather than
 Calc forms) with the ‘Q’ formatter:
 
-     #+BEGIN: aggregate :table "inputdebug" :cols "hline vsum(nn*10);Q vsum(aa+7);Q"
-     | hline | vsum(nn*10)                                                               | vsum(aa+7)                                                            |
-     |-------+---------------------------------------------------------------------------+-----------------------------------------------------------------------|
-     |     0 | (calcFunc-vsum (* (vec (float 123 -2) (float 765 -2) (float 846 -2)) 10)) | (calcFunc-vsum (+ (vec (var a var-a) (var b var-b) (var c var-c)) 7)) |
-     |     1 | (calcFunc-vsum (* (vec (float 244 -2) (float 681 -2)) 10))                | (calcFunc-vsum (+ (vec (var d var-d) (var e var-e)) 7))               |
+     #+BEGIN: aggregate :table "inputdebug" :cols "hline vsum(aa+7);Q"
+     | hline | vsum(aa+7)                                                            |
+     |-------+-----------------------------------------------------------------------+
+     |     0 | (calcFunc-vsum (+ (vec (var a var-a) (var b var-b) (var c var-c)) 7)) |
+     |     1 | (calcFunc-vsum (+ (vec (var d var-d) (var e var-e)) 7))               |
      #+END:
 
    This is the internal, Lisp representation of Calc formulas.
@@ -3658,73 +3658,73 @@ Node: C++ equivalent20386
 Node: Wizards21510
 Node: Guiding (traditional) wizard21806
 Node: Experimental free form wizard23975
-Node: The cols parameter26021
-Node: Names of input columns26692
-Node: Grouping specifications in cols27767
-Node: The hline column28323
-Node: The @# column31111
-Node: Aggregation formulas in cols33592
-Node: Correlation of two columns41133
-Node: [Almost) any expression can be specified42872
-Node: Column names44346
-Node: Input table with or without a header44622
-Node: Column names of the input table46015
-Node: Multiple lines header47184
-Node: Custom column names50101
-Node: Formatters52511
-Node: Org Mode compatible formatters52759
-Node: Debugging formatters54960
-Node: Alignment cookies55632
-Node: Discarding an output column58237
-Node: Sorting61024
-Node: Example with one sorting column61230
-Node: Several sorting columns62511
-Node: hlines in the output table64863
-Node: Output hlines depends on sorting columns65261
-Node: Example with hline 268157
-Node: Cells processing73249
-Node: Where Calc interpretation happens?73744
-Node: Dates79221
-Node: Durations81226
-Node: Empty and malformed input cells83060
-Node: Symbolic computation84730
-Node: Intervals87027
-Node: Error or precision forms87823
-Node: Wide variety of inputs88994
-Node: Standard Org Mode input89584
-Node: Virtual input table from Babel90061
-Node: An Org ID92662
-Node: CSV input93263
-Node: JSON input94784
-Node: Input slicing97260
-Node: Malformed input tables97990
-Node: The cond filter98895
-Node: Virtual input columns with precompute100420
-Node: Post-processing107162
-Node: Spreadsheet formulas107703
-Node: Algorithm post processing109260
-Node: Grand total111223
-Node: Chaining116045
-Node: Pull & Push117734
-Node: Pull mode117968
-Node: Push mode119671
-Node: Pull or push ?121879
-Node: Debugging122613
-Node: Seeing the $ forms123136
-Node: Seeing Calc formulas before evaluation124346
-Node: Seeing Lisp internal form of Calc formulas125480
-Node: Example of debugging vsum(nn^2)126689
-Node: Summary of debugging formatters128118
-Node: Tricks128614
-Node: Sorting (1)128936
-Node: A few lowest or highest values129751
-Node: Span of values131052
-Node: No aggregation131611
-Node: Look at the first rows of a large table133513
-Node: Installation134289
-Node: Authors contributors134931
-Node: Changes136647
-Node: GPL 3 License141358
+Node: The cols parameter25977
+Node: Names of input columns26648
+Node: Grouping specifications in cols27723
+Node: The hline column28279
+Node: The @# column31067
+Node: Aggregation formulas in cols33548
+Node: Correlation of two columns41089
+Node: [Almost) any expression can be specified42828
+Node: Column names44302
+Node: Input table with or without a header44578
+Node: Column names of the input table45971
+Node: Multiple lines header47140
+Node: Custom column names50041
+Node: Formatters52451
+Node: Org Mode compatible formatters52699
+Node: Debugging formatters54900
+Node: Alignment cookies55572
+Node: Discarding an output column58177
+Node: Sorting60964
+Node: Example with one sorting column61170
+Node: Several sorting columns62451
+Node: hlines in the output table64795
+Node: Output hlines depends on sorting columns65193
+Node: Example with hline 268089
+Node: Cells processing73181
+Node: Where Calc interpretation happens?73676
+Node: Dates79153
+Node: Durations81158
+Node: Empty and malformed input cells82992
+Node: Symbolic computation84662
+Node: Intervals86959
+Node: Error or precision forms87755
+Node: Wide variety of inputs88926
+Node: Standard Org Mode input89516
+Node: Virtual input table from Babel89993
+Node: An Org ID92594
+Node: CSV input93195
+Node: JSON input94716
+Node: Input slicing97192
+Node: Malformed input tables97922
+Node: The cond filter98827
+Node: Virtual input columns with precompute100352
+Node: Post-processing107094
+Node: Spreadsheet formulas107635
+Node: Algorithm post processing109192
+Node: Grand total111155
+Node: Chaining115995
+Node: Pull & Push117684
+Node: Pull mode117918
+Node: Push mode119621
+Node: Pull or push ?121829
+Node: Debugging122563
+Node: Seeing the $ forms123086
+Node: Seeing Calc formulas before evaluation124296
+Node: Seeing Lisp internal form of Calc formulas125430
+Node: Example of debugging vsum(nn^2)126321
+Node: Summary of debugging formatters127750
+Node: Tricks128246
+Node: Sorting (1)128568
+Node: A few lowest or highest values129383
+Node: Span of values130684
+Node: No aggregation131243
+Node: Look at the first rows of a large table133145
+Node: Installation133921
+Node: Authors contributors134563
+Node: Changes136279
+Node: GPL 3 License140990
 
 End Tag Table
 

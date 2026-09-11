@@ -625,11 +625,11 @@ Then, hitting the =TAB= key anywhere on the =#+begin:= line (but not at the
 beginning) unfolds it. The result is this one:
 
 #+begin_example
-#+begin: aggregate                   ╭─╴the 2 main parameters
-#+aggregate: :file                   │
-#+aggregate: :name my_table        ◀─╯
+#+begin: aggregate
+#+aggregate: :file
+#+aggregate: :name my_table        ◀─╮
 #+aggregate: :orgid                  │
-#+aggregate: :params                 │
+#+aggregate: :params                 ├─╴the 2 main parameters
 #+aggregate: :slice                  │
 #+aggregate: :precompute             │
 #+aggregate: :cols vsum(b) count() ◀─╯
@@ -1174,10 +1174,10 @@ single column.
 | color  | quantity |  level | ╶╮                             │
 | <l>    |     <r7> |    <3> |  ├─╴header is 3 rows tall      │
 | kolor  |     kiom | nivelo | ╶╯                             │
-|--------+----------+--------|                    ╭───────────╯───────────────╮
-| yellow |       72 |      3 |                    │ only the first header row │
-| green  |       55 |      5 |                    │ is used in formulas       │
-| <c>    |          |        |                    ╰───────────╭───────────────╯
+|--------+----------+--------|                    ╭───────────╯─────────────╮
+| yellow |       72 |      3 |                    │ only the 1st header row │
+| green  |       55 |      5 |                    │ is used in formulas     │
+| <c>    |          |        |                    ╰───────────╭─────────────╯
 | orange |       80 |      2 |                                │
 | yellow |       13 |      1 |                                │
                                                           ╭───┴──╮
@@ -1507,10 +1507,10 @@ instance =1=. Columns without a number are minor ones.
 Example:
 #+begin_example
 :cols "AAA;^a BBB;^N2 CCC DDD;^t1"
-╭────╮      ▲╷     ▲▲          ▲▲ ╭──────────────╮
-│sort╰──────╯╰─╮   ││          │╰─╯first priority│
-│alphabetically│   ││          ╰──╮sort by date  │
-│third priority│   ││             ╰──────────────╯
+╭────╮      ▲╷     ▲▲          ▲▲ ╭─────────────╮
+│sort╰──────╯╰─╮   ││          │╰─╯1st priority │
+│alphabetically│   ││          ╰──╮sort by date │
+│third priority│   ││             ╰─────────────╯
 ╰──────────────╯   ││  ╭────────────────╮
                    │╰──╯second priority │
                    ╰───╮sort numerically│
@@ -2838,16 +2838,16 @@ Note that the =:post= parameter may be:
 #+begin_example
 @>$2=vsum(@I..@II)
 ▲ ▲   ▲   ▲   ▲
-│ │   │   │   ╰──────────────╮
-│ │   │   ╰────────────────╮ │
-│ │   ╰─────────────────╮  │ │
-│ ╰────────────╮        │  │ │
-╰──────────╮   │        │  │ │
-last line╶─╯   │        │  │ │
-second column╶─╯        │  │ │
-sum all values between╶─╯  │ │
-the first horizontal line╶─╯ │
-and the second one╶──────────╯
+│ │   │   │   ╰───────────────╮
+│ │   │   ╰────────────────╮  │
+│ │   ╰─────────────────╮  │  │
+│ ╰────────────╮        │  │  │
+╰──────────╮   │        │  │  │
+last line╶─╯   │        │  │  │
+second column╶─╯        │  │  │
+sum all values between╶─╯  │  │
+the 1st horizontal line╶───╯  │
+and the second one╶───────────╯
 #+end_example
 
 In this way, the grand-total will be recomputed each time the
@@ -3187,11 +3187,11 @@ We can also view the same results, formatted as Lisp forms (rather
 than Calc forms) with the =Q= formatter:
 
 #+begin_example
-#+BEGIN: aggregate :table "inputdebug" :cols "hline vsum(nn*10);Q vsum(aa+7);Q"
-| hline | vsum(nn*10)                                                               | vsum(aa+7)                                                            |
-|-------+---------------------------------------------------------------------------+-----------------------------------------------------------------------|
-|     0 | (calcFunc-vsum (* (vec (float 123 -2) (float 765 -2) (float 846 -2)) 10)) | (calcFunc-vsum (+ (vec (var a var-a) (var b var-b) (var c var-c)) 7)) |
-|     1 | (calcFunc-vsum (* (vec (float 244 -2) (float 681 -2)) 10))                | (calcFunc-vsum (+ (vec (var d var-d) (var e var-e)) 7))               |
+#+BEGIN: aggregate :table "inputdebug" :cols "hline vsum(aa+7);Q"
+| hline | vsum(aa+7)                                                            |
+|-------+-----------------------------------------------------------------------+
+|     0 | (calcFunc-vsum (+ (vec (var a var-a) (var b var-b) (var c var-c)) 7)) |
+|     1 | (calcFunc-vsum (+ (vec (var d var-d) (var e var-e)) 7))               |
 #+END:
 #+end_example
 

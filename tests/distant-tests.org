@@ -100,7 +100,7 @@ ne,-19
 * JSON in distant Org file
 
 #+name: distantjson
-#+begin_src js
+#+begin_quote
 [
  [ 42, "univ"],
  [123, "jes" ],
@@ -109,4 +109,4 @@ ne,-19
  [-77, "ne"  ],
  [-99, "ne"  ]
 ]
-#+end_src
+#+end_quote

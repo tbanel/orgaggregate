@@ -6,14 +6,11 @@ Aggregating a table is creating a new table by computing sums,
 averages, and so on, out of material from the first table.
 
 * New
-Output columns can now be aligned with the =<c>=, =<l>=, =<r>= cookies. The
-column width can also be specified: =<l15>=, =<7>=. The cookies have the
-same meaning as in Org Mode.
 
-Previously, only the =<>= cookie was available to make a column
-invisible.
+The fixed-width format is now supported as input table. CSV, JSON,
+and of course Org-Mode tables formats were already available.
 
-See [[#alignment-cookies][Alignment cookies]].
+See [[#fixed-width-input][Fixed-width input]].
 
 * Table of Contents
 :PROPERTIES:
@@ -79,6 +76,7 @@ See [[#alignment-cookies][Alignment cookies]].
   - [[#an-org-id][An Org ID]]
   - [[#csv-input][CSV input]]
   - [[#json-input][JSON input]]
+  - [[#fixed-width-input][Fixed-width input]]
   - [[#input-slicing][Input slicing]]
   - [[#malformed-input-tables][Malformed input tables]]
   - [[#the-cond-filter][The :cond filter]]
@@ -2193,8 +2191,8 @@ Example:
 Here is a script in Emacs Lisp which creates an Org Mode table.
 
 #+begin_example
-#+name: ascript
-#+begin_src elisp :colnames yes
+,#+name: ascript
+,#+begin_src elisp :colnames yes
 `(
   ("label" value)                       ; cells are symbols or strings
   hline
@@ -2204,7 +2202,7 @@ Here is a script in Emacs Lisp which creates an Org Mode table.
      (list
       (format "lbl-%c" (+ ?A (% i 3)))  ; cell is a string
       i)))                              ; cell is a number
-#+end_src
+,#+end_src
 #+end_example
 
 If executed, the script would output this table:
@@ -2230,27 +2228,34 @@ But instead, OrgAggregate will execute the script and consume its
 output:
 
 #+begin_example
-#+BEGIN: aggregate :table "ascript" :cols "label vsum(value)"
+,#+begin: aggregate :table "ascript" :cols "label vsum(value)"
 | label | vsum(value) |
 |-------+-------------|
 | lbl-B |          58 |
 | lbl-C |          62 |
 | lbl-A |          45 |
-#+END:
+,#+end:
 #+end_example
 
 Here the parameter =:table= specifies the name of the script to be
 executed.
 
+Only Babel blocks of the form =#+begin_src … #+end_src= are
+executed. Other types of blocks just handle their content verbatim to
+OrgAggregate. This is the case for example for =#+begin_quote …= or
+=#+begin_example …=.
+
 *Beware* of the =:results code= parameter. It does not work as an input
 for OrgAggregate. This is because in this case the Babel script
 returns a string, not a table. Example:
 
-#+begin_src elisp :results code
+#+begin_example
+,#+begin_src elisp :results code
 '((a b c)
   hline
   (1 2 3))
-#+end_src
+,#+end_src
+#+end_example
 
 Use =:results table= or nothing instead.
 
@@ -2302,15 +2307,15 @@ When data is in an Org Mode file, it is supposed to be within a named
 block of any kind. Example with a "quote" block:
 
 #+begin_example
-#+name: mycsvdata
-#+begin_quote
+,#+name: mycsvdata
+,#+begin_quote
 label,quantity
 yellow,27
 red,-61
 yellow,41
 red,-29
 red,-17
-#+end_quote
+,#+end_quote
 #+end_example
 
 ** JSON input
@@ -2393,8 +2398,8 @@ When data is in an Org Mode file, it is supposed to be within a named
 block of any kind. Example with a "src" block for JavaScript:
 
 #+begin_example
-#+name: myjsondata
-#+begin_src js
+,#+name: myjsondata
+,#+begin_example
 [
   ["day","quty","color"],   // names of columns in the header
   [],                       // an horizontal line
@@ -2402,8 +2407,124 @@ block of any kind. Example with a "src" block for JavaScript:
   ["thu",34,"blue" ],
   …
 ]
-#+end_src
+,#+end_src
 #+end_example
+
+** Fixed-width input
+:PROPERTIES:
+:CUSTOM_ID: fixed-width-input
+:END:
+
+As an example, the following block is a table formatted as "fixed-width".
+
+#+begin_example
+,#+name: fixed-qty-lev
+,#+begin_example
+day qty  lev
+Mon 45.2 5
+Mon 51.2 1
+Thu 87.3 8
+Thu 42.0 7
+Thu 12.1 1
+Wed  7.9 3
+Fri 56.8 9
+Fri 11.3 1
+Fri  1.2 1
+Sat  9.7 3
+Sun  3.8 2
+,#+end_example
+#+end_example
+
+The first column is 3 characters wide. The second column start at the
+4th character (assuming the first character is n° zero), and it is 4
+characters wide. And so on.
+
+Here is an example of how to reference this table for aggregating it:
+
+#+BEGIN: aggregate :table "fixed-qty-lev(fixed header 1)" :cols "day vmean(qty);f1 vmin(lev) vmax(lev)"
+| day | vmean(qty) | vmin(lev) | vmax(lev) |
+|-----+------------+-----------+-----------|
+| Mon |       48.2 |         1 |         5 |
+| Thu |       47.1 |         1 |         8 |
+| Wed |        7.9 |         3 |         3 |
+| Fri |       23.1 |         1 |         9 |
+| Sat |        9.7 |         3 |         3 |
+| Sun |        3.8 |         2 |         2 |
+#+END:
+
+The general reference parameter of =:table= is as follows:
+
+#+begin_example
+ ╭─────────────────────╮      ╭─────────────────────────────╮
+ │the name of the file,│      │the name of the block        │
+ │optional             │      │if within an Org Mode buffer,│
+ ╰─┬───────────────────╯    ╭─┤optional                     │
+   │                        │ ╰─────────────────────────────╯
+ ╭─╯  ╭─────────────────────╯               ╭────────────────────────────╮
+ │    │          ╭───────────────────────╮  │the number of rows composing│
+ │    │          │the "fixed-width" type,│  │the header of the table,    │
+ │    │      ╭───┤mandatory              │  │optional                    │
+ │    │      │   ╰───────────────────────╯  ╰───┬────────────────────────╯
+ │    │      │         ╭────────────────────────╯
+ ▼    ▼      ▼         ▼
+file:name(fixed header 1 coord ((begA . endA) (begB . endB) …))
+                          ▲       ▲      ▲      ▲      ▲
+             ╭────────────╯       ╰───┬──╯      ╰───┬──╯
+ ╭───────────┴──────────╮ ╭───────────┴────────╮ ╭──┴─────────────────╮
+ │the columns positions,│ │start and end       │ │start and end       │
+ │optional              │ │of the first column │ │of the second column│
+ ╰──────────────────────╯ ╰────────────────────╯ ╰────────────────────╯
+#+end_example
+
+- The =file:= part is the path-name of the file where the table is
+  located. If not given, the current buffer is assumed.
+
+- The =name= part is the name of an Org-Mode block, usually tagged with
+  =#+name: …=. In this case, the =file:= part is either absent or points
+  to an Org-Mode file.
+
+- The =header= part is optional. It may be a number (usually 1) giving
+  the number of first rows to be considered as the header of the
+  table. It may be a list of strings, like =("Day" "Q" "Level")=
+  explicitly giving names to the columns. If =header= is not specified,
+  the columns must be referred with their dollar names: =$1, $2, $3, …=.
+
+- The =coord= parameter specifies the locations of the
+  columns. It is a list of pairs of begin-end. For the previous
+  example, it could be: =((0 . 3) (4 . 8) (9 . 12))=. The first column
+  starts at 0 included and ends at 3 excluded.
+
+When the =coord= parameter is not given, an attempt is made to
+guess those positions, based on how the fields are separated by blanks
+throughout the table. The guessed positions are printed in the
+=*Messages*= buffer, to easily copy-past them after =coord=.
+
+Guessing does not work if the columns are not separated by
+blanks. Aggregation does work thought. In this case, the =coord=
+parameter must be specified manually.
+
+This fixed-width format is the one created by many Linux commands. So
+for example the following Babel block is suitable as an input for
+OrgAggregate.
+
+#+begin_example
+,#+name: lslfixed
+,#+begin_src sh :results raw
+ls -l | tail +2
+,#+end_src
+
+,#+BEGIN: aggregate :table "lslfixed(fixed)" :cols "$3 vsum($5) count()"
+| $3  | vsum($5) | count() |
+|-----+----------+---------|
+| lea |   868295 |      10 |
+| joe |   415229 |      18 |
+,#+END:
+#+end_example
+
+In this example, we compute the sum of all cells in the column =$5=,
+aggregated for identical values of =$3=. The fifth column happens to
+give the size of each file in the current directory. The third column
+is the owner of the files.
 
 ** Input slicing
 :PROPERTIES:
@@ -3549,6 +3670,9 @@ Top: earliest change. Bottom: latest change.
 - Simplify directory part when querying a file name.
 - Centralize cell→string in =-cell-to-string= which is the fastest.
 - Column alignment with the =<c>=, =<l>=, =<r>= cookies.
+- Fixed-width format supported as input table.
+- Only =#+begin_src= Babel blocks are run to feed their output to
+  OrgAggregate. The other blocks just give their content verbatim.
 
 * GPL 3 License
 :PROPERTIES:

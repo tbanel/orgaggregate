@@ -124,6 +124,7 @@ Wide variety of inputs
 * An Org ID::
 * CSV input::
 * JSON input::
+* Fixed-width input::
 * Input slicing::
 * Malformed input tables::
 * Thecond filter: The cond filter.
@@ -165,14 +166,10 @@ File: orgtbl-aggregate.info,  Node: New,  Next: Examples,  Prev: Top,  Up: Top
 1 New
 *****
 
-Output columns can now be aligned with the ‘<c>’, ‘<l>’, ‘<r>’ cookies.
-The column width can also be specified: ‘<l15>’, ‘<7>’.  The cookies
-have the same meaning as in Org Mode.
+The fixed-width format is now supported as input table.  CSV, JSON, and
+of course Org-Mode tables formats were already available.
 
-   Previously, only the ‘<>’ cookie was available to make a column
-invisible.
-
-   See *note Alignment cookies::.
+   See *note Fixed-width input::.
 
 
 File: orgtbl-aggregate.info,  Node: Examples,  Next: Stop reading here! 80/20,  Prev: New,  Up: Top
@@ -2233,6 +2230,7 @@ several places.  OrgAggregate adds even more kinds of input.
 * An Org ID::
 * CSV input::
 * JSON input::
+* Fixed-width input::
 * Input slicing::
 * Malformed input tables::
 * Thecond filter: The cond filter.
@@ -2313,24 +2311,31 @@ outputs connected to Org Mode).
    But instead, OrgAggregate will execute the script and consume its
 output:
 
-     #+BEGIN: aggregate :table "ascript" :cols "label vsum(value)"
+     #+begin: aggregate :table "ascript" :cols "label vsum(value)"
      | label | vsum(value) |
      |-------+-------------|
      | lbl-B |          58 |
      | lbl-C |          62 |
      | lbl-A |          45 |
-     #+END:
+     #+end:
 
    Here the parameter ‘:table’ specifies the name of the script to be
 executed.
+
+   Only Babel blocks of the form ‘#+begin_src … #+end_src’ are executed.
+Other types of blocks just handle their content verbatim to
+OrgAggregate.  This is the case for example for ‘#+begin_quote …’ or
+‘#+begin_example …’.
 
    *Beware* of the ‘:results code’ parameter.  It does not work as an
 input for OrgAggregate.  This is because in this case the Babel script
 returns a string, not a table.  Example:
 
+     #+begin_src elisp :results code
      '((a b c)
        hline
        (1 2 3))
+     #+end_src
 
    Use ‘:results table’ or nothing instead.
 
@@ -2394,7 +2399,7 @@ block of any kind.  Example with a "quote" block:
      #+end_quote
 
 
-File: orgtbl-aggregate.info,  Node: JSON input,  Next: Input slicing,  Prev: CSV input,  Up: Wide variety of inputs
+File: orgtbl-aggregate.info,  Node: JSON input,  Next: Fixed-width input,  Prev: CSV input,  Up: Wide variety of inputs
 
 12.5 JSON input
 ===============
@@ -2467,7 +2472,7 @@ Example:
 block of any kind.  Example with a "src" block for JavaScript:
 
      #+name: myjsondata
-     #+begin_src js
+     #+begin_example
      [
        ["day","quty","color"],   // names of columns in the header
        [],                       // an horizontal line
@@ -2478,9 +2483,120 @@ block of any kind.  Example with a "src" block for JavaScript:
      #+end_src
 
 
-File: orgtbl-aggregate.info,  Node: Input slicing,  Next: Malformed input tables,  Prev: JSON input,  Up: Wide variety of inputs
+File: orgtbl-aggregate.info,  Node: Fixed-width input,  Next: Input slicing,  Prev: JSON input,  Up: Wide variety of inputs
 
-12.6 Input slicing
+12.6 Fixed-width input
+======================
+
+As an example, the following block is a table formatted as
+"fixed-width".
+
+     #+name: fixed-qty-lev
+     #+begin_example
+     day qty  lev
+     Mon 45.2 5
+     Mon 51.2 1
+     Thu 87.3 8
+     Thu 42.0 7
+     Thu 12.1 1
+     Wed  7.9 3
+     Fri 56.8 9
+     Fri 11.3 1
+     Fri  1.2 1
+     Sat  9.7 3
+     Sun  3.8 2
+     #+end_example
+
+   The first column is 3 characters wide.  The second column start at
+the 4th character (assuming the first character is n° zero), and it is 4
+characters wide.  And so on.
+
+   Here is an example of how to reference this table for aggregating it:
+
+day   vmean(qty)   vmin(lev)   vmax(lev)
+-------------------------------------------
+Mon   48.2         1           5
+Thu   47.1         1           8
+Wed   7.9          3           3
+Fri   23.1         1           9
+Sat   9.7          3           3
+Sun   3.8          2           2
+
+   The general reference parameter of ‘:table’ is as follows:
+
+      ╭─────────────────────╮      ╭─────────────────────────────╮
+      │the name of the file,│      │the name of the block        │
+      │optional             │      │if within an Org Mode buffer,│
+      ╰─┬───────────────────╯    ╭─┤optional                     │
+        │                        │ ╰─────────────────────────────╯
+      ╭─╯  ╭─────────────────────╯               ╭────────────────────────────╮
+      │    │          ╭───────────────────────╮  │the number of rows composing│
+      │    │          │the "fixed-width" type,│  │the header of the table,    │
+      │    │      ╭───┤mandatory              │  │optional                    │
+      │    │      │   ╰───────────────────────╯  ╰───┬────────────────────────╯
+      │    │      │         ╭────────────────────────╯
+      ▼    ▼      ▼         ▼
+     file:name(fixed header 1 coord ((begA . endA) (begB . endB) …))
+                               ▲       ▲      ▲      ▲      ▲
+                  ╭────────────╯       ╰───┬──╯      ╰───┬──╯
+      ╭───────────┴──────────╮ ╭───────────┴────────╮ ╭──┴─────────────────╮
+      │the columns positions,│ │start and end       │ │start and end       │
+      │optional              │ │of the first column │ │of the second column│
+      ╰──────────────────────╯ ╰────────────────────╯ ╰────────────────────╯
+
+   • The ‘file:’ part is the path-name of the file where the table is
+     located.  If not given, the current buffer is assumed.
+
+   • The ‘name’ part is the name of an Org-Mode block, usually tagged
+     with ‘#+name: …’.  In this case, the ‘file:’ part is either absent
+     or points to an Org-Mode file.
+
+   • The ‘header’ part is optional.  It may be a number (usually 1)
+     giving the number of first rows to be considered as the header of
+     the table.  It may be a list of strings, like ‘("Day" "Q" "Level")’
+     explicitly giving names to the columns.  If ‘header’ is not
+     specified, the columns must be referred with their dollar names:
+     ‘$1, $2, $3, …’.
+
+   • The ‘coord’ parameter specifies the locations of the columns.  It
+     is a list of pairs of begin-end.  For the previous example, it
+     could be: ‘((0 . 3) (4 . 8) (9 . 12))’.  The first column starts at
+     0 included and ends at 3 excluded.
+
+   When the ‘coord’ parameter is not given, an attempt is made to guess
+those positions, based on how the fields are separated by blanks
+throughout the table.  The guessed positions are printed in the
+‘*Messages*’ buffer, to easily copy-past them after ‘coord’.
+
+   Guessing does not work if the columns are not separated by blanks.
+Aggregation does work thought.  In this case, the ‘coord’ parameter must
+be specified manually.
+
+   This fixed-width format is the one created by many Linux commands.
+So for example the following Babel block is suitable as an input for
+OrgAggregate.
+
+     #+name: lslfixed
+     #+begin_src sh :results raw
+     ls -l | tail +2
+     #+end_src
+
+     #+BEGIN: aggregate :table "lslfixed(fixed)" :cols "$3 vsum($5) count()"
+     | $3  | vsum($5) | count() |
+     |-----+----------+---------|
+     | lea |   868295 |      10 |
+     | joe |   415229 |      18 |
+     #+END:
+
+   In this example, we compute the sum of all cells in the column ‘$5’,
+aggregated for identical values of ‘$3’.  The fifth column happens to
+give the size of each file in the current directory.  The third column
+is the owner of the files.
+
+
+File: orgtbl-aggregate.info,  Node: Input slicing,  Next: Malformed input tables,  Prev: Fixed-width input,  Up: Wide variety of inputs
+
+12.7 Input slicing
 ==================
 
 Org Mode also provides for table slicing.  All of the previous
@@ -2499,7 +2615,7 @@ references may be followed by an optional slicing.  Examples:
 
 File: orgtbl-aggregate.info,  Node: Malformed input tables,  Next: The cond filter,  Prev: Input slicing,  Up: Wide variety of inputs
 
-12.7 Malformed input tables
+12.8 Malformed input tables
 ===========================
 
 Sometimes an input table may be unaligned or malformed, with incomplete
@@ -2527,7 +2643,7 @@ rows, like those ones:
 
 File: orgtbl-aggregate.info,  Node: The cond filter,  Next: Virtual input columns with precompute,  Prev: Malformed input tables,  Up: Wide variety of inputs
 
-12.8 The :cond filter
+12.9 The :cond filter
 =====================
 
 This parameter is optional.  If present, it specifies a Lisp expression
@@ -2559,8 +2675,8 @@ still occurs.  So duplicate input rows appear only once in the result.
 
 File: orgtbl-aggregate.info,  Node: Virtual input columns with precompute,  Prev: The cond filter,  Up: Wide variety of inputs
 
-12.9 Virtual input columns with ‘:precompute’
-=============================================
+12.10 Virtual input columns with ‘:precompute’
+==============================================
 
 What if we want to aggregate on months?  But the input table contains
 only plain dates.  Example:
@@ -3612,6 +3728,9 @@ Top: earliest change.  Bottom: latest change.
    • Simplify directory part when querying a file name.
    • Centralize cell→string in ‘-cell-to-string’ which is the fastest.
    • Column alignment with the ‘<c>’, ‘<l>’, ‘<r>’ cookies.
+   • Fixed-width format supported as input table.
+   • Only ‘#+begin_src’ Babel blocks are run to feed their output to
+     OrgAggregate.  The other blocks just give their content verbatim.
 
 
 File: orgtbl-aggregate.info,  Node: GPL 3 License,  Prev: Changes,  Up: Top
@@ -3638,93 +3757,94 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Tag Table:
 Node: Top209
-Node: New3207
-Node: Examples3620
-Node: A very simple example3890
-Node: Demonstrate sum and average computing6245
-Node: Example without days9583
-Node: Example of counting each combination10451
-Node: Stop reading here! 80/2013131
-Node: Name your input table13611
-Node: Create an aggregation block14264
-Node: Refresh the aggregation15186
-Node: Equivalent in SQL R Datamash el-tblfn Awk C++16826
-Node: SQL equivalent17470
-Node: R equivalent17816
-Node: Datamash equivalent18350
-Node: el-tblfn18924
-Node: Awk equivalent19656
-Node: C++ equivalent20386
-Node: Wizards21510
-Node: Guiding (traditional) wizard21806
-Node: Experimental free form wizard23975
-Node: The cols parameter25977
-Node: Names of input columns26648
-Node: Grouping specifications in cols27723
-Node: The hline column28279
-Node: The @# column31067
-Node: Aggregation formulas in cols33548
-Node: Correlation of two columns41089
-Node: [Almost) any expression can be specified42828
-Node: Column names44302
-Node: Input table with or without a header44578
-Node: Column names of the input table45971
-Node: Multiple lines header47140
-Node: Custom column names50041
-Node: Formatters52451
-Node: Org Mode compatible formatters52699
-Node: Debugging formatters54900
-Node: Alignment cookies55572
-Node: Discarding an output column58177
-Node: Sorting60964
-Node: Example with one sorting column61170
-Node: Several sorting columns62451
-Node: hlines in the output table64795
-Node: Output hlines depends on sorting columns65193
-Node: Example with hline 268089
-Node: Cells processing73181
-Node: Where Calc interpretation happens?73676
-Node: Dates79153
-Node: Durations81158
-Node: Empty and malformed input cells82992
-Node: Symbolic computation84662
-Node: Intervals86959
-Node: Error or precision forms87755
-Node: Wide variety of inputs88926
-Node: Standard Org Mode input89516
-Node: Virtual input table from Babel89993
-Node: An Org ID92594
-Node: CSV input93195
-Node: JSON input94716
-Node: Input slicing97192
-Node: Malformed input tables97922
-Node: The cond filter98827
-Node: Virtual input columns with precompute100352
-Node: Post-processing107094
-Node: Spreadsheet formulas107635
-Node: Algorithm post processing109192
-Node: Grand total111155
-Node: Chaining115995
-Node: Pull & Push117684
-Node: Pull mode117918
-Node: Push mode119621
-Node: Pull or push ?121829
-Node: Debugging122563
-Node: Seeing the $ forms123086
-Node: Seeing Calc formulas before evaluation124296
-Node: Seeing Lisp internal form of Calc formulas125430
-Node: Example of debugging vsum(nn^2)126321
-Node: Summary of debugging formatters127750
-Node: Tricks128246
-Node: Sorting (1)128568
-Node: A few lowest or highest values129383
-Node: Span of values130684
-Node: No aggregation131243
-Node: Look at the first rows of a large table133145
-Node: Installation133921
-Node: Authors contributors134563
-Node: Changes136279
-Node: GPL 3 License140990
+Node: New3229
+Node: Examples3490
+Node: A very simple example3760
+Node: Demonstrate sum and average computing6115
+Node: Example without days9453
+Node: Example of counting each combination10321
+Node: Stop reading here! 80/2013001
+Node: Name your input table13481
+Node: Create an aggregation block14134
+Node: Refresh the aggregation15056
+Node: Equivalent in SQL R Datamash el-tblfn Awk C++16696
+Node: SQL equivalent17340
+Node: R equivalent17686
+Node: Datamash equivalent18220
+Node: el-tblfn18794
+Node: Awk equivalent19526
+Node: C++ equivalent20256
+Node: Wizards21380
+Node: Guiding (traditional) wizard21676
+Node: Experimental free form wizard23845
+Node: The cols parameter25847
+Node: Names of input columns26518
+Node: Grouping specifications in cols27593
+Node: The hline column28149
+Node: The @# column30937
+Node: Aggregation formulas in cols33418
+Node: Correlation of two columns40959
+Node: [Almost) any expression can be specified42698
+Node: Column names44172
+Node: Input table with or without a header44448
+Node: Column names of the input table45841
+Node: Multiple lines header47010
+Node: Custom column names49911
+Node: Formatters52321
+Node: Org Mode compatible formatters52569
+Node: Debugging formatters54770
+Node: Alignment cookies55442
+Node: Discarding an output column58047
+Node: Sorting60834
+Node: Example with one sorting column61040
+Node: Several sorting columns62321
+Node: hlines in the output table64665
+Node: Output hlines depends on sorting columns65063
+Node: Example with hline 267959
+Node: Cells processing73051
+Node: Where Calc interpretation happens?73546
+Node: Dates79023
+Node: Durations81028
+Node: Empty and malformed input cells82862
+Node: Symbolic computation84532
+Node: Intervals86829
+Node: Error or precision forms87625
+Node: Wide variety of inputs88796
+Node: Standard Org Mode input89408
+Node: Virtual input table from Babel89885
+Node: An Org ID92780
+Node: CSV input93381
+Node: JSON input94902
+Node: Fixed-width input97383
+Node: Input slicing102963
+Node: Malformed input tables103700
+Node: The cond filter104605
+Node: Virtual input columns with precompute106130
+Node: Post-processing112874
+Node: Spreadsheet formulas113415
+Node: Algorithm post processing114972
+Node: Grand total116935
+Node: Chaining121775
+Node: Pull & Push123464
+Node: Pull mode123698
+Node: Push mode125401
+Node: Pull or push ?127609
+Node: Debugging128343
+Node: Seeing the $ forms128866
+Node: Seeing Calc formulas before evaluation130076
+Node: Seeing Lisp internal form of Calc formulas131210
+Node: Example of debugging vsum(nn^2)132101
+Node: Summary of debugging formatters133530
+Node: Tricks134026
+Node: Sorting (1)134348
+Node: A few lowest or highest values135163
+Node: Span of values136464
+Node: No aggregation137023
+Node: Look at the first rows of a large table138925
+Node: Installation139701
+Node: Authors contributors140343
+Node: Changes142059
+Node: GPL 3 License146968
 
 End Tag Table
 

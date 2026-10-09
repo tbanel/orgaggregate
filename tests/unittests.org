@@ -2175,6 +2175,80 @@ JSON in distant Org file
 | ne   |     -176 |
 #+END:
 
+* Fixed width columns
+
+A statical input, formatted as a fixed width columns.
+
+#+name: fixwidthstatic
+#+begin_example
+day qty  lev
+Mon 45.2 5
+Mon 51.2 1
+Thu 87.3 8
+Thu 42.0 7
+Thu 12.1 1
+Wed  7.9 3
+Fri 56.8 9
+Fri 11.3 1
+Fri  1.2 1
+Sat  9.7 3
+Sun  3.8 2
+#+end_example
+
+#+BEGIN: aggregate :table "fixwidthstatic(fixed header 1)" :cols "day vsum(qty) vmin(lev) vmax(lev)"
+| day | vsum(qty) | vmin(lev) | vmax(lev) |
+|-----+-----------+-----------+-----------|
+| Mon |      96.4 |         1 |         5 |
+| Thu |     141.4 |         1 |         8 |
+| Wed |       7.9 |         3 |         3 |
+| Fri |      69.3 |         1 |         9 |
+| Sat |       9.7 |         3 |         3 |
+| Sun |       3.8 |         2 |         2 |
+#+END:
+
+A dynamically computed input, formatted as a fixed width columns.
+
+#+name: fixwidthdynamic
+#+begin_src elisp
+(cl-loop
+ for i from 0 to 7
+ concat (format "%5d %7d\n" i (* i i)))
+#+end_src
+
+#+BEGIN: aggregate :table "fixwidthdynamic(fixed header (i i2))" :cols "vsum(i) vsum(i2) count()"
+| vsum(i) | vsum(i2) | count() |
+|---------+----------+---------|
+|      28 |      140 |       8 |
+#+END:
+
+Specify header names and columns coordinates.
+
+#+name: fixwidthraw
+#+begin_example
+Mon45.25
+Mon51.21
+Thu87.38
+Thu42.07
+Thu12.11
+Wed 7.9
+Fri56.89
+Fri11.31
+Fri 1.2
+Sat 9.73
+Sun 3.82
+#+end_example
+
+#+BEGIN: aggregate :table "fixwidthraw(fixed header (day quantity level) coord ((0 . 3) (3 . 7) (7 . 8)))" :cols "day vsum(quantity) vmin(level) vmax(level)"
+| day | vsum(quantity) | vmin(level) | vmax(level) |
+|-----+----------------+-------------+-------------|
+| Mon |           96.4 |           1 |           5 |
+| Thu |          141.4 |           1 |           8 |
+| Wed |            7.9 |         inf |        -inf |
+| Fri |           69.3 |           1 |           9 |
+| Sat |            9.7 |           3 |           3 |
+| Sun |            3.8 |           2 |           2 |
+#+END:
+
 * Column formatting
 
 Using Org-Mode cookies like <c> to center or <r> to right align.

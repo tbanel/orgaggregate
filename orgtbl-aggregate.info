@@ -1118,8 +1118,8 @@ column ‘x’:
      #+END
 
    We see that the correlation between ‘x’ and ‘y’ is very close to ‘1’,
-meaning that both columns are correlated.  Indeed they are, as the ‘y’
-is computed from ‘x’ with the formula
+meaning that both columns are correlated.  Indeed they are, as ‘y’ is
+computed from ‘x’ with the formula
      y = 10*x + noise_between_0_and_2
 
 
@@ -2513,36 +2513,38 @@ characters wide.  And so on.
 
    Here is an example of how to reference this table for aggregating it:
 
-day   vmean(qty)   vmin(lev)   vmax(lev)
--------------------------------------------
-Mon   48.2         1           5
-Thu   47.1         1           8
-Wed   7.9          3           3
-Fri   23.1         1           9
-Sat   9.7          3           3
-Sun   3.8          2           2
+     #+BEGIN: aggregate :table "fixed-qty-lev(fixed header 1)" :cols "day vmean(qty);f1 vmin(lev) vmax(lev)"
+     | day | vmean(qty) | vmin(lev) | vmax(lev) |
+     |-----+------------+-----------+-----------|
+     | Mon |       48.2 |         1 |         5 |
+     | Thu |       47.1 |         1 |         8 |
+     | Wed |        7.9 |         3 |         3 |
+     | Fri |       23.1 |         1 |         9 |
+     | Sat |        9.7 |         3 |         3 |
+     | Sun |        3.8 |         2 |         2 |
+     #+END:
 
    The general reference parameter of ‘:table’ is as follows:
 
       ╭─────────────────────╮      ╭─────────────────────────────╮
-      │the name of the file,│      │the name of the block        │
+      │the name of the File,│      │the name of the block        │
       │optional             │      │if within an Org Mode buffer,│
       ╰─┬───────────────────╯    ╭─┤optional                     │
         │                        │ ╰─────────────────────────────╯
       ╭─╯  ╭─────────────────────╯               ╭────────────────────────────╮
       │    │          ╭───────────────────────╮  │the number of rows composing│
-      │    │          │the "fixed-width" type,│  │the header of the table,    │
-      │    │      ╭───┤mandatory              │  │optional                    │
-      │    │      │   ╰───────────────────────╯  ╰───┬────────────────────────╯
-      │    │      │         ╭────────────────────────╯
-      ▼    ▼      ▼         ▼
+      │    │          │the "Fixed-width" type,│  │the header of the table,    │
+      │    │     ╭────┤mandatory              │  │optional                    │
+      │    │     │    ╰───────────────────────╯  ╰───┬────────────────────────╯
+      │    │     │          ╭────────────────────────╯
+      ▼    ▼     ▼          ▼
      file:name(fixed header 1 coord ((begA . endA) (begB . endB) …))
                                ▲       ▲      ▲      ▲      ▲
                   ╭────────────╯       ╰───┬──╯      ╰───┬──╯
-      ╭───────────┴──────────╮ ╭───────────┴────────╮ ╭──┴─────────────────╮
-      │the columns positions,│ │start and end       │ │start and end       │
-      │optional              │ │of the first column │ │of the second column│
-      ╰──────────────────────╯ ╰────────────────────╯ ╰────────────────────╯
+      ╭───────────┴──────────╮ ╭───────────┴─────╮ ╭─────┴──────────────╮
+      │the columns positions,│ │start and end    │ │start and end       │
+      │optional              │ │of the 1st column│ │of the second column│
+      ╰──────────────────────╯ ╰─────────────────╯ ╰────────────────────╯
 
    • The ‘file:’ part is the path-name of the file where the table is
      located.  If not given, the current buffer is assumed.
@@ -3784,67 +3786,67 @@ Node: The hline column28149
 Node: The @# column30937
 Node: Aggregation formulas in cols33418
 Node: Correlation of two columns40959
-Node: [Almost) any expression can be specified42698
-Node: Column names44172
-Node: Input table with or without a header44448
-Node: Column names of the input table45841
-Node: Multiple lines header47010
-Node: Custom column names49911
-Node: Formatters52321
-Node: Org Mode compatible formatters52569
-Node: Debugging formatters54770
-Node: Alignment cookies55442
-Node: Discarding an output column58047
-Node: Sorting60834
-Node: Example with one sorting column61040
-Node: Several sorting columns62321
-Node: hlines in the output table64665
-Node: Output hlines depends on sorting columns65063
-Node: Example with hline 267959
-Node: Cells processing73051
-Node: Where Calc interpretation happens?73546
-Node: Dates79023
-Node: Durations81028
-Node: Empty and malformed input cells82862
-Node: Symbolic computation84532
-Node: Intervals86829
-Node: Error or precision forms87625
-Node: Wide variety of inputs88796
-Node: Standard Org Mode input89408
-Node: Virtual input table from Babel89885
-Node: An Org ID92780
-Node: CSV input93381
-Node: JSON input94902
-Node: Fixed-width input97383
-Node: Input slicing102963
-Node: Malformed input tables103700
-Node: The cond filter104605
-Node: Virtual input columns with precompute106130
-Node: Post-processing112874
-Node: Spreadsheet formulas113415
-Node: Algorithm post processing114972
-Node: Grand total116935
-Node: Chaining121775
-Node: Pull & Push123464
-Node: Pull mode123698
-Node: Push mode125401
-Node: Pull or push ?127609
-Node: Debugging128343
-Node: Seeing the $ forms128866
-Node: Seeing Calc formulas before evaluation130076
-Node: Seeing Lisp internal form of Calc formulas131210
-Node: Example of debugging vsum(nn^2)132101
-Node: Summary of debugging formatters133530
-Node: Tricks134026
-Node: Sorting (1)134348
-Node: A few lowest or highest values135163
-Node: Span of values136464
-Node: No aggregation137023
-Node: Look at the first rows of a large table138925
-Node: Installation139701
-Node: Authors contributors140343
-Node: Changes142059
-Node: GPL 3 License146968
+Node: [Almost) any expression can be specified42694
+Node: Column names44168
+Node: Input table with or without a header44444
+Node: Column names of the input table45837
+Node: Multiple lines header47006
+Node: Custom column names49907
+Node: Formatters52317
+Node: Org Mode compatible formatters52565
+Node: Debugging formatters54766
+Node: Alignment cookies55438
+Node: Discarding an output column58043
+Node: Sorting60830
+Node: Example with one sorting column61036
+Node: Several sorting columns62317
+Node: hlines in the output table64661
+Node: Output hlines depends on sorting columns65059
+Node: Example with hline 267955
+Node: Cells processing73047
+Node: Where Calc interpretation happens?73542
+Node: Dates79019
+Node: Durations81024
+Node: Empty and malformed input cells82858
+Node: Symbolic computation84528
+Node: Intervals86825
+Node: Error or precision forms87621
+Node: Wide variety of inputs88792
+Node: Standard Org Mode input89404
+Node: Virtual input table from Babel89881
+Node: An Org ID92776
+Node: CSV input93377
+Node: JSON input94898
+Node: Fixed-width input97379
+Node: Input slicing103175
+Node: Malformed input tables103912
+Node: The cond filter104817
+Node: Virtual input columns with precompute106342
+Node: Post-processing113086
+Node: Spreadsheet formulas113627
+Node: Algorithm post processing115184
+Node: Grand total117147
+Node: Chaining121987
+Node: Pull & Push123676
+Node: Pull mode123910
+Node: Push mode125613
+Node: Pull or push ?127821
+Node: Debugging128555
+Node: Seeing the $ forms129078
+Node: Seeing Calc formulas before evaluation130288
+Node: Seeing Lisp internal form of Calc formulas131422
+Node: Example of debugging vsum(nn^2)132313
+Node: Summary of debugging formatters133742
+Node: Tricks134238
+Node: Sorting (1)134560
+Node: A few lowest or highest values135375
+Node: Span of values136676
+Node: No aggregation137235
+Node: Look at the first rows of a large table139137
+Node: Installation139913
+Node: Authors contributors140555
+Node: Changes142271
+Node: GPL 3 License147180
 
 End Tag Table
 

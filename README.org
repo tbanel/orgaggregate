@@ -1033,7 +1033,7 @@ column =x=:
 #+end_example
 
 We see that the correlation between =x= and =y= is very close to =1=,
-meaning that both columns are correlated. Indeed they are, as the =y=
+meaning that both columns are correlated. Indeed they are, as =y=
 is computed from =x= with the formula
 #+begin_example
 y = 10*x + noise_between_0_and_2
@@ -2441,7 +2441,8 @@ characters wide. And so on.
 
 Here is an example of how to reference this table for aggregating it:
 
-#+BEGIN: aggregate :table "fixed-qty-lev(fixed header 1)" :cols "day vmean(qty);f1 vmin(lev) vmax(lev)"
+#+begin_example
+,#+BEGIN: aggregate :table "fixed-qty-lev(fixed header 1)" :cols "day vmean(qty);f1 vmin(lev) vmax(lev)"
 | day | vmean(qty) | vmin(lev) | vmax(lev) |
 |-----+------------+-----------+-----------|
 | Mon |       48.2 |         1 |         5 |
@@ -2450,30 +2451,31 @@ Here is an example of how to reference this table for aggregating it:
 | Fri |       23.1 |         1 |         9 |
 | Sat |        9.7 |         3 |         3 |
 | Sun |        3.8 |         2 |         2 |
-#+END:
+,#+END:
+#+end_example
 
 The general reference parameter of =:table= is as follows:
 
 #+begin_example
  ╭─────────────────────╮      ╭─────────────────────────────╮
- │the name of the file,│      │the name of the block        │
+ │the name of the File,│      │the name of the block        │
  │optional             │      │if within an Org Mode buffer,│
  ╰─┬───────────────────╯    ╭─┤optional                     │
    │                        │ ╰─────────────────────────────╯
  ╭─╯  ╭─────────────────────╯               ╭────────────────────────────╮
  │    │          ╭───────────────────────╮  │the number of rows composing│
- │    │          │the "fixed-width" type,│  │the header of the table,    │
- │    │      ╭───┤mandatory              │  │optional                    │
- │    │      │   ╰───────────────────────╯  ╰───┬────────────────────────╯
- │    │      │         ╭────────────────────────╯
- ▼    ▼      ▼         ▼
+ │    │          │the "Fixed-width" type,│  │the header of the table,    │
+ │    │     ╭────┤mandatory              │  │optional                    │
+ │    │     │    ╰───────────────────────╯  ╰───┬────────────────────────╯
+ │    │     │          ╭────────────────────────╯
+ ▼    ▼     ▼          ▼
 file:name(fixed header 1 coord ((begA . endA) (begB . endB) …))
                           ▲       ▲      ▲      ▲      ▲
              ╭────────────╯       ╰───┬──╯      ╰───┬──╯
- ╭───────────┴──────────╮ ╭───────────┴────────╮ ╭──┴─────────────────╮
- │the columns positions,│ │start and end       │ │start and end       │
- │optional              │ │of the first column │ │of the second column│
- ╰──────────────────────╯ ╰────────────────────╯ ╰────────────────────╯
+ ╭───────────┴──────────╮ ╭───────────┴─────╮ ╭─────┴──────────────╮
+ │the columns positions,│ │start and end    │ │start and end       │
+ │optional              │ │of the 1st column│ │of the second column│
+ ╰──────────────────────╯ ╰─────────────────╯ ╰────────────────────╯
 #+end_example
 
 - The =file:= part is the path-name of the file where the table is

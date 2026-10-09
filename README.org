@@ -2469,7 +2469,7 @@ The general reference parameter of =:table= is as follows:
  │    │     │    ╰───────────────────────╯  ╰───┬────────────────────────╯
  │    │     │          ╭────────────────────────╯
  ▼    ▼     ▼          ▼
-file:name(fixed header 1 coord ((begA . endA) (begB . endB) …))
+f​ile:name(f​ixed header 1 coord ((begA . endA) (begB . endB) …))
                           ▲       ▲      ▲      ▲      ▲
              ╭────────────╯       ╰───┬──╯      ╰───┬──╯
  ╭───────────┴──────────╮ ╭───────────┴─────╮ ╭─────┴──────────────╮

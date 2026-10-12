@@ -2407,7 +2407,7 @@ block of any kind. Example with a "src" block for JavaScript:
   ["thu",34,"blue" ],
   …
 ]
-,#+end_src
+,#+end_example
 #+end_example
 
 ** Fixed-width input

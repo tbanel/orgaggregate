@@ -368,6 +368,34 @@ buffer. When done, the buffer and the original, untouched
 | Japan          |  9544065 | 37131070 |
 #+END:
 
+* test FixedWidth
+
+#+begin_src elisp :results none
+(orgtbl-aggregate-wizard-test
+ :init       "C-u C-c C-x x aggregate <return>"
+ :isid       "n"
+ :file       "unittests.org <return>"
+ :name       "fixwidthstatic <return>"
+ :params     "<left> fixed SPC header SPC 1 <return>"
+ :slice      "<return>"
+ :precompute "<return>"
+ :cols       "day SPC vsum ( qty ) <return>"
+ :cond       "<return>"
+ :hline      "<return>"
+ :post       "<return>"
+)
+#+end_src
+#+BEGIN: aggregate :table "unittests.org:fixwidthstatic(fixed header 1)" :cols "day vsum(qty)"
+| day | vsum(qty) |
+|-----+-----------|
+| Mon |      96.4 |
+| Thu |     141.4 |
+| Wed |       7.9 |
+| Fri |      69.3 |
+| Sat |       9.7 |
+| Sun |       3.8 |
+#+END:
+
 * test ID
 
 #+begin_src elisp :results none

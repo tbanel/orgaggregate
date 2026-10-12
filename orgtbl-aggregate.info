@@ -2480,7 +2480,7 @@ block of any kind.  Example with a "src" block for JavaScript:
        ["thu",34,"blue" ],
        …
      ]
-     #+end_src
+     #+end_example
 
 
 File: orgtbl-aggregate.info,  Node: Fixed-width input,  Next: Input slicing,  Prev: JSON input,  Up: Wide variety of inputs
@@ -2538,7 +2538,7 @@ characters wide.  And so on.
       │    │     │    ╰───────────────────────╯  ╰───┬────────────────────────╯
       │    │     │          ╭────────────────────────╯
       ▼    ▼     ▼          ▼
-     file:name(fixed header 1 coord ((begA . endA) (begB . endB) …))
+     f​ile:name(f​ixed header 1 coord ((begA . endA) (begB . endB) …))
                                ▲       ▲      ▲      ▲      ▲
                   ╭────────────╯       ╰───┬──╯      ╰───┬──╯
       ╭───────────┴──────────╮ ╭───────────┴─────╮ ╭─────┴──────────────╮
@@ -3817,36 +3817,36 @@ Node: Virtual input table from Babel89881
 Node: An Org ID92776
 Node: CSV input93377
 Node: JSON input94898
-Node: Fixed-width input97379
-Node: Input slicing103175
-Node: Malformed input tables103912
-Node: The cond filter104817
-Node: Virtual input columns with precompute106342
-Node: Post-processing113086
-Node: Spreadsheet formulas113627
-Node: Algorithm post processing115184
-Node: Grand total117147
-Node: Chaining121987
-Node: Pull & Push123676
-Node: Pull mode123910
-Node: Push mode125613
-Node: Pull or push ?127821
-Node: Debugging128555
-Node: Seeing the $ forms129078
-Node: Seeing Calc formulas before evaluation130288
-Node: Seeing Lisp internal form of Calc formulas131422
-Node: Example of debugging vsum(nn^2)132313
-Node: Summary of debugging formatters133742
-Node: Tricks134238
-Node: Sorting (1)134560
-Node: A few lowest or highest values135375
-Node: Span of values136676
-Node: No aggregation137235
-Node: Look at the first rows of a large table139137
-Node: Installation139913
-Node: Authors contributors140555
-Node: Changes142271
-Node: GPL 3 License147180
+Node: Fixed-width input97383
+Node: Input slicing103185
+Node: Malformed input tables103922
+Node: The cond filter104827
+Node: Virtual input columns with precompute106352
+Node: Post-processing113096
+Node: Spreadsheet formulas113637
+Node: Algorithm post processing115194
+Node: Grand total117157
+Node: Chaining121997
+Node: Pull & Push123686
+Node: Pull mode123920
+Node: Push mode125623
+Node: Pull or push ?127831
+Node: Debugging128565
+Node: Seeing the $ forms129088
+Node: Seeing Calc formulas before evaluation130298
+Node: Seeing Lisp internal form of Calc formulas131432
+Node: Example of debugging vsum(nn^2)132323
+Node: Summary of debugging formatters133752
+Node: Tricks134248
+Node: Sorting (1)134570
+Node: A few lowest or highest values135385
+Node: Span of values136686
+Node: No aggregation137245
+Node: Look at the first rows of a large table139147
+Node: Installation139923
+Node: Authors contributors140565
+Node: Changes142281
+Node: GPL 3 License147190
 
 End Tag Table
 

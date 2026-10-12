@@ -404,7 +404,8 @@ HEADER may be:
   ;; we suggest using an explicit set of character alternatives,
   ;; such as ‘[ \t]’, instead, as it will be faster than ‘[[:blank:]]’.
 
-  (rx-define blanks (* (any " \t ")))
+  (rx-define blanks   (* (any " \t ")))
+  (rx-define blanksnl (* (any " \t \n")))
 
   ;; search for table name, such as:
   ;; #+tablename: mytable
@@ -462,6 +463,50 @@ If FILE is nil, use current buffer."
       nil t)
      collect (match-string-no-properties 1))))
 
+(defun orgtbl-aggregate--is-name-diese+begin (file name)
+  "Return non-nil if FILE:NAME points to a #+beginXXX block.
+NAME should appear in FILE as a line like this:
+#+name: NAME
+FILE can be nil to search in the current buffer.
+Otherwise it is a file path."
+  (interactive)
+  (orgtbl-aggregate--with-file file
+    (search-forward-regexp
+     (rx
+      tblname (literal name) blanks "\n"
+      blanksnl
+      (*
+       (or
+        (seq "#+begin" unmatchable)
+        (seq "#" (* nonl) "\n" blanksnl)))
+      "#+begin")
+     nil t)))
+
+(defun orgtbl-aggregate--is-id-diese+begin (id)
+  "Return non-nil if ID points to a #+beginXXX block.
+ID is an org-id."
+  (interactive)
+  (let ((id-loc (org-id-find id 'marker)))
+    (and
+     id-loc
+     (markerp id-loc)
+     (with-current-buffer (marker-buffer id-loc)
+       (save-excursion
+         (goto-char (marker-position id-loc))
+         (move-marker id-loc nil)
+         (forward-line 1)
+         (search-forward-regexp
+          (rx
+           point
+           (* blanks ":" (+ alnum) ":" (* nonl) "\n")
+           blanksnl
+           (*
+            (or
+             (seq "#+begin" unmatchable)
+             (seq "#" (* nonl) "\n" blanksnl)))
+           "#+begin")
+          nil t))))))
+
 (defun orgtbl-aggregate--table-from-babel (name-or-id)
   "Retrieve an input table as the result of running a Babel block.
 NAME-OR-ID is the usual Org convention for pointing to a distant reference.
@@ -484,15 +529,19 @@ If FILE is nil, look in the current buffer.
 NAME should match a #+name: tag."
   (orgtbl-aggregate--with-file file
     (cond
-     ((not (re-search-forward (rx tblname (literal name))))
+     ((not (re-search-forward (rx tblname (literal name) blanks "\n")))
       nil)
      ((re-search-forward
-       (rx point blanks "\n" blanks "#+begin_src")
+       (rx
+        point
+        ;; do not try to detect additional lines here
+        ;; because org-babel-ref-resolve could not understand them
+        blanks "#+begin_src")
        nil t)
       (org-babel-ref-resolve name))
      ((re-search-forward
        (rx ;; a single regexp :)
-        point blanks "\n"
+        point blanks
         blanks "#+begin" (0+ nonl) "\n"
         (group (*? anything))
         bol blanks "#+end")
@@ -2616,6 +2665,13 @@ it is queried even when EXPERT is nil."
        (setq params "(json)"))
       ((string-match-p (rx ".fixed" eos) file)
        (setq params "(fixed)"))))
+
+    (and
+     (not params)
+     (or
+      (and name    (orgtbl-aggregate--is-name-diese+begin file name))
+      (and isorgid (orgtbl-aggregate--is-id-diese+begin orgid)))
+     (setq params "()"))
 
     (when (or expert params)
       (orgtbl-aggregate--display-help :params)

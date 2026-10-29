@@ -28,13 +28,14 @@ See [[#fixed-width-input][Fixed-width input]].
   - [[#name-your-input-table][Name your input table]]
   - [[#create-an-aggregation-block][Create an aggregation block]]
   - [[#refresh-the-aggregation][Refresh the aggregation]]
-- [[#equivalent-in-sql-r-datamash-el-tblfn-awk-c][Equivalent in SQL, R, Datamash, el-tblfn, Awk, C++]]
+- [[#equivalent-in-sql-r-datamash-el-tblfn-awk-c-rust][Equivalent in SQL, R, Datamash, el-tblfn, Awk, C++, Rust]]
   - [[#sql-equivalent][SQL equivalent]]
   - [[#r-equivalent][R equivalent]]
   - [[#datamash-equivalent][Datamash equivalent]]
   - [[#el-tblfn][el-tblfn]]
   - [[#awk-equivalent][Awk equivalent]]
   - [[#c-equivalent][C++ equivalent]]
+  - [[#rust-equivalent][Rust equivalent]]
 - [[#wizards][Wizards]]
   - [[#guiding-traditional-wizard][Guiding (traditional) wizard]]
   - [[#experimental-free-form-wizard][Experimental free form wizard]]
@@ -409,9 +410,9 @@ enriched by a possible =:formula= parameter (see [[#spreadsheet-formulas][Spread
 formulas]]). The new table computed by aggregation is then updated by
 the spreadsheet formulas.
 
-* Equivalent in SQL, R, Datamash, el-tblfn, Awk, C++
+* Equivalent in SQL, R, Datamash, el-tblfn, Awk, C++, Rust
 :PROPERTIES:
-:CUSTOM_ID: equivalent-in-sql-r-datamash-el-tblfn-awk-c
+:CUSTOM_ID: equivalent-in-sql-r-datamash-el-tblfn-awk-c-rust
 :END:
 
 Aggregation is a widely used method to get insights in tabular
@@ -476,13 +477,13 @@ The Misohena's =el-tblfn= package aggregates Org Mode tables through
 Lisp scripts. See https://github.com/misohena/el-tblfn. Example:
 
 #+begin_example
-,#+begin_src elisp :var original=original :colnames no :hlines yes
+#+begin_src elisp :var original=original :colnames no :hlines yes
 (require 'tblfn)
 (tblfn-join
  (tblfn-aggregate original "Day" "Level" "vmean")
  (tblfn-aggregate original "Day" "Quantity")
  "Day")
-,#+end_src
+#+end_src
 #+end_example
 
 Two separate aggregations are performed, then they are joined
@@ -545,6 +546,39 @@ for (auto it : SumQuantity)
   cout<<it.first<<" "
       <<SumLevel[it.first]/Count[it.first]<<" "
       <<SumQuantity[it.first]<<"\n";
+#+end_src
+#+end_example
+
+** Rust equivalent
+:PROPERTIES:
+:CUSTOM_ID: rust-equivalent
+:END:
+Rust is becoming the de-facto strongly typed, compiled language with
+strict memory lifespan management, without a garbage collector.
+
+Here we use a =HashMap= whose key is a day, and its value is a tuple.
+
+#+begin_example
+#+begin_src rust
+use std::collections::HashMap;
+
+fn summarize(original: &[Vec<String>]) {
+    let mut stats: HashMap<&str, (f64, f64, u32)> = HashMap::new();
+
+    for row in original {
+        let level: f64 = row[2].parse().unwrap();
+        let quantity: f64 = row[3].parse().unwrap();
+
+        let (sum_level, sum_quantity, count) = stats.entry(&row[0]).or_default();
+        *sum_level += level;
+        *sum_quantity += quantity;
+        *count += 1;
+    }
+
+    for (day, (sum_level, sum_quantity, count)) in &stats {
+        println!("{day} {} {sum_quantity}", sum_level / *count as f64);
+    }
+}
 #+end_src
 #+end_example
 
